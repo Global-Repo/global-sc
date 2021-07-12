@@ -3,88 +3,48 @@ pragma solidity 0.6.12;
 
 import './Ownable.sol';
 import './BEP20.sol';
-import './DevPower.sol';
 import './SafeMath.sol';
 import './Address.sol';
 import './IBEP20.sol';
+import './NativeToken.sol';
 
-/* /////////////////////////////////////////////////CAMBIAR: Nombre del swap y del token en constructor BEP20, una mica + a baix!!!!!*/
-contract NativeToken is BEP20{
-
-    // DS: Burn address podria ser 0x0 però mola més un 0x...dEaD;
-    address public constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
-
-    // DS: màxim antiwhale que podem posar. Per defecte, ningú podrà enviar més del 15% del supply mai.
-    // DS: no hi ha mínim, perque si hi ha un atac, podria ser-nos útil evitar que hi hagi transfers de tokens.
-    uint16 public constant MAX_ANTIWHALE = 1500;
-
-    // DS: A aquestes adreces no els hi aplica el mecanisme antiwhale
-    mapping(address => bool) private _antiWhaleWhiteList;
-
-    // DS: 2% del supply és el màxim que es pot transferir inicialment (es podrà modificar després). En diferent base per evitar decimals.
-    uint16 public antiWhalePercent = 200;
-
-    // DS: El dev és el únic que pot modificar les variables propies del token.
-    address private _mainDevWallet;
-
-    // Events
-    event MaxTransferAntiWhale(address indexed devPower, uint256 oldAntiWhalePercent, uint256 newAntiWhalePercent);
-
-    // DS: Constructor del token. Els paràmetres passen pel constructor del BEP20 + afegim adreces antiwhale whitelisted.
-    // DS: OnlyOwner i DevPower = msg.sender.
-    constructor() public BEP20('Glovol', 'GLV'){
-
-        // DS: el dev/contracte poden transferir entre ells o enviar a BURN_ADDRESS/address(0) sense problemes.
-        _antiWhaleWhiteList[msg.sender] = true;
-        _antiWhaleWhiteList[address(this)] = true;
-        _antiWhaleWhiteList[BURN_ADDRESS] = true;
-        _antiWhaleWhiteList[address(0)] = true;
+/* /////////////////////////////////////////////////CAMBIAR: Nombre del swap y del token en constructor BEP20, en la línea de abajo */
+contract QuoteToken is BEP20('GlovolSyrup', 'GLVS'){
+	
+	// DS: Burn address podria ser 0x0 però mola més un 0x...dEaD;
+	address public constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
+	
+	function burn(address _from ,uint256 _amount) public onlyOwner {
+        _burn(_from, _amount);
+        _moveDelegates(address(0), _delegates[_from], _amount);
     }
 
-    // DS: Getter if excluded from antiwhale
-    function GetIfExcludedFromAntiWhale(address addr) public view returns (bool) {
-        return _antiWhaleWhiteList[addr];
+    // Our token!
+    NativeToken public nativeToken;
+
+
+    constructor(
+        NativeToken _nativeToken
+    ) public {
+        nativeToken = _nativeToken;
     }
 
-    // DS: Per emergències o coses puntuals, si hem d'activar/desactivar alguna direcció de l'antiwhale
-    function setExcludedFromAntiWhale(address addr, bool _excluded) public onlyDevPower {
-        _antiWhaleWhiteList[addr] = _excluded;
-    }
-
-    // DS: Calculem el màxim de tokens que ens permetrà transferir l'antiwhale (depèn del totalSupply(), implementat a BEP20 + IBEP20).
-    function maxTokensTransferAmountAntiWhaleMethod() public view returns (uint256) {
-        return totalSupply().mul(antiWhalePercent).div(10000);
-    }
-
-    // DS: setejem un nou antiwhale percent. Lo normal serà anar baixant aquest valor a mesura que puji el marketcap.
-    function updateMaxTransferAntiWhale(uint16 _newAntiWhalePercent) public onlyDevPower {
-        require(_newAntiWhalePercent <= MAX_ANTIWHALE, "[!] Antiwhale method triggered. You are trying to set a % which is too high Check MAX_ANTIWHALE in the SC.");
-        emit MaxTransferAntiWhale(msg.sender, antiWhalePercent, _newAntiWhalePercent);
-        antiWhalePercent = _newAntiWhalePercent;
-    }
-
-    // DS: Setejem una condició a comprovar a una funció (transfer) abans d'executar-la.
-    modifier antiWhale(address origen, address destinataria, uint256 q) {
-
-        // DS: Comprovació simple per saber que no hi ha hagut problemes. El número de tokens mínims permesos en una transfer ha de ser superior a 0.
-        if (maxTokensTransferAmountAntiWhaleMethod() > 0) {
-
-            // DS: només podem saltar-nos l'antiwhale si tan origen com destí estàn whitelisted. Un dev no se'l pot saltar amb un user.
-            if (_antiWhaleWhiteList[origen] == false && _antiWhaleWhiteList[destinataria] == false)
-            {
-                require(q <= maxTokensTransferAmountAntiWhaleMethod(), "[!] Antiwhale method triggered. You are trying to transfer too many tokens. Calm down and don't panic sell bro.");
-            }
+    // Safe Native token transfer function, just in case if rounding error causes pool to not have enough Native tokens.
+    function SafeNativeTokenTransfer(address _to, uint256 _amount) public onlyOwner {
+        uint256 nativeTokenBal = nativeToken.balanceOf(address(this));
+        if (_amount > nativeTokenBal) {
+            nativeToken.transfer(_to, nativeTokenBal);
+        } else {
+            nativeToken.transfer(_to, _amount);
         }
-        _;
     }
-
-    // DS: fem override del _transfer, que és la funció que fa el _transfer "final" i serveix per poder aplicar característiques pròpies [Veure BEP20.sol].
-    function _transfer(address sender, address recipient, uint256 amount) internal virtual override antiWhale(sender, recipient, amount) {
-
-        // Fem servir el transfer normal.
-        super._transfer(sender, recipient, amount);
+	
+    /// @notice Creates `_amount` token to `_to`. Must only be called by the owner (MasterChef).
+    function mint(address _to, uint256 _amount) public onlyOwner {
+        _mint(_to, _amount);
+        _moveDelegates(address(0), _delegates[_to], _amount);
     }
-
+    
     function safe32(uint n, string memory errorMessage) internal pure returns (uint32) {
         require(n < 2**32, errorMessage);
         return uint32(n);
@@ -120,7 +80,7 @@ contract NativeToken is BEP20{
     /// @dev of states for signing / validating signatures
     mapping (address => uint) public nonces;
 
-    /// @dev An event thats emitted when an account changes its delegate
+      /// @dev An event thats emitted when an account changes its delegate
     event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
 
     /// @dev An event thats emitted when a delegate account's vote balance changes
@@ -130,15 +90,15 @@ contract NativeToken is BEP20{
      * @dev Delegate votes from `msg.sender` to `delegatee`
      * @param delegator The address to get delegatee for
      */
-    function delegates(address delegator) external view returns (address)
-    {
+    function delegates(address delegator) external view returns (address)    
+	{
         return _delegates[delegator];
     }
 
-    /**
-     * @dev votes from `msg.sender` to `delegatee`
-     * @param delegatee The address to delegate votes to
-     */
+   /**
+    * @dev votes from `msg.sender` to `delegatee`
+    * @param delegatee The address to delegate votes to
+    */
     function delegate(address delegatee) external {
         return _delegate(msg.sender, delegatee);
     }
@@ -160,7 +120,7 @@ contract NativeToken is BEP20{
         bytes32 r,
         bytes32 s
     )
-    external
+        external
     {
         bytes32 domainSeparator = keccak256(
             abi.encode(
@@ -201,9 +161,9 @@ contract NativeToken is BEP20{
      * @return The number of current votes for `account`
      */
     function getCurrentVotes(address account)
-    external
-    view
-    returns (uint256)
+        external
+        view
+        returns (uint256)
     {
         uint32 nCheckpoints = numCheckpoints[account];
         return nCheckpoints > 0 ? checkpoints[account][nCheckpoints - 1].votes : 0;
@@ -217,9 +177,9 @@ contract NativeToken is BEP20{
      * @return The number of votes the account had as of the given block
      */
     function getPriorVotes(address account, uint blockNumber)
-    external
-    view
-    returns (uint256)
+        external
+        view
+        returns (uint256)
     {
         require(blockNumber < block.number, "GLOBAL::getPriorVotes: not yet determined");
 
@@ -255,7 +215,7 @@ contract NativeToken is BEP20{
     }
 
     function _delegate(address delegator, address delegatee)
-    internal
+        internal
     {
         address currentDelegate = _delegates[delegator];
         uint256 delegatorBalance = balanceOf(delegator); // balance of underlying NativeTokens (not scaled);
@@ -292,7 +252,7 @@ contract NativeToken is BEP20{
         uint256 oldVotes,
         uint256 newVotes
     )
-    internal
+        internal
     {
         uint32 blockNumber = safe32(block.number, "GLOBAL::_writeCheckpoint: block number exceeds 32 bits");
 
