@@ -32,6 +32,8 @@ async function main() {
     console.log("NativeToken deployed to:", nativeToken.address);
     // console.log("QuoteToken deployed to:", quoteToken.address);
     console.log("Masterchef deployed to:", masterChef.address);
+
+    // TODO: mint x tokens and change token owner by masterchef address
 }
 
 // We recommend this pattern to be able to use async/await everywhere

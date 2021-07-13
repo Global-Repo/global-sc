@@ -15,7 +15,7 @@ beforeEach(async function () {
   deployedToken = await nativeToken.deploy();
 });
 
-describe("After deployment", function () {
+describe("NativeToken: After deployment", function () {
   it("Should to set the right owner", async function () {
     expect(await deployedToken.owner()).to.equal(owner.address);
   });

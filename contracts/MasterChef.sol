@@ -209,8 +209,19 @@ contract MasterChef is Ownable {
 
     // Add a new lp to the pool. Can only be called by the owner.
     // XXX DO NOT add the same LP token more than once. Rewards will be messed up if you do.
-    function add(uint256 _allocPoint, IBEP20 _lpToken, uint256 _harvestInterval, bool _withUpdate, uint16 _withDrawalFeeOfLps, uint16 _performanceFeesOfNativeTokens, uint256 _maxWithdrawalInterval, uint256 _withDrawalFeeOfLpsBurn, uint256 _withDrawalFeeOfLpsTeam, uint256 _performanceFeesOfNativeTokensBurn, uint256 _performanceFeesOfNativeTokensToLockedVault) public onlyOwner {
-
+    function add(
+        uint256 _allocPoint,
+        IBEP20 _lpToken,
+        uint256 _harvestInterval,
+        bool _withUpdate,
+        uint16 _withDrawalFeeOfLps,
+        uint16 _performanceFeesOfNativeTokens,
+        uint256 _maxWithdrawalInterval,
+        uint256 _withDrawalFeeOfLpsBurn,
+        uint256 _withDrawalFeeOfLpsTeam,
+        uint256 _performanceFeesOfNativeTokensBurn,
+        uint256 _performanceFeesOfNativeTokensToLockedVault
+    ) public onlyOwner {
         // Comprovem les 4 variables. Ho deixem separat per claretat.
         require(_harvestInterval <= MAX_INTERVAL, "[f] Add: invalid harvest interval");
         require(_withDrawalFeeOfLps <= MAX_FEE_LPS, "[f] Add: invalid withdrawal fees. Owner, you are trying to charge way too much! Check your numbers.");

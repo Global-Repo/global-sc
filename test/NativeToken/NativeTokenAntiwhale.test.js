@@ -15,7 +15,7 @@ beforeEach(async function () {
   deployedToken = await nativeToken.deploy();
 });
 
-describe("Antiwhale", function () {
+describe("NativeToken: Antiwhale", function () {
   it("Should to return max antiwhale", async function () {
     expect(await deployedToken.MAX_ANTIWHALE()).to.equal(MAX_ANTIWHALE);
   });
