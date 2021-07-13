@@ -18,7 +18,7 @@ beforeEach(async function () {
   const CURRENT_BLOCK = await ethers.provider.getBlockNumber();
   startBlock = CURRENT_BLOCK + 1;
 
-  const NativeToken = await ethers.getContractFactory("NativeToken", owner);
+  const NativeToken = await ethers.getContractFactory("NativeToken");
   nativeToken = await NativeToken.deploy();
   await nativeToken.deployed();
 

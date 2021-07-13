@@ -11,7 +11,7 @@ let deployedToken;
 
 beforeEach(async function () {
   [owner, addr1, addr2, ...addrs] = await ethers.getSigners();
-  nativeToken = await ethers.getContractFactory("NativeToken", owner);
+  nativeToken = await ethers.getContractFactory("NativeToken");
   deployedToken = await nativeToken.deploy();
 });
 
