@@ -586,7 +586,7 @@ contract MasterChef is Ownable {
 
     // Update dev address by the previous dev.
     function setDevAddress(address _devAddress) public {
-        require(msg.sender == _devAddress, "[f] Dev: You don't have permissions to change the dev address. DRACARYS.");
+        require(msg.sender == devAddr, "[f] Dev: You don't have permissions to change the dev address. DRACARYS.");
         require(_devAddress != address(0), "[f] Dev: _devaddr can't be address(0).");
         devAddr = _devAddress;
     }
