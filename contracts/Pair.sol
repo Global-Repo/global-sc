@@ -93,7 +93,7 @@ contract Pair is IPair, PancakeERC20 {
 
     // if fee is on, mint liquidity equivalent to 8/25 of the growth in sqrt(k)
     function _mintFee(uint112 _reserve0, uint112 _reserve1) private returns (bool feeOn) {
-        (address feeTo, uint feeNum, uint feeDenum) = IFactory(factory).feeTo();
+        (address feeTo, uint feeNum, uint feeDenum) = IFactory(factory).getCustomFee();
         feeOn = (feeTo != address(0)) && (feeNum > 0);
         uint _kLast = kLast; // gas savings
         if (feeOn) {

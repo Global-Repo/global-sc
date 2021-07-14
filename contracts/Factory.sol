@@ -7,21 +7,21 @@ import "./Pair.sol";
 contract Factory is IFactory {
     bytes32 public constant override INIT_CODE_PAIR_HASH = keccak256(abi.encodePacked(type(Pair).creationCode));
 
-    address public override feeTo;
-    uint public override feeNum;
-    uint public override feeDenum;
-    address public override feeToSetter;
+    address public feeTo;
+    uint public feeNum;
+    uint public feeDenum;
+    address public override feeSetter;
 
     mapping(address => mapping(address => address)) public override getPair;
     address[] public override allPairs;
 
     event PairCreated(address indexed token0, address indexed token1, address pair, uint);
 
-    constructor(address _feeToSetter) public {
-        feeToSetter = _feeToSetter;
+    constructor(address _feeSetter) public {
+        feeSetter = _feeSetter;
     }
 
-    function feeTo() external override view returns (address)
+    function getCustomFee() external override view returns (address, uint, uint)
     {
         return (feeTo,feeNum,feeDenum);
     }
@@ -47,8 +47,8 @@ contract Factory is IFactory {
         emit PairCreated(token0, token1, pair, allPairs.length);
     }
 
-    function setFeeTo(address _feeTo, uint _feeNum, uint _feeDenum) external override {
-        require(msg.sender == feeToSetter, 'Pancake: FORBIDDEN');
+    function setCustomFee(address _feeTo, uint _feeNum, uint _feeDenum) external override {
+        require(msg.sender == feeSetter, 'Pancake: FORBIDDEN');
         require(_feeNum < _feeDenum, 'You cannot set the fees to the total or more tnan the total of the fees');
         require(0 <= _feeNum, 'You cannot set numerator of the fees below 0');
         require(0 < _feeDenum, 'You cannot set denominator of the fees to 0 or below');
@@ -57,8 +57,8 @@ contract Factory is IFactory {
         feeDenum = _feeDenum;
     }
 
-    function setFeeToSetter(address _feeToSetter) external override {
-        require(msg.sender == feeToSetter, 'Pancake: FORBIDDEN');
-        feeToSetter = _feeToSetter;
+    function setFeeSetter(address _feeSetter) external override {
+        require(msg.sender == feeSetter, 'Pancake: FORBIDDEN');
+        feeSetter = _feeSetter;
     }
 }
