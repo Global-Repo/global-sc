@@ -31,10 +31,10 @@ contract Factory is IFactory {
     }
 
     function createPair(address tokenA, address tokenB) external override returns (address pair) {
-        require(tokenA != tokenB, 'Pancake: IDENTICAL_ADDRESSES');
+        require(tokenA != tokenB, 'IDENTICAL_ADDRESSES');
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
-        require(token0 != address(0), 'Pancake: ZERO_ADDRESS');
-        require(getPair[token0][token1] == address(0), 'Pancake: PAIR_EXISTS'); // single check is sufficient
+        require(token0 != address(0), 'ZERO_ADDRESS');
+        require(getPair[token0][token1] == address(0), 'PAIR_EXISTS');
         bytes memory bytecode = type(Pair).creationCode;
         bytes32 salt = keccak256(abi.encodePacked(token0, token1));
         assembly {
@@ -48,7 +48,7 @@ contract Factory is IFactory {
     }
 
     function setCustomFee(address _feeTo, uint _feeNum, uint _feeDenum) external override {
-        require(msg.sender == feeSetter, 'Pancake: FORBIDDEN');
+        require(msg.sender == feeSetter, 'FORBIDDEN');
         require(_feeNum < _feeDenum, 'You cannot set the fees to the total or more tnan the total of the fees');
         require(0 <= _feeNum, 'You cannot set numerator of the fees below 0');
         require(0 < _feeDenum, 'You cannot set denominator of the fees to 0 or below');
@@ -58,7 +58,7 @@ contract Factory is IFactory {
     }
 
     function setFeeSetter(address _feeSetter) external override {
-        require(msg.sender == feeSetter, 'Pancake: FORBIDDEN');
+        require(msg.sender == feeSetter, 'FORBIDDEN');
         feeSetter = _feeSetter;
     }
 }
