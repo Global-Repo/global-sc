@@ -7,9 +7,10 @@ import "./Pair.sol";
 contract Factory is IFactory {
     // bytes32 public constant INIT_CODE_PAIR_HASH = keccak256(abi.encodePacked(type(Pair).creationCode));
 
-    address public feeTo;
-    uint public feeNum;
-    uint public feeDenum;
+    address public devFeeTo;
+    uint public devFeeNum;
+    uint public devFeeDenum;
+    uint public swapFee;
     address public override feeSetter;
 
     mapping(address => mapping(address => address)) public override getPair;
@@ -25,9 +26,14 @@ contract Factory is IFactory {
        return keccak256(abi.encodePacked(type(Pair).creationCode));
     }
 
-    function getCustomFee() external override view returns (address, uint, uint)
+    function getDevFee() external override view returns (address, uint, uint)
     {
-        return (feeTo,feeNum,feeDenum);
+        return (devFeeTo,devFeeNum,devFeeDenum);
+    }
+
+    function getSwapFee() external override view returns (uint)
+    {
+        return swapFee;
     }
 
     function allPairsLength() external override view returns (uint) {
@@ -51,14 +57,21 @@ contract Factory is IFactory {
         emit PairCreated(token0, token1, pair, allPairs.length);
     }
 
-    function setCustomFee(address _feeTo, uint _feeNum, uint _feeDenum) external override {
+    function setDevFee(address _devFeeTo, uint _devFeeNum, uint _devFeeDenum) external override {
         require(msg.sender == feeSetter, 'FORBIDDEN');
-        require(_feeNum < _feeDenum, 'You cannot set the fees to the total or more tnan the total of the fees');
-        require(0 <= _feeNum, 'You cannot set numerator of the fees below 0');
-        require(0 < _feeDenum, 'You cannot set denominator of the fees to 0 or below');
-        feeTo = _feeTo;
-        feeNum = _feeNum;
-        feeDenum = _feeDenum;
+        require(_devFeeNum < _devFeeDenum, 'You cannot set the fees to the total or more tnan the total of the fees');
+        require(0 <= _devFeeNum, 'You cannot set numerator of the fees below 0');
+        require(0 < _devFeeDenum, 'You cannot set denominator of the fees to 0 or below');
+        devFeeTo = _devFeeTo;
+        devFeeNum = _devFeeNum;
+        devFeeDenum = _devFeeDenum;
+    }
+
+    //Es seteja la fee que es fa a cada swap en base 10000
+    function setSwapFee(uint _swapFee) external override {
+        require(msg.sender == feeSetter, 'FORBIDDEN');
+        require(0 <= _swapFee, 'You cannot set the swap fees below 0');
+        swapFee = _swapFee;
     }
 
     function setFeeSetter(address _feeSetter) external override {

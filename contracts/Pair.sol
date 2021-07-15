@@ -93,18 +93,18 @@ contract Pair is IPair, PancakeERC20 {
 
     // if fee is on, mint liquidity equivalent to 8/25 of the growth in sqrt(k)
     function _mintFee(uint112 _reserve0, uint112 _reserve1) private returns (bool feeOn) {
-        (address feeTo, uint feeNum, uint feeDenum) = IFactory(factory).getCustomFee();
-        feeOn = (feeTo != address(0)) && (feeNum > 0);
+        (address devFeeTo, uint devFeeNum, uint devFeeDenum) = IFactory(factory).getDevFee();
+        feeOn = (devFeeTo != address(0)) && (devFeeNum > 0);
         uint _kLast = kLast; // gas savings
         if (feeOn) {
             if (_kLast != 0) {
                 uint rootK = Math.sqrt(uint(_reserve0).mul(_reserve1));
                 uint rootKLast = Math.sqrt(_kLast);
                 if (rootK > rootKLast) {
-                    uint numerator = totalSupply.mul(rootK.sub(rootKLast)).mul(feeNum);
-                    uint denominator = rootK.mul(feeDenum.sub(feeNum)).add(rootKLast.mul(feeNum));
+                    uint numerator = totalSupply.mul(rootK.sub(rootKLast)).mul(devFeeNum);
+                    uint denominator = rootK.mul(devFeeDenum.sub(devFeeNum)).add(rootKLast.mul(devFeeNum));
                     uint liquidity = numerator / denominator;
-                    if (liquidity > 0) _mint(feeTo, liquidity);
+                    if (liquidity > 0) _mint(devFeeTo, liquidity);
                 }
             }
         } else if (_kLast != 0) {
@@ -183,8 +183,9 @@ contract Pair is IPair, PancakeERC20 {
         uint amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
         require(amount0In > 0 || amount1In > 0, 'Pancake: INSUFFICIENT_INPUT_AMOUNT');
         { // scope for reserve{0,1}Adjusted, avoids stack too deep errors
-            uint balance0Adjusted = (balance0.mul(10000).sub(amount0In.mul(25)));
-            uint balance1Adjusted = (balance1.mul(10000).sub(amount1In.mul(25)));
+            uint swapFeeAm = IFactory(factory).getSwapFee();
+            uint balance0Adjusted = (balance0.mul(10000).sub(amount0In.mul(swapFeeAm)));
+            uint balance1Adjusted = (balance1.mul(10000).sub(amount1In.mul(swapFeeAm)));
             require(balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0).mul(_reserve1).mul(10000**2), 'Pancake: K');
         }
 
