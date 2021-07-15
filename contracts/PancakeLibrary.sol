@@ -3,6 +3,7 @@ pragma solidity >=0.6.6;
 
 import "./SafeMath.sol";
 import "./IPair.sol";
+import "./IFactory.sol";
 
 library PancakeLibrary {
     using SafeMath for uint;
@@ -15,18 +16,22 @@ library PancakeLibrary {
     }
 
     // calculates the CREATE2 address for a pair without making any external calls
-    function pairFor(address factory, address tokenA, address tokenB) internal pure returns (address pair) {
+    function pairFor(address factory, address tokenA, address tokenB) internal view returns (address pair) {
         (address token0, address token1) = sortTokens(tokenA, tokenB);
         pair = address(uint(keccak256(abi.encodePacked(
                 hex'ff',
                 factory,
                 keccak256(abi.encodePacked(token0, token1)),
-                hex'c84d631a8faf36af97595b3a729ac637dc5c1c747a6bee1de07f06f34fb46686' // init code hash - Obtingut del factory
+                IFactory(factory).INIT_CODE_PAIR_HASH()
             ))));
     }
 
     // fetches and sorts the reserves for a pair
-    function getReserves(address factory, address tokenA, address tokenB) internal view returns (uint reserveA, uint reserveB) {
+    function getReserves(
+        address factory,
+        address tokenA,
+        address tokenB
+    ) internal view returns (uint reserveA, uint reserveB) {
         (address token0,) = sortTokens(tokenA, tokenB);
         pairFor(factory, tokenA, tokenB);
         (uint reserve0, uint reserve1,) = IPair(pairFor(factory, tokenA, tokenB)).getReserves();

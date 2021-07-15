@@ -5,7 +5,7 @@ import "./IFactory.sol";
 import "./Pair.sol";
 
 contract Factory is IFactory {
-    bytes32 public constant override INIT_CODE_PAIR_HASH = keccak256(abi.encodePacked(type(Pair).creationCode));
+    // bytes32 public constant INIT_CODE_PAIR_HASH = keccak256(abi.encodePacked(type(Pair).creationCode));
 
     address public feeTo;
     uint public feeNum;
@@ -19,6 +19,10 @@ contract Factory is IFactory {
 
     constructor(address _feeSetter) public {
         feeSetter = _feeSetter;
+    }
+
+    function INIT_CODE_PAIR_HASH() external override view returns (bytes32) {
+       return keccak256(abi.encodePacked(type(Pair).creationCode));
     }
 
     function getCustomFee() external override view returns (address, uint, uint)
