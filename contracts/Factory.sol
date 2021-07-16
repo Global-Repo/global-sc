@@ -17,9 +17,15 @@ contract Factory is IFactory {
     address[] public override allPairs;
 
     event PairCreated(address indexed token0, address indexed token1, address pair, uint);
+    event DevFeeChanged(address _devFeeTo, uint _devFeeNum, uint _devFeeDenum);
+    event SwapFeeChanged(uint _swapFee);
+    event FeeSetterChanged(address _feeSetter);
 
     constructor(address _feeSetter) public {
         feeSetter = _feeSetter;
+        devFeeNum = 2; //originalment 4
+        devFeeDenum = 9; // originalment 18
+        swapFee = 18;
     }
 
     function INIT_CODE_PAIR_HASH() external override view returns (bytes32) {
@@ -60,22 +66,24 @@ contract Factory is IFactory {
     function setDevFee(address _devFeeTo, uint _devFeeNum, uint _devFeeDenum) external override {
         require(msg.sender == feeSetter, 'FORBIDDEN');
         require(_devFeeNum < _devFeeDenum, 'You cannot set the fees to the total or more tnan the total of the fees');
-        require(0 <= _devFeeNum, 'You cannot set numerator of the fees below 0');
-        require(0 < _devFeeDenum, 'You cannot set denominator of the fees to 0 or below');
+        require(0 < _devFeeDenum, 'You cannot set denominator of the fees to 0');
         devFeeTo = _devFeeTo;
         devFeeNum = _devFeeNum;
         devFeeDenum = _devFeeDenum;
+        emit DevFeeChanged(_devFeeTo, _devFeeNum, _devFeeDenum);
     }
 
     //Es seteja la fee que es fa a cada swap en base 10000
     function setSwapFee(uint _swapFee) external override {
         require(msg.sender == feeSetter, 'FORBIDDEN');
-        require(0 <= _swapFee, 'You cannot set the swap fees below 0');
+        require(_swapFee <= 25, 'You cannot set the swap fees above 25');
         swapFee = _swapFee;
+        emit SwapFeeChanged(_swapFee);
     }
 
     function setFeeSetter(address _feeSetter) external override {
         require(msg.sender == feeSetter, 'FORBIDDEN');
         feeSetter = _feeSetter;
+        emit FeeSetterChanged(_feeSetter);
     }
 }

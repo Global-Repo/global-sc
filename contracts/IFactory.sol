@@ -3,6 +3,9 @@ pragma solidity >=0.6.6;
 
 interface IFactory {
     event PairCreated(address indexed token0, address indexed token1, address pair, uint);
+    event DevFeeChanged(address _devFeeTo, uint _devFeeNum, uint _devFeeDenum);
+    event SwapFeeChanged(uint _swapFee);
+    event FeeSetterChanged(address _feeSetter);
 
     function getSwapFee() external view returns (uint);
     function getDevFee() external view returns (address, uint, uint);
@@ -14,7 +17,7 @@ interface IFactory {
 
     function createPair(address tokenA, address tokenB) external returns (address pair);
 
-    function setSwapFee(uint _swapFee) external;
+    function setSwapFee(uint) external;
     function setDevFee(address, uint, uint) external;
     function setFeeSetter(address) external;
 

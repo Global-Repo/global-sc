@@ -53,8 +53,9 @@ describe("Factory: Create pair", function () {
   });
 
   it("Creates pair successfully and triggers an event", async function () {
-    await expect(factory.createPair(tokenA.address, tokenB.address))
-        .to.emit(factory, 'PairCreated');
+    await expect(
+        factory.createPair(tokenA.address, tokenB.address)
+    ).to.emit(factory, 'PairCreated');
     // TODO: //.withArgs(tokenA.address, tokenB.address, await factory.getPair(tokenA.address, tokenB.address), 1);
 
     expect(await factory.allPairsLength()).to.equal(1);
