@@ -65,17 +65,22 @@ describe("Router: Add liquidity", function () {
         BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
         BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
         BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-        addr1.address,
+        owner.address,
         timestamp
     );
 
-    // Check liquidity added
+    // Check liquidity added:
     const pairAddress = await factory.getPair(tokenA.address, tokenB.address);
 
+    // Pair contract have both tokens
     expect(await tokenA.balanceOf(pairAddress)).to.equal(BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
     expect(await tokenB.balanceOf(pairAddress)).to.equal(BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
 
-    // TODO: check LP tokens back to the owner
-    //const balanceLP = await pairAddress.balanceOf(owner.address);
+    // Owner has LP pair tokens back
+    const pairContract = await ethers.getContractFactory("Pair");
+    const pair = await pairContract.attach(pairAddress);
+    const balance = await pair.balanceOf(owner.address);
+
+    expect(balance.toString()).to.not.equal(0);
   });
 });
