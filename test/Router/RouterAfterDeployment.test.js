@@ -50,12 +50,9 @@ beforeEach(async function () {
 });
 
 describe("Router: Add liquidity", function () {
-  it("Add liquidity for token A and token B", async function () {
+  it("Add first time liquidity for token A and token B", async function () {
     let date = new Date();
     const timestamp = date.setTime(date.getTime() + 2 * 86400000); // +2 days
-
-    // Create pair -> not needed
-    await factory.createPair(tokenA.address, tokenB.address);
 
     // Add liquidity to the pair
     await router.connect(owner).addLiquidity(
@@ -82,5 +79,45 @@ describe("Router: Add liquidity", function () {
     const balance = await pair.balanceOf(owner.address);
 
     expect(balance.toString()).to.not.equal(0);
+  });
+
+  it("Add liquidity twice", async function () {
+    let date = new Date();
+    const timestamp = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+
+    await router.connect(owner).addLiquidity(
+        tokenA.address,
+        tokenB.address,
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        owner.address,
+        timestamp
+    );
+
+    const pairAddress = await factory.getPair(tokenA.address, tokenB.address);
+    const pairContract = await ethers.getContractFactory("Pair");
+    const pair = await pairContract.attach(pairAddress);
+    const firstTimeBalance = await pair.balanceOf(owner.address);
+
+    await router.connect(owner).addLiquidity(
+        tokenA.address,
+        tokenB.address,
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        owner.address,
+        timestamp
+    );
+
+    // Pair contract have both tokens
+    expect(await tokenA.balanceOf(pairAddress)).to.equal(BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+    expect(await tokenB.balanceOf(pairAddress)).to.equal(BigNumber.from(4).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+
+    // Owner has LP pair tokens back
+    const secondTimeBalance = await pair.balanceOf(owner.address);
+    expect(secondTimeBalance.gt(firstTimeBalance)).to.true;
   });
 });
