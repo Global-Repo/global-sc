@@ -70,13 +70,6 @@ contract BEP20 is Context, IBEP20, Ownable, DevPower {
     }
 
     /**
-     * @dev Returns the bep token owner.
-     */
-    function getDevPower() external override view returns (address) {
-        return GetDevPowerAddress();
-    }
-
-    /**
      * @dev Returns the token name.
      */
     function name() public override view returns (string memory) {

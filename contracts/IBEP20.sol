@@ -29,11 +29,6 @@ interface IBEP20 {
     function getOwner() external view returns (address);
 
     /**
-     * @dev Returns the bep token dev power.
-     */
-    function getDevPower() external view returns (address);
-
-    /**
      * @dev Returns the amount of tokens owned by `account`.
      */
     function balanceOf(address account) external view returns (uint256);

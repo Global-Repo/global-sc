@@ -63,7 +63,7 @@ function updateMultiplier(uint256 multiplierNumber) public onlyOwner {
 }*/
 
 // We hope code is bug-free. For everyone's life savings.
-contract MasterChef is Ownable {
+contract MasterChef is Ownable, DevPower {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
