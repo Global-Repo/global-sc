@@ -40,7 +40,7 @@ describe("MasterChef: After deployment", function () {
 
 describe("MasterChef: Pools", function () {
   it("Should to add a new liquidity provider (LP) pool", async function () {
-    await masterChef.add(
+    await masterChef.addPool(
       BigNumber.from(40).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
       "0xae1671Faa94A7Cc296D3cb0c3619e35600de384C", // TODO: LP Token
       DAY_IN_SECONDS * 3,

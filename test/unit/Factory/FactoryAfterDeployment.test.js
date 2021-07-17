@@ -23,6 +23,6 @@ describe("Factory: After deployment", function () {
   it("Check the proper init code hash", async function () {
     expect(
         await factory.INIT_CODE_PAIR_HASH()
-    ).to.equal("0x4c6acefbe12cc41140f9fbceb8778197fd09fd95dcef0272747fdc42018e9301");
+    ).to.equal("0xd877157a11b77db89382ba7a710edb173de58c97e06b19ac6983d8aa72ddd3f3");
   });
 });
