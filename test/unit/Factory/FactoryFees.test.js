@@ -23,7 +23,6 @@ describe("Factory: Fees", function () {
 
         //comprovem que el feesetter s'ha configurat be al addr1
         expect(await factory.feeSetter()).to.equal(addr1.address);
-
         //comprovem que ja no podem canviar feesetter des de owner
         await expect(
             factory.setFeeSetter(addr2.address)
@@ -70,6 +69,36 @@ describe("Factory: Fees", function () {
         expect(await factory.setSwapFee(20)).to.emit(factory, 'SwapFeeChanged').withArgs(20);
         await expect(factory.setSwapFee(26)).to.be.revertedWith("You cannot set the swap fees above 25");
     });
+
+    it("Only the fee setter can modify the dev fee", async function () {
+        await expect(
+            factory.connect(addr1).setDevFee(addr1.address,2,3)
+        ).to.be.revertedWith("FORBIDDEN");
+
+        expect(await factory.setDevFee(addr1.address,2,3)).to.emit(factory, 'DevFeeChanged').withArgs(addr1.address,2,3);
+
+        expect(await factory.setFeeSetter(addr1.address)).to.emit(factory, 'FeeSetterChanged').withArgs(addr1.address);
+
+        await expect(
+            factory.setDevFee(addr2.address,1,5)
+        ).to.be.revertedWith("FORBIDDEN");
+
+        await expect(
+            factory.connect(addr1).setDevFee(addr2.address,1,5)
+        ).to.emit(factory, 'DevFeeChanged').withArgs(addr2.address,1,5);
+
+    });
+
+
+    it("The dev fees cannot be set at 100% or above of the total fees", async function () {
+        expect(await factory.setDevFee(addr1.address,2,3)).to.emit(factory, 'DevFeeChanged').withArgs(addr1.address,2,3);
+        await expect(factory.setDevFee(addr2.address,3,2)).to.be.revertedWith("You cannot set the fees to the total or more tnan the total of the fees");
+        expect(await factory.setDevFee(addr2.address,1,5)).to.emit(factory, 'DevFeeChanged').withArgs(addr2.address,1,5);
+        await expect(factory.setDevFee(owner.address,2,2)).to.be.revertedWith("You cannot set the fees to the total or more tnan the total of the fees");
+        expect(await factory.setDevFee(owner.address,2,10)).to.emit(factory, 'DevFeeChanged').withArgs(owner.address,2,10);
+        await expect(factory.setDevFee(owner.address,100,99)).to.be.revertedWith("You cannot set the fees to the total or more tnan the total of the fees");
+    });
+
 });
 
 

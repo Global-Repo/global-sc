@@ -66,7 +66,7 @@ contract Factory is IFactory {
     function setDevFee(address _devFeeTo, uint _devFeeNum, uint _devFeeDenum) external override {
         require(msg.sender == feeSetter, 'FORBIDDEN');
         require(_devFeeNum < _devFeeDenum, 'You cannot set the fees to the total or more tnan the total of the fees');
-        require(0 < _devFeeDenum, 'You cannot set denominator of the fees to 0');
+        //require(0 < _devFeeDenum, 'You cannot set denominator of the fees to 0'); no cal per el require anterior
         devFeeTo = _devFeeTo;
         devFeeNum = _devFeeNum;
         devFeeDenum = _devFeeDenum;
