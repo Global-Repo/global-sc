@@ -49,7 +49,7 @@ beforeEach(async function () {
   await weth.approve(router.address, INITIAL_SUPPLY.toHexString());
 });
 
-describe("Router: Add liquidity", function () {
+describe("Add liquidity", function () {
   it("Add first time liquidity for token A and token B", async function () {
     let date = new Date();
     const timestamp = date.setTime(date.getTime() + 2 * 86400000); // +2 days

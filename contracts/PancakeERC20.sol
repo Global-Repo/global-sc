@@ -7,8 +7,8 @@ import "./SafeMath.sol";
 contract PancakeERC20 is IPancakeERC20 {
     using SafeMath for uint;
 
-    string public constant override name = 'Pancake LPs';
-    string public constant override symbol = 'Cake-LP';
+    string public constant override name = 'Global LPs';
+    string public constant override symbol = 'GLB-LP';
     uint8 public constant override decimals = 18;
     uint public override totalSupply;
     mapping(address => uint) public override balanceOf;
