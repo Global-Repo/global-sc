@@ -216,8 +216,13 @@ contract MasterChef is Ownable {
     // Burn address podria ser 0x0 però mola més un 0x...dEaD;
     address public constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
-    // Vault where locked tokens are
-    address public nativeTokenLockedVaultAddr;
+    // això s'ha de modificar però podriem passar-li per paràmetre per si en el futur hem de canviar el vault per alguna raó!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // AQUEST VAULT HAURIA DESTAR DINS DEL MASTERCHEF, PE`RO ÉS MÉS SENZILL TENIR UN CONTRACTE QUE TINGUI ELS TOKENS LOCKEDS, NO? O DEIXEM AQUÍ DINS EL VAULT AMB LES DIFERENTS OPCIONS? JO CREC QUE MILLOR UN VAULT DIFERENT
+    // PER CADA TIPUS DE GLOBAL STAKED I AIXÍ IMPLEMENTEM DIFERENTS ESTRATEGIES EN CADA CAS.
+    address public constant NATIVE_TOKEN_LOCKED_VAULT = 0x000000000000000000000000000000000000dEaD;
+
+
+
 
     // Dev address.
     address public devAddr;
@@ -290,29 +295,20 @@ contract MasterChef is Ownable {
         NativeToken _nativeToken,
         uint256 _nativeTokenPerBlock,
         uint256 _startBlock,
-        address _routerGlobal,
-        address _nativeTokenLockedVaultAddr
+        address _routerGlobal
     ) public {
         nativeToken = _nativeToken;
         nativeTokenPerBlock = _nativeTokenPerBlock;
         startBlock = _startBlock;
         devAddr = msg.sender;
         nativeTokenAddr = _nativeToken;
-        nativeTokenLockedVaultAddr = _nativeTokenLockedVaultAddr;
+
 
         // Aquípodem inicialitzar totes les pools de Native Token ja. //////////////////////////////////////////////////////////////////////
         // com a mínim el vault de tokens locked per tal de poder enviar tokens allà!!! if (performanceFee){... safenativetokentransfer
 
     }
 
-    function setLockedVaultAddress(address _newLockedVault) external onlyDevPower{
-        require(_newLockedVault != Address(0), "(f) SetLockedVaultAddress: you can't set the locked vault address to 0.");
-        nativeTokenLockedVaultAddr = _newLockedVault;
-    }
-
-    function getLockedVaultAddress() external returns(address){
-        return nativeTokenLockedVaultAddr;
-    }
 
     /// Funcions de l'autocompound
 
@@ -350,8 +346,6 @@ contract MasterChef is Ownable {
 
         // Mintem tokens al que ens ho ha demanat
         nativeToken.mint(msg.sender, _quantityToMint);
-
-        return NATIVE_TOKEN_LOCKED_VAULT;
     }
 
 
@@ -610,8 +604,8 @@ contract MasterChef is Ownable {
 
                         // Enviem les fees acumulades cap al vault de Global locked per fer boost dels rewards allà
                         /* AQUÍ POSEM LA DIRECCIÓ DEL VAULT DE NATIVE TOKEN LOCKED!!! */
-                        // SHA DE MODIFICAR EL nativeTokenLockedVaultAddr!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                        SafeNativeTokenTransfer(nativeTokenLockedVaultAddr, totalFeesToBoostLocked);
+                        // SHA DE MODIFICAR EL NATIVE_TOKEN_LOCKED_VAULT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                        SafeNativeTokenTransfer(NATIVE_TOKEN_LOCKED_VAULT, totalFeesToBoostLocked);
 
                         // Reiniciem el comptador de fees. Ho podem fer així i no cal l'increment de k com al AMM perque tota la info està al contracte
                         totalFeesToBoostLocked = 0;
