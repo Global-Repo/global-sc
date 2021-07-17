@@ -82,10 +82,10 @@ describe("Swap tokens", function () {
         timestamp
     );
 
-    const f = await tokenA.balanceOf(owner.address);
+    /*const f = await tokenA.balanceOf(owner.address);
     const g = await tokenB.balanceOf(owner.address);
     console.log(f.toString());
-    console.log(g.toString());
+    console.log(g.toString());*/
 
     // Remaining 100 - 10 added as liquidity = 90 tokenA
     expect(await tokenA.balanceOf(owner.address)).to.equal(BigNumber.from(90).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
@@ -101,10 +101,10 @@ describe("Swap tokens", function () {
         timestamp
     );
 
-    const a = await tokenA.balanceOf(owner.address);
+    /*const a = await tokenA.balanceOf(owner.address);
     const b = await tokenB.balanceOf(owner.address);
     console.log(a.toString());
-    console.log(b.toString());
+    console.log(b.toString());*/
 
     expect(await tokenA.balanceOf(owner.address)).to.equal(BigNumber.from(85).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
     // TODO: expect token B amount
@@ -120,9 +120,9 @@ describe("Swap tokens", function () {
     expect(await tokenA.balanceOf(owner.address)).to.equal(BigNumber.from(80).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
     // TODO: expect token B amount
 
-    const c = await tokenA.balanceOf(owner.address);
+    /*const c = await tokenA.balanceOf(owner.address);
     const d = await tokenB.balanceOf(owner.address);
     console.log(c.toString());
-    console.log(d.toString());
+    console.log(d.toString());*/
   });
 });
