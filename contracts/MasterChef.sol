@@ -226,9 +226,6 @@ contract MasterChef is Ownable {
     // No es minteja a cada block. Els tokens es queden com a deute i es cobren quan s'interactua amb la blockchain, sabent quants haig de pagar per bloc amb això.
     uint256 public nativeTokenPerBlock;
 
-    // No es minteja a cada block. Els tokens es queden com a deute i es cobren quan s'interactua amb la blockchain, sabent quants haig de pagar per bloc amb això.
-    uint256 public nativeTokenAddr;
-
     // Bonus muliplier for early native tokens makers.
     uint256 public BONUS_MULTIPLIER = 1;
 
@@ -290,34 +287,33 @@ contract MasterChef is Ownable {
         NativeToken _nativeToken,
         uint256 _nativeTokenPerBlock,
         uint256 _startBlock,
-        address _routerGlobal,
         address _nativeTokenLockedVaultAddr
     ) public {
         nativeToken = _nativeToken;
         nativeTokenPerBlock = _nativeTokenPerBlock;
         startBlock = _startBlock;
         devAddr = msg.sender;
-        nativeTokenAddr = _nativeToken;
         nativeTokenLockedVaultAddr = _nativeTokenLockedVaultAddr;
 
         // Aquípodem inicialitzar totes les pools de Native Token ja. //////////////////////////////////////////////////////////////////////
         // com a mínim el vault de tokens locked per tal de poder enviar tokens allà!!! if (performanceFee){... safenativetokentransfer
 
     }
-
-    function setLockedVaultAddress(address _newLockedVault) external onlyDevPower{
-        require(_newLockedVault != Address(0), "(f) SetLockedVaultAddress: you can't set the locked vault address to 0.");
+    // PASARLI DEVPOWER AQUÍ!!!!!!!!!!!!!!!!!!
+    function setLockedVaultAddress(address _newLockedVault) external onlyOwner{
+        require(_newLockedVault != address(0), "(f) SetLockedVaultAddress: you can't set the locked vault address to 0.");
         nativeTokenLockedVaultAddr = _newLockedVault;
     }
 
-    function getLockedVaultAddress() external returns(address){
+    function getLockedVaultAddress() external view returns(address){
         return nativeTokenLockedVaultAddr;
     }
 
     /// Funcions de l'autocompound
 
     // Cridarem a aquesta funció per afegir un vault, per indicar-li al masterchef que tindrà permís per mintejar native tokens
-    function setMinter(address minter, bool canMint) external override onlyOwner {
+
+    function setMinter(address minter, bool canMint) external onlyOwner {
         if (canMint) {
             _minters[minter] = canMint;
         } else {
@@ -343,7 +339,7 @@ contract MasterChef is Ownable {
 
     // La funció de mintfor al nostre MC només requerirà saber quants tokens MINTEJEM i li enviem al vualt, ja que les fees son independents de cada pool i es tractaran individualment.
     // Per lo tant, els càlculs de quants tokens volem, sempre es faràn al propi vault.
-    function mintNativeTokens(uint _quantityToMint) public payable override onlyMinter {
+    function mintNativeTokens(uint _quantityToMint) public payable onlyMinter returns (address){
 
         // Mintem un ~10% dels tokens a l'equip (10/110)
         nativeToken.mint(devAddr, _quantityToMint.div(10));
@@ -351,7 +347,7 @@ contract MasterChef is Ownable {
         // Mintem tokens al que ens ho ha demanat
         nativeToken.mint(msg.sender, _quantityToMint);
 
-        return NATIVE_TOKEN_LOCKED_VAULT;
+        return nativeTokenLockedVaultAddr;
     }
 
 
