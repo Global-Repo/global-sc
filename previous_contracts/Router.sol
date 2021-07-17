@@ -216,7 +216,6 @@ contract Router is IRouterV2 {
             (address token0,) = PancakeLibrary.sortTokens(input, output);
             uint amountOut = amounts[i + 1];
             (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOut) : (amountOut, uint(0));
-            //aqui biswap genera BISWAP COOINS amb les fees generades
             address to = i < path.length - 2 ? PancakeLibrary.pairFor(factory, output, path[i + 2]) : _to;
             IPair(PancakeLibrary.pairFor(factory, input, output)).swap(
                 amount0Out, amount1Out, to, new bytes(0)
@@ -330,11 +329,9 @@ contract Router is IRouterV2 {
             { // scope to avoid stack too deep errors
                 (uint reserve0, uint reserve1,) = pair.getReserves();
                 (uint reserveInput, uint reserveOutput) = input == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
-                swapFee = IFactory(factory).getSwapFee();
                 amountInput = IERC20(input).balanceOf(address(pair)).sub(reserveInput);
-                amountOutput = PancakeLibrary.getAmountOut(amountInput, reserveInput, reserveOutput, swapFee);
+                amountOutput = PancakeLibrary.getAmountOut(amountInput, reserveInput, reserveOutput);
             }
-            //aqui biswap genera BISWAP COOINS amb les fees generades
             (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOutput) : (amountOutput, uint(0));
             address to = i < path.length - 2 ? PancakeLibrary.pairFor(factory, output, path[i + 2]) : _to;
             pair.swap(amount0Out, amount1Out, to, new bytes(0));
@@ -408,24 +405,24 @@ contract Router is IRouterV2 {
         return PancakeLibrary.quote(amountA, reserveA, reserveB);
     }
 
-    function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut, uint swapFee)
+    function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut)
     public
     pure
     virtual
     override
     returns (uint amountOut)
     {
-        return PancakeLibrary.getAmountOut(amountIn, reserveIn, reserveOut, swapFee);
+        return PancakeLibrary.getAmountOut(amountIn, reserveIn, reserveOut);
     }
 
-    function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut, uint swapFee)
+    function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut)
     public
     pure
     virtual
     override
     returns (uint amountIn)
     {
-        return PancakeLibrary.getAmountIn(amountOut, reserveIn, reserveOut, swapFee);
+        return PancakeLibrary.getAmountIn(amountOut, reserveIn, reserveOut);
     }
 
     function getAmountsOut(uint amountIn, address[] memory path)
