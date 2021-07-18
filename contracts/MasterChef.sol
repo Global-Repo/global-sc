@@ -10,6 +10,8 @@ import './SafeMath.sol';
 import './IBEP20.sol';
 import './IMigratorChef.sol';
 import './NativeToken.sol';
+import './DevPower.sol';
+import './IPair.sol';
 import './IRouterV2.sol';
 
 // HEM DE FER IMPORT DE LA INTERFACE I DEL SC DEL VAULT!!!!!!!!!
@@ -18,7 +20,7 @@ import './IRouterV2.sol';
 // PER AFEGIR:
 // REENTRANCYGUARD, afegir igual que panther!!!
 // Emergency withdraw sha de cobrar withdraw fee within 4 days. No dona rewards, però no volem q surtin fent emergency withdraw sense pagar el withdraw fee. Performance fee no cal perque el emergency withdraw no pagarà rewards.
-// MIRAR BÉ COM FUNCIONA updatePool!!!
+// swapAndLiquifyEnabled això ho hem de posar o no??
 //     function deposit(uint256 _pid, uint256 _amount, address _referrer) public nonReentrant!!!!!!!!!!!!!!!!!!!!!!!!!!! mirar això de no reentrant, A LA CLASSE MASTERCHEF TAMBÉ!!!
 // enterStaking i leavestkaing és la 3a part: depositem GLOBALS, i aquí sha de mirar què es paga + ellockup + penalty +
 // La funció de withdraw, enlloc danar a la teva wallet, ha danar a la pool de GLOBALS VESTED. Podriem posar que la pool de pid = 0 és la vested de forma automàtica (pasarla pel constructor) i així ja la creem i sempre és la mateixa.
@@ -42,25 +44,26 @@ import './IRouterV2.sol';
 //aixi evitem els flash loans attacks també, perque ningú es pot quedar amb el 99% del vault degut a flash loans
 // Podriem fer un set i get de la direcció del router per testejarho + fàcil etc.
 // import "IPriceCalculator.sol";????
+// ASSEGURARNOS QUEPODEM DEIXAR DE DONAR REWARDS ALS VAULTS.
 // UPDATE PROTOCOL LIKE SUSHI!!!
 // LIMIT ORDERS!!! roadmap
+// HEM DE TESTEJAR AMB TOKENS QUE TENEN TRANSFER TAX PER VEURE SI ENS DONA PEL CUL AL POSAR I TERURE LIQUIDESA, NO SIGUI CAS QUE ELS CÀLCULS ES FACIN MALAMENT I HAGUEM DE COMPROVAR ELS VALORS DELS TOKENS QUE SENVIEN/ARRIBEN I ES REBEN MANUALMENT!!!
+// el vualt de locked de global hade gestionar els rewards que reb
 // comprovar els loans si estàn actius
 // S'ha de fer un pause ALL MINT FUNCTIONS i retornar FALSE perque facin rollback si les funcions fallen!!! vs un atac, PARME ELS MINS AMB DEVPOWER.
 // SHA DE FER UN PAUSE ALL DEPOSITS!!!!! I ROLLBACK!!!
 //  nativeToken.transfer(_to, nativeTokenBal); --> why not safetransfer??
 // afegir que el payoiut de les pools sigui amb un alrt token...te sentit???
-
+// onlyDevPower I ONLYOWNER, REVISA RUN PER UN!!!
+// falten crear molts events, veure exemples pantherdexemple...
 //////////////////////////////////////
 // uint256 vaultWithdrawalFeeOfLps;    	// % (10000 = 100%) Comissió aplicada als LPs si fas withdraw abans de que passi el temps definit a "maxWithdrawalInterval" desde l'últim dipòsit. Ho defineix el vault extern.
 // OJO!!! QUÈ PASSA SI UN DELS VAULTS MODIFICA EL % DE LES FEES DE FORMA INADVERTIDA? Si amplia les fees, ens tornarà MENYS tokens dels que esperem. Haurem de calcular els tokens retornats
 // I no fer el càlcul manual, q sino la liariem pardíssima
+// falta emergency withdraw i altres!!! OJO BUGS EMERGENCYWITHDRAW!!
 
 ////////////////////////
-
-/* // En principi no es fa servir... Revisar al final...
-function updateMultiplier(uint256 multiplierNumber) public onlyOwner {
-    BONUS_MULTIPLIER = multiplierNumber;
-}*/
+// revisar el nostre codi i les compeetncies a veure si falten algunes funcions
 
 // We hope code is bug-free. For everyone's life savings.
 contract MasterChef is Ownable, DevPower {
@@ -95,8 +98,6 @@ contract MasterChef is Ownable, DevPower {
         uint256 allocPoint;       							// Pes de la pool per indicar % de rewards que tindrà respecte el total. How many allocation points assigned to this pool. Weight of native tokens to distribute per block.
         uint256 lastRewardBlock;  							// Últim bloc que ha mintat native tokens.
         uint256 accNativeTokenPerShare; 					// Accumulated Native tokens per share, times 1e12.
-        uint256 withDrawalFeeOfLps;     					// % (10000 = 100%) Comissió aplicada als LPs si fas withdraw abans de que passi el temps definit a "maxWithdrawalInterval" desde l'últim dipòsit
-        uint256 performanceFeesOfNativeTokens;  			// % (10000 = 100%) Comissió aplicada als rewards si fas withdraw després de que passi el temps definit a "maxWithdrawalInterval" desde l'últim dipòsit
         uint256 harvestInterval;  							// Freqüència amb la que podràs fer claim en aquesta pool.
         uint256 maxWithdrawalInterval;						// Punt d'inflexió per decidir si cobres withDrawalFeeOfLps o bé performanceFeesOfNativeTokens
         uint256 withDrawalFeeOfLpsBurn;						// % (10000 = 100%) dels LPs que es cobraran com a fees que serviran per fer buyback. Aquest i withDrawalFeeOfLpsTeam han de sumar 10.000.
@@ -105,116 +106,18 @@ contract MasterChef is Ownable, DevPower {
         uint256 performanceFeesOfNativeTokensToLockedVault;	// % (10000 = 100%) dels rewards que es cobraran com a fees que serviran per fer boost dels native tokens locked
     }
 
-    // Info of each Vault. això han de ser variables individuals i les hem d'inicialitzar al constructor del vault!!!!!!!!!!
-    struct VaultInfo {
-        IBEP20 tokenOrLpToken;         			// Address of Asset/LP token contract.
-        address vaultAddress;         			// Address of Asset/LP token contract.
-        uint256 vaultWithdrawalFeeOfLps;    	// % (10000 = 100%) Comissió aplicada als LPs si fas withdraw abans de que passi el temps definit a "maxWithdrawalInterval" desde l'últim dipòsit. Ho defineix el vault extern.
-        // OJO!!! QUÈ PASSA SI UN DELS VAULTS MODIFICA EL % DE LES FEES DE FORMA INADVERTIDA? Si amplia les fees, ens tornarà MENYS tokens dels que esperem. Haurem de calcular els tokens retornats
-        // I no fer el càlcul manual, q sino la liariem pardíssima
-        uint256 vaultIntervalFeeOnLps;    		// Temps en el que el vault t'aplica comissió.
-        uint256 ourWithdrawalFeeOfLps;    		// % (10000 = 100%) Comissió aplicada als LPs per part nostre si fas withdraw abans de que passi el temps definit a "withdrawalIntervalFeeOnLps" desde l'últim dipòsit.
-        uint256 withdrawalIntervalFeeOnLps;    	// Temps durant el que cobres comissió.
-        uint256 rewardsInVaultTokens;    		// % (10000 = 100%) dels tokens optimitzats que es paguen.
-        uint256 rewardsForOperations;    		// % (10000 = 100%) dels tokens optimitzats que es venen per $BUSD i s'envien a la dev address per 'operacions'.
-        uint256 rewardsToBuyGlobal;	    		// % (10000 = 100%) dels tokens optimitzats que es venen per comprar $Global.
-        uint256 rewardsToBuyBNB;	    		// % (10000 = 100%) dels tokens optimitzats que es venen per comprar $BNB.
-        uint256 extraNativeTokenMinted;    		// % de tokens $Global que es mintejen sobre el total de tokens optimitzats. Exemple. extraNativeTokenMinted = 2000 (= 20%). 100 cake rewards -> 20 tokens $Global extres mintats.
-        IRouterV2 router1;						// Router per convertir els LPs/staking a $BNB. [OJO: LA INTERFACE D'AQUEST ROUTER POT CANVIAR!! HA DE TENIR LA INTERFACE DEL ROUTER DESTINO!! SERVIRÀ PER QUAN ET QUEDES LPS I ELS HAS DE CREMAR PER QUEDARTE ELS TOKSN!!! ]
-        IRouterV2 router2;						// Router per convertir $BNB a GLOBAL. Podria ser sempre Global, però el deixem com a variable per si de cas el nostre router té problems i necessitem canviar-ho a un extern (que tingui liquidesa) temporalment.
-    }
-
-    // Direcció del nostre router del AMM, que al final no canvia mai. No cal hardcoded per si algún dia hem de fer el swap a una altra banda que fa servir la mateixa interface.this
-    // Tot i que en realitat, el router NOMÉS le fem servir per cobrarnos els LPS si l'usuari unstakeja abans de temps. Per tant, seria millor posar-lo hardcoded. Si algún dia passa alguna cosa, deixem a la peña treure els seus tokens
-    // de dins gratis, perque el motiu de canviar de router = ha passat alguna cosa, pel que les fees haurien de ser 0. Per lo tant, el q hem de fer, és posar la direcció del router1 i 2 hardcoded al vault.
-    /*address public addrRouterGlobal;
-    // Variable del nostre router com a tal
+    // Inicialitzem el nostre router Global
     IRouterV2 public routerGlobal;
-
-    // Mostra'm la direcció del router de global
-    function getAddRouterGlobal() external view returns(address){
-        return routerGlobal;
-    }
-
-    // Si el router s'ha de canviar per optimizar alguna cosa, canvia'l
-    function setRouterGlobal(address _newRouterGlobal) public onlyOwner(){
-        addrRouterGlobal = _newRouterGlobal;
-        routerGlobal = IRouterV2(addrRouterGlobal);
-    }
-    */
-
-    /*
-    Això anirà al constructor del vault:
-            // Guardem la address del router de Global
-        addrRouterGlobal = _routerGlobal;
-        // Inicialitzem el nostre router Global
-        routerGlobal = IRouterV2(addrRouterGlobal);
-
-        // El add vault serà el constructor del vault. S'hauràn d'importar algunes variables o bé les passem al interface del masterchef perque així agafin
-        // Add a new lp to the pool. Can only be called by the owner.
-    // XXX DO NOT add the same LP token more than once. Rewards will be messed up if you do.  --------- HEM DE MIRAR QUÈ PASSA AQUÍ, NO SIGUI CAS Q NO PUGUEM FER DOS VAULTS AMB DIFERENTS ESTRATÈGIES I S'HAGI DE SOLUCIONAR!!!
-    function addVault(
-        IBEP20 _assetToken,
-        address _vaultAddress,
-        uint256 _vaultWithdrawalFeeOfLps,
-        uint256 _vaultIntervalFeeOnLps,
-        uint256 _ourWithdrawalFeeOfLps,
-        uint256 _withdrawalIntervalFeeOnLps,
-        uint256 _rewardsInVaultTokens,
-        uint256 _rewardsForOperations,
-        uint256 _rewardsToBuyGlobal,
-        uint256 _rewardsToBuyBNB,
-        uint256 _extraNativeTokenMinted,
-        address _router1,
-        address _router2
-    ) public onlyOwner {
-        require(vaultWithdrawalFeeOfLps <= 10000, "[f] addVault: invalid harvest interval");
-        require(ourWithdrawalFeeOfLps <= MAX_FEE_LPS, "[f] addVault: invalid withdrawal fees. Owner, you are trying to charge way too much! Check your numbers.");
-        require(withdrawalIntervalFeeOnLps <= MAX_INTERVAL, "[f] addVault: invalid performance fees. Owner, you are trying to charge way too much! Check your numbers.");
-        require(rewardsInVaultTokens.add(rewardsForOperations.add(rewardsToBuyGlobal.add(rewardsToBuyBNB))) == 10000, "[f] addVault: incorrect strategy. We do not have so many reward tokens. Check your numbers.");
-        require(extraNativeTokenMinted <= MAX_EXTRA_NATIVE_TOKENS_MINTED, "[f] addVault: we can't mint so many tokens, it would be ridiculous. Check your numbers.");
-
-        // AIXÒ S'HA DE REVISAR JA QUE NO SABEM SI PELS VAULTS FUNCIONARÀ BÉ!!!!!!!!!!
-        if (_withUpdate) {
-            massUpdatePools();
-        }
-
-        uint256 lastRewardBlock = block.number > startBlock ? block.number : startBlock;
-
-        VaultInfo.push(VaultInfo({
-            assetToken: _assetToken,
-            vaultAddress: _vaultAddress,
-            vaultWithdrawalFeeOfLps: _vaultWithdrawalFeeOfLps,
-            vaultIntervalFeeOnLps: _vaultIntervalFeeOnLps,
-            ourWithdrawalFeeOfLps: _ourWithdrawalFeeOfLps,
-            withdrawalIntervalFeeOnLps: _withdrawalIntervalFeeOnLps,
-            rewardsInVaultTokens: _rewardsInVaultTokens,
-            rewardsForOperations: _rewardsForOperations,
-            rewardsToBuyGlobal: _rewardsToBuyGlobal,
-            rewardsToBuyBNB: _rewardsToBuyBNB,
-            extraNativeTokenMinted: _extraNativeTokenMinted,
-            router1: _router1,
-            router2: _router2
-        }));
-
-        // i aquí hauriem de fer un setRouter en el que pillem la variable dle router i creem lobjecte IRouterV2.
-    }
-
-    // COM UN VAULT ÉS INDIVIDUAL I NO HI HA UN ARRAY, LO IDEAL SERIA QUE FESSIM UN GETTER I UN SETTER DE CADA UN DE FORMA INDIVIDUAL!!!! EL CONSTRUCTOR ELS TÉ TOT,S PERÒ DESPRÉS TENIM ELS GETTERS I SETTERS INDIVIDUALS I NO GLOBALS.
-
-    */
-
-
-
-
-    // Max rewards per farm... alguna constant de control aquí i un maxim dextra nativetokenminted...??? //////////////////////////////
-
 
     // Our token {~Cake}
     NativeToken public nativeToken;
 
     // Burn address podria ser 0x0 però mola més un 0x...dEaD;
     address public constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
+
+    // POSAR AQUÍ LA DIRECCIÓ WETH HARDCODED!!!!!!!!!!!!!!!!!!!!!!!!
+    // SHA DE MODIFICAAAAAAAAAAAR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    address public constant WETH = 0x000000000000000000000000000000000000dEaD;
 
     // Vault where locked tokens are
     address public nativeTokenLockedVaultAddr;
@@ -236,8 +139,8 @@ contract MasterChef is Ownable, DevPower {
     // Seguretat per l'usuari per indicar-li que no cobrarem mai més d'un 5% de withdrawal performance fee
     uint256 public constant MAX_FEE_PERFORMANCE = 500;
 
-    // Max withdrawal fee of the LPs deposited: 1%.
-    uint256 public constant MAX_FEE_LPS = 200;
+    // Max withdrawal fee of the LPs deposited: 1.5%.
+    uint256 public constant MAX_FEE_LPS = 150;
 
     // Max extra minted tokens for strategy X in a vault
     uint256 public constant MAX_EXTRA_NATIVE_TOKENS_MINTED = 200;
@@ -287,20 +190,27 @@ contract MasterChef is Ownable, DevPower {
         NativeToken _nativeToken,
         uint256 _nativeTokenPerBlock,
         uint256 _startBlock,
-        address _nativeTokenLockedVaultAddr
+        address _nativeTokenLockedVaultAddr,
+        address _routerGlobal
     ) public {
         nativeToken = _nativeToken;
         nativeTokenPerBlock = _nativeTokenPerBlock;
         startBlock = _startBlock;
         devAddr = msg.sender;
         nativeTokenLockedVaultAddr = _nativeTokenLockedVaultAddr;
-
+        routerGlobal = IRouterV2(_routerGlobal);
         // Aquípodem inicialitzar totes les pools de Native Token ja. //////////////////////////////////////////////////////////////////////
-        // com a mínim el vault de tokens locked per tal de poder enviar tokens allà!!! if (performanceFee){... safenativetokentransfer
+        // tOT I QUE MOLaria més tenir vaults apart on enviem la pasta i que es gestionin de forma independent, així no liem el masterchef... lo únic q aquells contractes no podràn mintar dentrada perque no farem whitelist, només serveixen per repartir tokens
 
     }
-    // PASARLI DEVPOWER AQUÍ!!!!!!!!!!!!!!!!!!
-    function setLockedVaultAddress(address _newLockedVault) external onlyOwner{
+
+
+    function setRouter(address _router) public onlyOwner {
+        routerGlobal = IRouterV2(_router);
+    }
+
+
+    function setLockedVaultAddress(address _newLockedVault) external onlyDevPower{
         require(_newLockedVault != address(0), "(f) SetLockedVaultAddress: you can't set the locked vault address to 0.");
         nativeTokenLockedVaultAddr = _newLockedVault;
     }
@@ -312,7 +222,6 @@ contract MasterChef is Ownable, DevPower {
     /// Funcions de l'autocompound
 
     // Cridarem a aquesta funció per afegir un vault, per indicar-li al masterchef que tindrà permís per mintejar native tokens
-
     function setMinter(address minter, bool canMint) external onlyOwner {
         if (canMint) {
             _minters[minter] = canMint;
@@ -338,8 +247,8 @@ contract MasterChef is Ownable, DevPower {
     }
 
     // La funció de mintfor al nostre MC només requerirà saber quants tokens MINTEJEM i li enviem al vualt, ja que les fees son independents de cada pool i es tractaran individualment.
-    // Per lo tant, els càlculs de quants tokens volem, sempre es faràn al propi vault.
-    function mintNativeTokens(uint _quantityToMint) public payable onlyMinter returns (address){
+    // Per lo tant, els càlculs de quants tokens volem, sempre es faràn al propi vault. La lògica queda delegada al vault.
+    function mintNativeTokens(uint _quantityToMint) public onlyMinter returns (address){
 
         // Mintem un ~10% dels tokens a l'equip (10/110)
         nativeToken.mint(devAddr, _quantityToMint.div(10));
@@ -350,14 +259,10 @@ contract MasterChef is Ownable, DevPower {
         return nativeTokenLockedVaultAddr;
     }
 
-
-
     // Quantes pools tenim en marxa?
     function poolLength() external view returns (uint256) {
         return poolInfo.length;
     }
-
-
 
     // Add a new lp to the pool. Can only be called by the owner.
     // XXX DO NOT add the same LP token more than once. Rewards will be messed up if you do.
@@ -366,8 +271,6 @@ contract MasterChef is Ownable, DevPower {
         IBEP20 _lpToken,
         uint256 _harvestInterval,
         bool _withUpdate,
-        uint16 _withDrawalFeeOfLps,
-        uint16 _performanceFeesOfNativeTokens,
         uint256 _maxWithdrawalInterval,
         uint256 _withDrawalFeeOfLpsBurn,
         uint256 _withDrawalFeeOfLpsTeam,
@@ -375,11 +278,10 @@ contract MasterChef is Ownable, DevPower {
         uint256 _performanceFeesOfNativeTokensToLockedVault
     ) public onlyOwner {
         require(_harvestInterval <= MAX_INTERVAL, "[f] Add: invalid harvest interval");
-        require(_withDrawalFeeOfLps <= MAX_FEE_LPS, "[f] Add: invalid withdrawal fees. Owner, you are trying to charge way too much! Check your numbers.");
-        require(_performanceFeesOfNativeTokens <= MAX_FEE_PERFORMANCE, "[f] Add: invalid performance fees. Owner, you are trying to charge way too much! Check your numbers.");
         require(_maxWithdrawalInterval <= MAX_INTERVAL, "[f] Add: invalid withdrawal interval. Owner, there is a limit! Check your numbers.");
-        require(_withDrawalFeeOfLpsTeam.add(_withDrawalFeeOfLpsBurn) == 10000, "[f] Add: invalid LP fee distribution. Numbers don't match.");
-        require(_performanceFeesOfNativeTokensBurn.add(_performanceFeesOfNativeTokensToLockedVault) == 10000, "[f] Add: invalid reward fee distribution. Numbers don't match.");
+        require(_withDrawalFeeOfLpsTeam.add(_withDrawalFeeOfLpsBurn) <= MAX_FEE_LPS, "[f] Add: invalid withdrawal fees. Owner, you are trying to charge way too much! Check your numbers.");
+        require(_performanceFeesOfNativeTokensBurn.add(_performanceFeesOfNativeTokensToLockedVault) <= MAX_FEE_PERFORMANCE, "[f] Add: invalid performance fees. Owner, you are trying to charge way too much! Check your numbers.");
+
 
         if (_withUpdate) {
             massUpdatePools();
@@ -393,8 +295,6 @@ contract MasterChef is Ownable, DevPower {
         allocPoint: _allocPoint,
         lastRewardBlock: lastRewardBlock,
         accNativeTokenPerShare: 0,
-        withDrawalFeeOfLps: _withDrawalFeeOfLps,
-        performanceFeesOfNativeTokens: _performanceFeesOfNativeTokens,
         harvestInterval: _harvestInterval,
         maxWithdrawalInterval: _maxWithdrawalInterval,
         withDrawalFeeOfLpsBurn: _withDrawalFeeOfLpsBurn,
@@ -404,17 +304,12 @@ contract MasterChef is Ownable, DevPower {
         }));
     }
 
-
-
-    // AIXÒ HA DE PASSAR AL VAULT I COM A CONSTRUCTOR!!!
     // Update the given pool's Native tokens allocation point, withdrawal fees, performance fees and harvest interval. Can only be called by the owner.
     function setPool(
         uint256 _pid,
         uint256 _allocPoint,
         uint256 _harvestInterval,
         bool _withUpdate,
-        uint16 _withDrawalFeeOfLps,
-        uint16 _performanceFeesOfNativeTokens,
         uint256 _maxWithdrawalInterval,
         uint256 _withDrawalFeeOfLpsBurn,
         uint256 _withDrawalFeeOfLpsTeam,
@@ -423,10 +318,8 @@ contract MasterChef is Ownable, DevPower {
     ) public onlyOwner {
         require(_harvestInterval <= MAX_INTERVAL, "[f] Add: invalid harvest interval");
         require(_maxWithdrawalInterval <= MAX_INTERVAL, "[f] Add: invalid withdrawal interval. Owner, there is a limit! Check your numbers.");
-        require(_withDrawalFeeOfLps <= MAX_FEE_LPS, "[f] Add: invalid withdrawal fees. Owner, you are trying to charge way too much! Check your numbers.");
-        require(_performanceFeesOfNativeTokens <= MAX_FEE_PERFORMANCE, "[f] Add: invalid performance fees. Owner, you are trying to charge way too much! Check your numbers.");
-        require(_withDrawalFeeOfLpsTeam.add(_withDrawalFeeOfLpsBurn) == 10000, "[f] Add: invalid LP fee distribution. Numbers don't match.");
-        require(_performanceFeesOfNativeTokensBurn.add(_performanceFeesOfNativeTokensToLockedVault) == 10000, "[f] Add: invalid reward fee distribution. Numbers don't match.");
+        require(_withDrawalFeeOfLpsTeam.add(_withDrawalFeeOfLpsBurn) <= MAX_FEE_LPS, "[f] Add: invalid withdrawal fees. Owner, you are trying to charge way too much! Check your numbers.");
+        require(_performanceFeesOfNativeTokensBurn.add(_performanceFeesOfNativeTokensToLockedVault) <= MAX_FEE_PERFORMANCE, "[f] Add: invalid performance fees. Owner, you are trying to charge way too much! Check your numbers.");
 
         if (_withUpdate) {
             massUpdatePools();
@@ -434,8 +327,6 @@ contract MasterChef is Ownable, DevPower {
 
         totalAllocPoint = totalAllocPoint.sub(poolInfo[_pid].allocPoint).add(_allocPoint);
         poolInfo[_pid].allocPoint = _allocPoint;
-        poolInfo[_pid].withDrawalFeeOfLps = _withDrawalFeeOfLps;
-        poolInfo[_pid].performanceFeesOfNativeTokens = _performanceFeesOfNativeTokens;
         poolInfo[_pid].harvestInterval = _harvestInterval;
         poolInfo[_pid].maxWithdrawalInterval = _maxWithdrawalInterval;
         poolInfo[_pid].withDrawalFeeOfLpsBurn = _withDrawalFeeOfLpsBurn;
@@ -444,7 +335,6 @@ contract MasterChef is Ownable, DevPower {
         poolInfo[_pid].performanceFeesOfNativeTokensToLockedVault = _performanceFeesOfNativeTokensToLockedVault;
 
     }
-
     // Set the migrator contract. Can only be called by the owner.
     function setMigrator(IMigratorChef _migrator) public onlyOwner {
         migrator = _migrator;
@@ -483,7 +373,7 @@ contract MasterChef is Ownable, DevPower {
         }
 
         // Tokens pendientes de recibir
-        uint256 pending =   user.amount.mul(accNativeTokenPerShare).div(1e12).sub(user.rewardDebt);
+        uint256 pending = user.amount.mul(accNativeTokenPerShare).div(1e12).sub(user.rewardDebt);
         return pending.add(user.rewardLockedUp);
     }
 
@@ -493,7 +383,6 @@ contract MasterChef is Ownable, DevPower {
         UserInfo storage user = userInfo[_pid][_user];
         return block.timestamp >= user.nextHarvestUntil;
     }
-
 
     // Update reward variables for all pools. Be careful of gas spending!
     function massUpdatePools() public {
@@ -541,11 +430,8 @@ contract MasterChef is Ownable, DevPower {
         pool.lastRewardBlock = block.number;
     }
 
-
-
     // Paguem els rewards o no es poden pagar?
-    // Si fem un diposit o un harvest (= diposit de 0 tokens) o un withdraw tornem a afegir el temps de harvest (reiniciem el comptador basicament) i sempre es paguen els rewards pendents de rebre
-    // Això ho hem de fer servir pel farm!!!
+    // Si fem un diposit,un harvest (= diposit de 0 tokens) o un withdraw tornem a afegir el temps de harvest (reiniciem el comptador bàsicament) i sempre es paguen els rewards pendents de rebre
     function payOrLockupPendingNativeToken(uint256 _pid) internal returns (bool) {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
@@ -583,15 +469,12 @@ contract MasterChef is Ownable, DevPower {
                     // Tocarà fer una transfer, augmentem el comptador
                     counterForTransfers++;
 
-                    // Tota la fee que li traiem al usuari
-                    uint256 feeTaken = totalRewards.mul(pool.performanceFeesOfNativeTokens).div(10000);
-
-                    // Rewards que finalment rebrà l'usuari
-                    totalRewards = totalRewards.sub(feeTaken);
+                    // Rewards que finalment rebrà l'usuari: total rewards - feesTaken
+                    totalRewards = totalRewards.sub(totalRewards.mul(pool.performanceFeesOfNativeTokensBurn.add(pool.performanceFeesOfNativeTokensToLockedVault)).div(10000));
 
                     // Fees que cremarem i fees que enviarem per fer boost dels locked. Les acumulem a l'espera d'enviarles quan toquin
-                    totalFeesToBurn = totalFeesToBurn.add(feeTaken.mul(pool.performanceFeesOfNativeTokensBurn).div(10000));
-                    totalFeesToBoostLocked = totalFeesToBoostLocked.add(feeTaken.mul(pool.performanceFeesOfNativeTokensBurn).div(10000));
+                    totalFeesToBurn = totalFeesToBurn.add(totalRewards.mul(pool.performanceFeesOfNativeTokensBurn.div(10000)));
+                    totalFeesToBoostLocked = totalFeesToBoostLocked.add(totalRewards.mul(pool.performanceFeesOfNativeTokensToLockedVault.div(10000)));
 
                     // Si ja hem fet més de 25 transaccions, ja hem acumulat suficient per tractar-les
                     if (counterForTransfers > 25){
@@ -605,8 +488,6 @@ contract MasterChef is Ownable, DevPower {
                         totalFeesToBurn = 0;
 
                         // Enviem les fees acumulades cap al vault de Global locked per fer boost dels rewards allà
-                        /* AQUÍ POSEM LA DIRECCIÓ DEL VAULT DE NATIVE TOKEN LOCKED!!! */
-                        // SHA DE MODIFICAR EL nativeTokenLockedVaultAddr!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                         SafeNativeTokenTransfer(nativeTokenLockedVaultAddr, totalFeesToBoostLocked);
 
                         // Reiniciem el comptador de fees. Ho podem fer així i no cal l'increment de k com al AMM perque tota la info està al contracte
@@ -634,13 +515,8 @@ contract MasterChef is Ownable, DevPower {
         return performanceFee;
     }
 
-    // Deposit LP tokens to MasterChef for nativeToken allocation.
-    // A tenir en compte que deposit de 0 tokens = HARVEST!!! Per tant, el harvest lockup es controla aquí!!
+    // Deposit 0 tokens = harvest. Deposit for LP pairs, not for staking.
     function deposit(uint256 _pid, uint256 _amount) public {
-
-        // Aquesta funció serveix per depositar LPs però no per fer staking
-        // La nostre primera pool no té perquè ser el staking de native token perque no està setejat en el constructor
-        // require (_pid != 0, 'deposit nativeToken by staking');
 
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
@@ -648,19 +524,19 @@ contract MasterChef is Ownable, DevPower {
         // Actualitzem quants rewards pagarem per cada LP
         updatePool(_pid);
 
-        // Fem el pagament dels rewards pendents si podem (i sinó, queden pendents).
+        // Fem el pagament dels rewards pendents si en tenim i si no estàn locked (en cas que ho estiguin, quedaràn pendents)
         payOrLockupPendingNativeToken(_pid);
 
         // En cas de ser = 0, seria un harvest/claim i ens saltariem aquesta part. En cas de ser > 0, fem el dipòsit al contracte
         if (_amount > 0) {
 
-            // Transferim els LPs a aquest contracte
+            // Transferim els LPs a aquest contracte (MC)
             pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
 
             // Indiquem que l'usuari té X tokens LP depositats
             user.amount = user.amount.add(_amount);
 
-            // Indiquem el moment en el que depositem per saber quines withdrawal fees cobrar
+            // Indiquem el moment en el que depositem per saber quines withdrawal fees es cobraran
             user.withdrawalOrPerformanceFees = block.timestamp.add(pool.maxWithdrawalInterval);
         }
 
@@ -673,21 +549,12 @@ contract MasterChef is Ownable, DevPower {
     // Withdraw LP tokens from MasterChef.
     function withdraw(uint256 _pid, uint256 _amount) public {
 
-        // Aquí hem de fer el require de les diferents pools dstkaing etc. el token natiu hauria de tenir pool = 0, 1 i 2 com a mínim. hauriem de mirar si posme altres, si hem de fer alguna cosa més també.
-        // Ara mateix al constructor no en tenim cap pel que la primera que fem serà pool = 0 i aquest require petarà. El comentem, però més endavant hem de posar aquí els require de tots els stakings. Podriem fer que les farms
-        // comencessin per un numero rollo 100k+ i així no tenir aquest problema?
-        // _pid == 0 --> Pool
-        require (_pid != 0, '[f] Withdraw: this is not the right function to unstake. Use "LeaveStaking" instead.');
-
-        // Quantitat que se li retornarà al usuari, que pot modificar-se depenen de si li cobrem fees o no
-        uint256 finalAmount = _amount;
-
-        // Quantitat que LPs que se li cobraràn de fees si li toca pagar
-        uint256 lPsTaken = 0;
-
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "[f] Withdraw: you are trying to withdraw more tokens than you have. Cheeky boy. Try again.");
+
+        // Quantitat que se li retornarà al usuari, que pot modificar-se depenen de si li cobrem fees o no
+        uint256 finalAmount = _amount;
 
         // Actualitzem # rewards per tokens LP i paguem rewards al contracte
         updatePool(_pid);
@@ -695,43 +562,106 @@ contract MasterChef is Ownable, DevPower {
         // Paguem els rewards pendents o els deixem locked. Si feeTaken = true, no fem res, perque ja hem cobrat el fee dels rewards. En canvi, si és false, encara hem de cobrar fee sobre els LPs.
         bool performancefeeTaken = payOrLockupPendingNativeToken(_pid);
 
-
         if (_amount > 0) {
 
             // No hem cobrat performance fees, pel que ens hem de cobrar LP fees si fas un withdraw de LPs
             // HO DEIXEM COMENTAT PERQUE NO PETI PERÒ s'ha dacabar aquesta part!!! es deixa comentat perque sha darreglar un tema dels user.rewarddebt per no liarla (podria haverhi exploit!)!!!!!
-            /*
+
             if (!performancefeeTaken){
 
-                // Fee que li traiem al usuari
-                lPsTaken = _amount.mul(pool.withDrawalFeeOfLps).div(10000);
+                // L'usuari rebrà els seus LPs menys els que li hem tret com a fees.
+                finalAmount = _amount.sub(_amount.mul(pool.withDrawalFeeOfLpsBurn.add(pool.withDrawalFeeOfLpsTeam)).div(10000));
 
-                // L'usuari rebrà els seus LPs menys els que li he tret com a fees.
-                finalAmount = _amount.sub(lPsTaken);
+                // Fins aquí hem acabat la gestió de l'user. Ara gestionem la comissió. Tenim un LP. El volem desfer i enviar-lo a BURN i a OPERATIONS
+                // Això s'ha de testejar bé perque és molt fàcil que hi hagin errors
+                // Si el router no té permís perque address(this) es gasti els tokens, li donem permís
+                if (IBEP20(pool.lpToken).allowance(address(this), address(routerGlobal)) == 0) {
+                    IBEP20(pool.lpToken).safeApprove(address(routerGlobal), uint(- 1));
+                }
 
-                // El withDrawalFeeOfLpsBurn (% sobre lPsTaken) dels LPs serviran per cremar global i fer burn
-                // El withDrawalFeeOfLpsTeam (% sobre lPsTaken) dels LPs serviran per operacions
+                // Burns del LP perque farem removeliquidity
+                if (IPair(address(pool.lpToken)).balanceOf(address(pool.lpToken)) > 0) {
+                    IPair(address(pool.lpToken)).burn(address(routerGlobal));
+                }
 
-                /* Aquí tenim varies opcions:
-                    1) Desfer els LPs i fer ja la operació de BURN o d'enviar al TEAM
-                    2) Mantenir els LPs i quan arribem a X quantitat, fer la operació de burn o d'enviar al TEAM
+                // Fem remove liquidity del LP i rebrem els dos tokens
+                (uint amountToken0, uint amountToken1) = routerGlobal.removeLiquidity(IPair(address(pool.lpToken)).token0(), IPair(address(pool.lpToken)).token1(), _amount.mul(pool.withDrawalFeeOfLpsBurn.add(pool.withDrawalFeeOfLpsTeam)).div(10000), 0, 0, address(this), block.timestamp);
 
-                    QUAN ACABI AIXÒ, HAIG DE FER EL EMERGENCY WITHDRAW I BEN FET!!!!!!!!!!!!!!!!!!!!
+                // Ens assegurem que podem gastar els dos tokens i així els passem a BNB/Global i fem burn/team
+                if (IBEP20(IPair(address(pool.lpToken)).token0()).allowance(address(this), address(routerGlobal)) == 0) {
+                    IBEP20(IPair(address(pool.lpToken)).token0()).safeApprove(address(routerGlobal), uint(- 1));
+                }
+                if (IBEP20(IPair(address(pool.lpToken)).token1()).allowance(address(this), address(routerGlobal)) == 0) {
+                    IBEP20(IPair(address(pool.lpToken)).token1()).safeApprove(address(routerGlobal), uint(- 1));
+                }
 
+                // Agafem el que cremem i el que enviem al equip per cada token rebut després de cremar LPs
+                uint256 lpsToBuyNativeTokenAndBurn0 = amountToken0.mul(pool.withDrawalFeeOfLpsBurn).div(10000);
+                uint256 lpsToBuyNativeTokenAndBurn1 = amountToken0.mul(pool.withDrawalFeeOfLpsBurn).div(10000);
+                uint256 lpsToBuyBNBAndTransferForOperations0 = amountToken1.mul(pool.withDrawalFeeOfLpsTeam).div(10000);
+                uint256 lpsToBuyBNBAndTransferForOperations1 = amountToken1.mul(pool.withDrawalFeeOfLpsTeam).div(10000);
+
+                // Cremem i enviem els tokens a l'equip
+                manageTokens(IPair(address(pool.lpToken)).token0(), 0, lpsToBuyNativeTokenAndBurn0);
+                manageTokens(IPair(address(pool.lpToken)).token0(), 1, lpsToBuyNativeTokenAndBurn1);
+                manageTokens(IPair(address(pool.lpToken)).token1(), 0, lpsToBuyBNBAndTransferForOperations0);
+                manageTokens(IPair(address(pool.lpToken)).token1(), 1, lpsToBuyBNBAndTransferForOperations1);
+
+                // Possibles fallos que pot donar per aquí: usar IBEP20 enlloc de IPair o IPancakeERC20. swapAndLiquifyEnabled. Approves.
             }
-            */
-            // Al usuari li diem que se li donaran tots els tokens que ha demanat treure de la pool [encara que després restem les fees]
+
+            // L'usuari deixa de tenir els tokens que ha demanat treure, pel que s'actualitza els LPs que li queden. Quan li enviem els LPs, li enviarem ["_amount demanat" - les fees cobrades] (si n'hi han).
             user.amount = user.amount.sub(_amount);
 
-            // Al usuari li enviem els tokens LP demanats menys els LPs trets, si és el cas
+            // Al usuari li enviem els tokens LP demanats menys els LPs trets de fees, si fos el cas
             pool.lpToken.safeTransfer(address(msg.sender), finalAmount);
         }
 
-        // Reards cobrats per l'usuari, considerant els seus LPs restants i el valor acumulat que es paga de rewards per cada LP.
-        // OJO a això: com té menys LPs perque li hem cobrat fees, queda guardar com que ha cobrat menys. Pel que després cobrarà més. EXPLOIT A LA VISTA.
-        // Hem de fer una nova variable que indiqui el user.rewardDebt ABANS de cobrar-li la fee. Crec que lo més fàcil seria que el user.rewardDebt = user.amount.add(user.amountTakenAsFees).
+        // Revisar això a fons (és nou). En principi, guardem els LPs actuals i la quantitat que ha cobrat per ells (total). El que li haguem restat després perque ens ho hem cobrat per fees, no hauria d'afectar, ja que és a posteriori i no de cara al usuari.
+        // User ha rebut menys tokens si s'0han cobrat fees però a la info del user li és igual, només li interessa saber el total que se li ha gestionat per cobrar. El que se li desviï després, no hauria d'afectar
         user.rewardDebt = user.amount.mul(pool.accNativeTokenPerShare).div(1e12);
         emit Withdraw(msg.sender, _pid, _amount);
+    }
+
+    function manageTokens(address _token, uint16 _opt, uint256 _amount) internal{
+
+        // Tokens can be WETH, Native Tokens or a random token
+        // Les funcions de burn i swap segur que s'han de corregir...!!!
+
+        // We burn tokens
+        if (_opt == 0){
+            // Si tenim Nativetokens els cremem directament
+            if(_token == WETH){
+                //routerGlobal.swapETHForExactTokens(...)
+
+            } else {
+                if(_token != address(nativeToken)){
+                    //routerGlobal.swapExactTokensForTokens(...)
+
+                }
+
+            }
+            //XXXXXXXXTOKENSGLOBALS DE DALT.transfer(BURN_ADDRESS, _amount);
+            return;
+        }
+
+        // Enviem tokens al equip
+        if (_opt == 1){
+
+            // Si tenim globals, els venem per passar a BNB i ens els enviem
+            if(_token == address(nativeToken)){
+                //routerGlobal.swapExactTokensForETH(...)
+
+            } else
+            // Si no tenim globals ni WETH, ho passem a WETH
+                if(_token != WETH){
+                    //routerGlobal.swapExactTokensForETH(...)
+
+                }
+
+            // XXXXXXXXXXXX tokens BNB que ens enviem a devaddress/nosaltres
+            return;
+        }
     }
 
     // View function to see what kind of fee will be charged
@@ -740,9 +670,6 @@ contract MasterChef is Ownable, DevPower {
         UserInfo storage user = userInfo[_pid][_user];
         return block.timestamp >= user.withdrawalOrPerformanceFees;
     }
-
-    // falta emergency withdraw i altres!!! OJO BUGS EMERGENCYWITHDRAW!!
-
 
     // Update dev address by the previous dev.
     function setDevAddress(address _devAddress) public {
@@ -768,21 +695,8 @@ contract MasterChef is Ownable, DevPower {
         emit EmissionRateUpdated(msg.sender, pantherPerBlock, _pantherPerBlock);
         pantherPerBlock = _pantherPerBlock;
     }*/
+
+
+    // lock theswap???
+    //
 }
-
-/* // y esot qué cojones?= pq ho fa així enlloc de posar directament la direcció???
-    /**
-     * @dev Update the swap router.
-     * Can only be called by the current operator.
-
-    function updatePantherSwapRouter(address _router) public onlyOperator {
-        pantherSwapRouter = IUniswapV2Router02(_router);
-        pantherSwapPair = IUniswapV2Factory(pantherSwapRouter.factory()).getPair(address(this), pantherSwapRouter.WETH());
-        require(pantherSwapPair != address(0), "PANTHER::updatePantherSwapRouter: Invalid pair address.");
-        emit PantherSwapRouterUpdated(msg.sender, address(pantherSwapRouter), pantherSwapPair);
-    }
-
-
-// lock theswap???
-//
-}*/
