@@ -69,7 +69,7 @@ library PancakeLibrary {
         require(path.length >= 2, 'PancakeLibrary: INVALID_PATH');
         amounts = new uint[](path.length);
         amounts[0] = amountIn;
-        swapFee = IFactory(factory).getSwapFee();
+        uint swapFee = IFactory(factory).getSwapFee();
         for (uint i; i < path.length - 1; i++) {
             (uint reserveIn, uint reserveOut) = getReserves(factory, path[i], path[i + 1]);
             amounts[i + 1] = getAmountOut(amounts[i], reserveIn, reserveOut, swapFee);
@@ -81,7 +81,7 @@ library PancakeLibrary {
         require(path.length >= 2, 'PancakeLibrary: INVALID_PATH');
         amounts = new uint[](path.length);
         amounts[amounts.length - 1] = amountOut;
-        swapFee = IFactory(factory).getSwapFee();
+        uint swapFee = IFactory(factory).getSwapFee();
         for (uint i = path.length - 1; i > 0; i--) {
             (uint reserveIn, uint reserveOut) = getReserves(factory, path[i - 1], path[i]);
             amounts[i - 1] = getAmountIn(amounts[i], reserveIn, reserveOut, swapFee);

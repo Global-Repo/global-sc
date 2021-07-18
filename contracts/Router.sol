@@ -330,7 +330,7 @@ contract Router is IRouterV2 {
             { // scope to avoid stack too deep errors
                 (uint reserve0, uint reserve1,) = pair.getReserves();
                 (uint reserveInput, uint reserveOutput) = input == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
-                swapFee = IFactory(factory).getSwapFee();
+                uint swapFee = IFactory(factory).getSwapFee();
                 amountInput = IERC20(input).balanceOf(address(pair)).sub(reserveInput);
                 amountOutput = PancakeLibrary.getAmountOut(amountInput, reserveInput, reserveOutput, swapFee);
             }
