@@ -68,8 +68,62 @@ beforeEach(async function () {
   await tokenB.approve(router.address, INITIAL_SUPPLY.toHexString());
 });
 
-describe("MasterChef: After deployment", function () {
-  it("Should to have zero pools", async function () {
-    expect(await masterChef.poolLength()).to.equal(0);
+describe("MasterChef: Pools", function () {
+  it("Should to add a new liquidity provider (LP) pool", async function () {
+    let date = new Date();
+    const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+
+    await router.addLiquidity(
+        tokenA.address,
+        tokenB.address,
+        BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        owner.address,
+        deadline
+    );
+
+    const pairAddress = await factory.getPair(tokenA.address, tokenB.address);
+
+    await masterChef.addPool(
+        BigNumber.from(40).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        pairAddress,
+        DAY_IN_SECONDS * 3,
+        false,
+        DAY_IN_SECONDS * 3,
+        50,
+        50,
+        100,
+        100
+    );
+
+    const poolInfo = await masterChef.poolInfo(0);
+
+    expect(await masterChef.poolLength()).to.equal(1);
+    expect(poolInfo.allocPoint).to.equal(BigNumber.from(40).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+    expect(poolInfo.lpToken).to.equal(pairAddress);
+    expect(poolInfo.harvestInterval).to.equal(259200);
+    expect(poolInfo.maxWithdrawalInterval).to.equal(259200);
+    expect(poolInfo.withDrawalFeeOfLpsBurn).to.equal(50);
+    expect(poolInfo.withDrawalFeeOfLpsTeam).to.equal(50);
+    expect(poolInfo.performanceFeesOfNativeTokensBurn).to.equal(100);
+    expect(poolInfo.performanceFeesOfNativeTokensToLockedVault).to.equal(100);
+  });
+
+  xit("Should to update pool info properly", async function () {
+    // Test set method
+  });
+});
+
+describe("MasterChef: Multiplier", function () {
+  xit("Should to return an expected multiplier for given blocks range", async function () {
+    // Test getMultiplier
+  });
+});
+
+describe("MasterChef: Deposit", function () {
+  xit("As a user I should to deposit LP in a pool", async function () {
+    // Test deposit
   });
 });

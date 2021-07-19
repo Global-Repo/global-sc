@@ -18,7 +18,7 @@ let weth;
 let masterChef;
 
 beforeEach(async function () {
-  [owner, devs, vault, vestedVault, ...addrs] = await ethers.getSigners();
+  [owner, devs, vault, lockedVault, ...addrs] = await ethers.getSigners();
 
   const CURRENT_BLOCK = await ethers.provider.getBlockNumber();
   startBlock = CURRENT_BLOCK + 1;
@@ -54,8 +54,8 @@ beforeEach(async function () {
       nativeToken.address,
       NATIVE_TOKEN_PER_BLOCK,
       startBlock,
-      vestedVault.address // TODO: vault address
-      //router.address
+      lockedVault.address,
+      router.address
   );
 
   await masterChef.deployed();
