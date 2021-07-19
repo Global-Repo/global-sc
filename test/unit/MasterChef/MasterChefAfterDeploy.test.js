@@ -27,6 +27,7 @@ beforeEach(async function () {
       nativeToken.address,
       NATIVE_TOKEN_PER_BLOCK,
       startBlock,
+      owner.address, // TODO: Vault Globals vested
       "0xae1671Faa94A7Cc296D3cb0c3619e35600de384C" // TODO: Router Global
   );
   await masterChef.deployed();
