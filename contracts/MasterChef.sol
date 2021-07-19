@@ -339,7 +339,7 @@ contract MasterChef is Ownable, DevPower {
 
     // La funció de mintfor al nostre MC només requerirà saber quants tokens MINTEJEM i li enviem al vualt, ja que les fees son independents de cada pool i es tractaran individualment.
     // Per lo tant, els càlculs de quants tokens volem, sempre es faràn al propi vault.
-    function mintNativeTokens(uint _quantityToMint) public payable onlyMinter returns (address){
+    function mintNativeTokens(uint _quantityToMint) public onlyMinter returns (address){
 
         // Mintem un ~10% dels tokens a l'equip (10/110)
         nativeToken.mint(devAddr, _quantityToMint.div(10));

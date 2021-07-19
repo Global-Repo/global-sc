@@ -53,7 +53,7 @@ beforeEach(async function () {
 describe("Remove liquidity", function () {
   it("Adds and removes same liquidity amount", async function () {
     let date = new Date();
-    const timestamp = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+    const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
 
     // Add liquidity to the pair
     await router.connect(owner).addLiquidity(
@@ -64,7 +64,7 @@ describe("Remove liquidity", function () {
         BigNumber.from(0).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
         BigNumber.from(0).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
         owner.address,
-        timestamp
+        deadline
     );
 
     const pairAddress = await factory.getPair(tokenA.address, tokenB.address);
@@ -81,7 +81,7 @@ describe("Remove liquidity", function () {
         1,
         1,
         owner.address,
-        timestamp
+        deadline
     );
 
     // Owner do not remains LP tokens

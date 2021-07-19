@@ -52,7 +52,7 @@ beforeEach(async function () {
 describe("Add liquidity", function () {
   it("Add first time liquidity for token A and token B", async function () {
     let date = new Date();
-    const timestamp = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+    const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
 
     // Add liquidity to the pair
     await router.connect(owner).addLiquidity(
@@ -63,7 +63,7 @@ describe("Add liquidity", function () {
         BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
         BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
         owner.address,
-        timestamp
+        deadline
     );
 
     // Check liquidity added:

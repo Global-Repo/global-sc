@@ -51,6 +51,10 @@ async function main() {
     await router.deployed();
 
     console.log("Router deployed to:", router.address);
+
+    // Set ups
+    await nativeToken.transferOwnership(masterChef.address);
+    console.log("Masterchef is now the Native token's owner.");
 }
 
 // We recommend this pattern to be able to use async/await everywhere
