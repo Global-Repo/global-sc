@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Unlicensed
 pragma solidity 0.6.12;
 
+import 'hardhat/console.sol';
+
 import './BEP20.sol';
 import './Context.sol';
 import './Ownable.sol';
@@ -13,6 +15,7 @@ import './NativeToken.sol';
 import './DevPower.sol';
 import './IPair.sol';
 import './IRouterV2.sol';
+import "./IMinter.sol";
 
 // HEM DE FER IMPORT DE LA INTERFACE I DEL SC DEL VAULT!!!!!!!!!
 
@@ -66,7 +69,7 @@ import './IRouterV2.sol';
 // revisar el nostre codi i les compeetncies a veure si falten algunes funcions
 
 // We hope code is bug-free. For everyone's life savings.
-contract MasterChef is Ownable, DevPower {
+contract MasterChef is Ownable, DevPower, IMinter {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
@@ -222,7 +225,7 @@ contract MasterChef is Ownable, DevPower {
     /// Funcions de l'autocompound
 
     // Cridarem a aquesta funció per afegir un vault, per indicar-li al masterchef que tindrà permís per mintejar native tokens
-    function setMinter(address minter, bool canMint) external onlyOwner {
+    function setMinter(address minter, bool canMint) external override onlyOwner {
         if (canMint) {
             _minters[minter] = canMint;
         } else {
@@ -232,12 +235,13 @@ contract MasterChef is Ownable, DevPower {
 
     // Afegim modificador que només es podrà fer servir pels contractes afegits (whitelisted)
     modifier onlyMinter {
-        require(isMinter(msg.sender) == true, "[f] OnlyMinter: caller is not the minter.");
+        // require(isMinter(msg.sender) == true, "[f] OnlyMinter: caller is not the minter.");
+        require(_minters[msg.sender] == true, "[f] OnlyMinter: caller is not the minter.");
         _;
     }
 
     // Comprovem si un contracte té permís per cridar el masterchef (aquest SC) i mintejar tokens
-    function isMinter(address account) private view returns (bool) {
+    function isMinter(address account) view external override returns (bool) {
         // El masterchef ha de ser l'owner del token per poder-los mintar
         if (nativeToken.getOwner() != address(this)) {
             return false;
@@ -248,8 +252,7 @@ contract MasterChef is Ownable, DevPower {
 
     // La funció de mintfor al nostre MC només requerirà saber quants tokens MINTEJEM i li enviem al vualt, ja que les fees son independents de cada pool i es tractaran individualment.
     // Per lo tant, els càlculs de quants tokens volem, sempre es faràn al propi vault. La lògica queda delegada al vault.
-    function mintNativeTokens(uint _quantityToMint) public onlyMinter returns (address){
-
+    function mintNativeTokens(uint _quantityToMint) external override onlyMinter returns (address) {
         // Mintem un ~10% dels tokens a l'equip (10/110)
         nativeToken.mint(devAddr, _quantityToMint.div(10));
 
