@@ -626,7 +626,7 @@ contract MasterChef is Ownable, DevPower, IMinter {
 
     function manageTokens(address _token, uint16 _opt, uint256 _amount) internal{
 
-        // Tokens can be WETH, Native Tokens or a random token
+        /*// Tokens can be WETH, Native Tokens or a random token
         // Les funcions de burn i swap segur que s'han de corregir...!!!
 
         // We burn tokens
@@ -666,7 +666,7 @@ contract MasterChef is Ownable, DevPower, IMinter {
 
             // XXXXXXXXXXXX tokens BNB que ens enviem a devaddress/nosaltres
             return;
-        }
+        }*/
     }
 
     // View function to see what kind of fee will be charged
