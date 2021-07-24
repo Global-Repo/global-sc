@@ -568,8 +568,6 @@ contract MasterChef is Ownable, DevPower, IMinter {
         if (_amount > 0) {
 
             // No hem cobrat performance fees, pel que ens hem de cobrar LP fees si fas un withdraw de LPs
-            // HO DEIXEM COMENTAT PERQUE NO PETI PERÒ s'ha dacabar aquesta part!!! es deixa comentat perque sha darreglar un tema dels user.rewarddebt per no liarla (podria haverhi exploit!)!!!!!
-
             if (!performancefeeTaken){
 
                 // L'usuari rebrà els seus LPs menys els que li hem tret com a fees.
@@ -600,14 +598,14 @@ contract MasterChef is Ownable, DevPower, IMinter {
 
                 // Agafem el que cremem i el que enviem al equip per cada token rebut després de cremar LPs
                 uint256 lpsToBuyNativeTokenAndBurn0 = amountToken0.mul(pool.withDrawalFeeOfLpsBurn).div(10000);
-                uint256 lpsToBuyNativeTokenAndBurn1 = amountToken0.mul(pool.withDrawalFeeOfLpsBurn).div(10000);
-                uint256 lpsToBuyBNBAndTransferForOperations0 = amountToken1.mul(pool.withDrawalFeeOfLpsTeam).div(10000);
+                uint256 lpsToBuyNativeTokenAndBurn1 = amountToken1.mul(pool.withDrawalFeeOfLpsBurn).div(10000);
+                uint256 lpsToBuyBNBAndTransferForOperations0 = amountToken0.mul(pool.withDrawalFeeOfLpsTeam).div(10000);
                 uint256 lpsToBuyBNBAndTransferForOperations1 = amountToken1.mul(pool.withDrawalFeeOfLpsTeam).div(10000);
 
                 // Cremem i enviem els tokens a l'equip
                 manageTokens(IPair(address(pool.lpToken)).token0(), 0, lpsToBuyNativeTokenAndBurn0);
-                manageTokens(IPair(address(pool.lpToken)).token0(), 1, lpsToBuyNativeTokenAndBurn1);
-                manageTokens(IPair(address(pool.lpToken)).token1(), 0, lpsToBuyBNBAndTransferForOperations0);
+                manageTokens(IPair(address(pool.lpToken)).token1(), 0, lpsToBuyNativeTokenAndBurn1);
+                manageTokens(IPair(address(pool.lpToken)).token0(), 1, lpsToBuyBNBAndTransferForOperations0);
                 manageTokens(IPair(address(pool.lpToken)).token1(), 1, lpsToBuyBNBAndTransferForOperations1);
 
                 // Possibles fallos que pot donar per aquí: usar IBEP20 enlloc de IPair o IPancakeERC20. swapAndLiquifyEnabled. Approves.
@@ -633,17 +631,21 @@ contract MasterChef is Ownable, DevPower, IMinter {
 
         // We burn tokens
         if (_opt == 0){
+            uint256 tokensToBurn;
             // Si tenim Nativetokens els cremem directament
             if(_token == WETH){
                 //routerGlobal.swapETHForExactTokens(...)
-
-            } else {
-                if(_token != address(nativeToken)){
-                    //routerGlobal.swapExactTokensForTokens(...)
-
-                }
-
+                tokensToBurn = routerGlobal.swapExactETHForTokens();
+            } else if(_token != address(nativeToken)){
+                //routerGlobal.swapExactTokensForTokens(...)
+                tokensToBurn = routerGlobal.swapExactTokensForTokens();
             }
+            else
+            {
+                tokensToBurn = _amount;
+            }
+
+            SafeNativeTokenTransfer(BURN_ADDRESS, tokensToBurn);
             //XXXXXXXXTOKENSGLOBALS DE DALT.transfer(BURN_ADDRESS, _amount);
             return;
         }
