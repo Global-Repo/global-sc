@@ -81,6 +81,7 @@ beforeEach(async function () {
 
 describe("VaultCake: Withdraw", function () {
   it("Cannot withdraw without previous deposit", async function () {
+    expect(await vaultCake.withdrawableBalanceOf(owner.address)).to.equal(0);
     await expect(
       vaultCake.connect(addr3).withdraw(BigNumber.from(0).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER))
     ).to.be.revertedWith("Whitelist: caller is not on the whitelist");
@@ -96,6 +97,7 @@ describe("VaultCake: Withdraw", function () {
     // Needed to execute withdraw method.
     await vaultCake.setWhitelist(owner.address, true);
 
+    expect(await vaultCake.withdrawableBalanceOf(owner.address)).to.equal(depositAmount);
     expect(await vaultCake.withdraw(withdrawAmount))
         .to.emit(vaultCake, 'Withdrawn')
         .withArgs(owner.address, withdrawAmount, 0);

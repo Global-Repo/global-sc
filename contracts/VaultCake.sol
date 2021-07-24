@@ -97,7 +97,6 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
 
     function earned(address account) public view override returns (uint) {
         if (balanceOf(account) >= principalOf(account) + DUST) {
-            console.log("balance OF: ", balanceOf(account), "principal OF: ", principalOf(account));
             return balanceOf(account).sub(principalOf(account));
         } else {
             return 0;

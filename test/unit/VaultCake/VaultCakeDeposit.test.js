@@ -100,8 +100,11 @@ describe("VaultCake: Deposit", function () {
 
     expect(await vaultCake.balance()).to.equal(depositAmount);
     expect(await cakeToken.balanceOf(cakeMasterChefMock.address)).to.equal(depositAmount);
+    expect(await vaultCake.totalSupply()).to.equal(depositAmount);
+
     expect(await vaultCake.principalOf(owner.address)).to.equal(depositAmount);
     expect(await vaultCake.sharesOf(owner.address)).to.equal(depositAmount);
+    expect(await vaultCake.balanceOf(owner.address)).to.equal(depositAmount);
   });
 
   it("Many deposits from same user", async function () {
@@ -117,8 +120,11 @@ describe("VaultCake: Deposit", function () {
 
     expect(await vaultCake.balance()).to.equal(totalDepositedAmount);
     expect(await cakeToken.balanceOf(cakeMasterChefMock.address)).to.equal(totalDepositedAmount);
+    expect(await vaultCake.totalSupply()).to.equal(totalDepositedAmount);
+
     expect(await vaultCake.principalOf(owner.address)).to.equal(totalDepositedAmount);
     expect(await vaultCake.sharesOf(owner.address)).to.equal(totalDepositedAmount);
+    expect(await vaultCake.balanceOf(owner.address)).to.equal(totalDepositedAmount);
   });
 
   it("Many deposits from different users", async function () {
@@ -138,10 +144,14 @@ describe("VaultCake: Deposit", function () {
 
     expect(await vaultCake.balance()).to.equal(totalDepositedAmount);
     expect(await cakeToken.balanceOf(cakeMasterChefMock.address)).to.equal(totalDepositedAmount);
+    expect(await vaultCake.totalSupply()).to.equal(totalDepositedAmount);
+
     expect(await vaultCake.principalOf(owner.address)).to.equal(ownerDepositedAmount);
     expect(await vaultCake.principalOf(addr3.address)).to.equal(addr3DepositedAmount);
     expect(await vaultCake.sharesOf(owner.address)).to.equal(ownerDepositedAmount);
     expect(await vaultCake.sharesOf(addr3.address)).to.equal(addr3DepositedAmount);
+    expect(await vaultCake.balanceOf(owner.address)).to.equal(ownerDepositedAmount);
+    expect(await vaultCake.balanceOf(addr3.address)).to.equal(addr3DepositedAmount);
 
     // Cake's master chef should to contain staked cakes from vault user.
     const {0: stakedAmount, 1: rewardDebt} = await cakeMasterChefMock.userInfo(0, vaultCake.address);
