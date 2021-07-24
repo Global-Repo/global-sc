@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
-pragma experimental ABIEncoderV2;
 
 import "hardhat/console.sol";
 
@@ -13,10 +12,10 @@ import "./PausableUpgradeable.sol";
 import "./WhitelistUpgradeable.sol";
 import "./IMinter.sol";
 
-
 contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     using SafeBEP20 for IBEP20;
     using SafeMath for uint;
+    using SafeMath for uint16;
 
     IBEP20 private CAKE;
     IBEP20 private GLOBAL;
@@ -26,11 +25,31 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
 
     uint public constant override pid = 0;
     uint private constant DUST = 1000;
+    uint16 public constant MAX_WITHDRAWAL_FEES = 100; // 1%
 
     uint public totalShares;
     mapping (address => uint) private _shares;
     mapping (address => uint) private _principal;
     mapping (address => uint) private _depositedAt;
+
+    // Durant 4 dies cobrarem els burn i team (dels "que depositem principal" que s'estan stakejant), a partir de 4 dies no cobrem res
+    struct WithdrawalFees {
+        uint16 burn; // 0.6% swap del asset per global + burn del global
+        uint16 team; // 0.1% swap a busd i transfer a devaddress
+        uint256 interval;
+    }
+
+    WithdrawalFees public withdrawalFees;
+
+    struct RewardsFees {
+        uint16 toUser;        // 75% to user tal qual
+        uint16 toOperations; // 4% swap to busd i transfer a treasurery
+        uint16 toBuyGlobal;   // 6% swap to busd i transfer a treasurery
+        uint16 toBuyBNB;      // 15% swap a BNB i transfer to locked/vested/staked vault (el que falta)
+        uint16 extraNativeTokenMinted;    	// 100 cakes de rewards menys operations i menys bnb ha de superar aquests dos 15%+4% = 19% (ha de ser el mínim)
+    }
+
+    RewardsFees public rewardsFees;
 
     event Recovered(address token, uint amount);
 
@@ -49,6 +68,9 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
 
         __PausableUpgradeable_init();
         __WhitelistUpgradeable_init();
+
+        setDefaultWithdrawalFees();
+        setDefaultRewardFees();
     }
 
     // init minter
@@ -59,6 +81,31 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         minter = IMinter(_minter);
     }
 
+    function setWithdrawalFees(uint16 burn, uint16 team, uint256 interval) public onlyOwner {
+        require(burn.add(team) <= MAX_WITHDRAWAL_FEES, "Withdrawal fees too high");
+
+        withdrawalFees.burn = burn;
+        withdrawalFees.team = team;
+        withdrawalFees.interval = interval;
+    }
+
+    function setRewardsFees(uint16 toUser, uint16 toOperations, uint16 toBuyGlobal, uint16 toBuyBNB) public onlyOwner {
+        require(toUser.add(toOperations).add(toBuyGlobal).add(toBuyBNB) == 10000, "Rewards fees must add up to 100%");
+
+        rewardsFees.toUser = toUser;
+        rewardsFees.toOperations = toOperations;
+        rewardsFees.toBuyGlobal = toBuyGlobal;
+        rewardsFees.toBuyBNB = toBuyBNB;
+    }
+
+    function setDefaultWithdrawalFees() private {
+        setWithdrawalFees(60, 10, 4 days);
+    }
+
+    function setDefaultRewardFees() private {
+        setRewardsFees(7500, 400, 600, 1500);
+    }
+
     function canMint() internal view returns (bool) {
         return address(minter) != address(0) && minter.isMinter(address(this));
     }
@@ -67,8 +114,6 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     function isVaultMintable() external view returns (bool) {
         return address(minter) != address(0) && minter.isMinter(address(this));
     }
-
-    /* ========== VIEW FUNCTIONS ========== */
 
     function totalSupply() external view override returns (uint) {
         return totalShares;
@@ -115,8 +160,6 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     function rewardsToken() external view override returns (address) {
         return address(CAKE);
     }
-
-    /* ========== MUTATIVE FUNCTIONS ========== */
 
     function deposit(uint _amount) public override {
         _deposit(_amount, msg.sender);
