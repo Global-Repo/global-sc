@@ -97,5 +97,18 @@ describe("VaultCake: Harvest", function () {
     expect(await vaultCake.harvest()).to.emit(vaultCake, 'Harvested');
     expect(await vaultCake.balance()).to.equal(expectedOwnerBalance);
     expect(await cakeToken.balanceOf(cakeMasterChefMock.address)).to.equal(expectedOwnerBalance);
+    expect(await vaultCake.earned(owner.address)).to.equal(CAKE_MASTER_CHEF_REWARD_PER_DEPOSIT);
+  });
+
+  it("Earned tokens checks", async function () {
+    const depositAmount = BigNumber.from(5).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+    const expectedOwnerBalance = depositAmount.add(CAKE_MASTER_CHEF_REWARD_PER_DEPOSIT);
+
+    await cakeToken.approve(vaultCake.address, OWNER_INITIAL_CAKES);
+    await vaultCake.deposit(depositAmount);
+
+    expect(await vaultCake.earned(owner.address)).to.equal(0);
+    expect(await vaultCake.harvest()).to.emit(vaultCake, 'Harvested');
+    expect(await vaultCake.earned(owner.address)).to.equal(CAKE_MASTER_CHEF_REWARD_PER_DEPOSIT);
   });
 });
