@@ -51,9 +51,10 @@ beforeEach(async function () {
       lockedVault.address,
       router.address
   );
+  await minter.deployed();
 
   const CakeMasterChefMock = await ethers.getContractFactory("CakeMasterChefMock");
-  cakeMasterChefMock = await CakeMasterChefMock.deploy();
+  cakeMasterChefMock = await CakeMasterChefMock.deploy(cakeToken.address);
   await cakeMasterChefMock.deployed();
 
   const VaultCake = await ethers.getContractFactory("VaultCake");
@@ -88,14 +89,10 @@ describe("VaultCake: After deployment", function () {
   });
 
   it("Vault balance against CAKE pool", async function () {
-    expect(await vaultCake.balance()).to.equal(1);
+    expect(await vaultCake.balance()).to.equal(0);
   });
 
   it("Balance of account where not shares in vault is always zero", async function () {
-    expect(await vaultCake.balanceOf(addr3.address)).to.equal(0);
-  });
-
-  xit("Balance of account in vault", async function () {
     expect(await vaultCake.balanceOf(addr3.address)).to.equal(0);
   });
 });

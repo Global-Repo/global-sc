@@ -60,10 +60,10 @@ beforeEach(async function () {
 
   const VaultCake = await ethers.getContractFactory("VaultCake");
   vaultCake = await VaultCake.deploy(
-      cakeToken.address,
-      nativeToken.address,
-      cakeMasterChefMock.address,
-      keeper.address
+    cakeToken.address,
+    nativeToken.address,
+    cakeMasterChefMock.address,
+    keeper.address
   );
   await vaultCake.deployed();
 
