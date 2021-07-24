@@ -102,7 +102,6 @@ describe("VaultCake: Harvest", function () {
 
   it("Earned tokens checks", async function () {
     const depositAmount = BigNumber.from(5).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
-    const expectedOwnerBalance = depositAmount.add(CAKE_MASTER_CHEF_REWARD_PER_DEPOSIT);
 
     await cakeToken.approve(vaultCake.address, OWNER_INITIAL_CAKES);
     await vaultCake.deposit(depositAmount);
