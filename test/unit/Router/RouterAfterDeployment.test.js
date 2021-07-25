@@ -147,14 +147,10 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
         expect( await tokenA.balanceOf(addr3.address) ).to.equal(tkns_to_mint);
         expect( await tokenC.balanceOf(addr3.address) ).to.equal(tkns_to_mint);
 
-        // print some data
-        console.log(addr3.address);
-        console.log(tkns_to_mint.toString());
-        await tokenA.approve(addr3.address, INITIAL_SUPPLY.toHexString());
-        await tokenC.approve(addr3.address, INITIAL_SUPPLY.toHexString());
-        await tokenA.approve(router.address, INITIAL_SUPPLY.toHexString());
-        await tokenC.approve(router.address, INITIAL_SUPPLY.toHexString());
-
+        await tokenA.connect(addr3).approve(router.address, INITIAL_SUPPLY.toHexString());
+        await tokenC.connect(addr3).approve(router.address, INITIAL_SUPPLY.toHexString());
+        await tokenA.connect(owner).approve(router.address, INITIAL_SUPPLY.toHexString());
+        await tokenC.connect(owner).approve(router.address, INITIAL_SUPPLY.toHexString());
 
         //finally, addr3 can add liquidity to the pool!
         //TODO. why can't I add liquidity from addr3?
@@ -169,7 +165,7 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
             tkns_to_mint,
             tkns_to_mint.div(10),
             tkns_to_mint.div(10),
-            owner.address,
+            addr3.address,
             deadline
         )).to.emit(router, 'AddedLiquidity')
             .withArgs(tkns_to_mint,
