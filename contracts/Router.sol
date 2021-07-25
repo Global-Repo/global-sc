@@ -16,6 +16,8 @@ contract Router is IRouterV2 {
     address public immutable override factory;
     address public immutable override WETH;
 
+    event AddedLiquidity(uint amountA, uint amountB, uint addedLiquidity);
+
     modifier ensure(uint deadline) {
         require(deadline >= block.timestamp, 'PancakeRouter: EXPIRED');
         _;
@@ -74,6 +76,8 @@ contract Router is IRouterV2 {
         TransferHelper.safeTransferFrom(tokenA, msg.sender, pair, amountA);
         TransferHelper.safeTransferFrom(tokenB, msg.sender, pair, amountB);
         liquidity = IPair(pair).mint(to);
+
+        emit AddedLiquidity(amountA, amountB, liquidity);
     }
     function addLiquidityETH(
         address token,

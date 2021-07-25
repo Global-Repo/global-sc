@@ -14,6 +14,10 @@ import './DevPower.sol';
 import './IPair.sol';
 import './IRouterV2.sol';
 import './ReentrancyGuard.sol';
+import "./IMinter.sol";
+
+// HEM DE FER IMPORT DE LA INTERFACE I DEL SC DEL VAULT!!!!!!!!!
+
 
 // PER AFEGIR:
 // La funció de withdraw, enlloc danar a la teva wallet, ha danar a la pool de GLOBALS VESTED. Podriem posar que la pool de pid = 0 és la vested de forma automàtica (pasarla pel constructor) i així ja la creem i sempre és la mateixa.
@@ -41,7 +45,7 @@ import './ReentrancyGuard.sol';
 
 
 // We hope code is bug-free. For everyone's life savings.
-contract MasterChef is Ownable, DevPower, ReentrancyGuard {
+contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
@@ -207,7 +211,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard {
     /// Funcions de l'autocompound
 
     // Cridarem a aquesta funció per afegir un vault, per indicar-li al masterchef que tindrà permís per mintejar native tokens
-    function setMinter(address minter, bool canMint) external onlyOwner {
+    function setMinter(address minter, bool canMint) external override onlyOwner {
         if (canMint) {
             _minters[minter] = canMint;
         } else {
@@ -217,12 +221,13 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard {
 
     // Afegim modificador que només es podrà fer servir pels contractes afegits (whitelisted)
     modifier onlyMinter {
-        require(isMinter(msg.sender) == true, "[f] OnlyMinter: caller is not the minter.");
+        // require(isMinter(msg.sender) == true, "[f] OnlyMinter: caller is not the minter.");
+        require(_minters[msg.sender] == true, "[f] OnlyMinter: caller is not the minter.");
         _;
     }
 
     // Comprovem si un contracte té permís per cridar el masterchef (aquest SC) i mintejar tokens
-    function isMinter(address account) private view returns (bool) {
+    function isMinter(address account) view external override returns (bool) {
         // El masterchef ha de ser l'owner del token per poder-los mintar
         if (nativeToken.getOwner() != address(this)) {
             return false;
@@ -233,8 +238,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard {
 
     // La funció de mintfor al nostre MC només requerirà saber quants tokens MINTEJEM i li enviem al vualt, ja que les fees son independents de cada pool i es tractaran individualment.
     // Per lo tant, els càlculs de quants tokens volem, sempre es faràn al propi vault. La lògica queda delegada al vault.
-    function mintNativeTokens(uint _quantityToMint) public onlyMinter returns (address){
-
+    function mintNativeTokens(uint _quantityToMint) external override onlyMinter returns (address) {
         // Mintem un ~10% dels tokens a l'equip (10/110)
         nativeToken.mint(devAddr, _quantityToMint.div(10));
 
@@ -618,22 +622,26 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard {
 
     function manageTokens(address _token, uint16 _opt, uint256 _amount) private{
 
-        // Tokens can be WETH, Native Tokens or a random token
+        /*// Tokens can be WETH, Native Tokens or a random token
         // Les funcions de burn i swap segur que s'han de corregir...!!!
 
         // We burn tokens
         if (_opt == 0){
+            uint256 tokensToBurn;
             // Si tenim Nativetokens els cremem directament
             if(_token == WETH){
                 //routerGlobal.swapETHForExactTokens(...)
-
-            } else {
-                if(_token != address(nativeToken)){
-                    //routerGlobal.swapExactTokensForTokens(...)
-
-                }
-
+                tokensToBurn = routerGlobal.swapExactETHForTokens();
+            } else if(_token != address(nativeToken)){
+                //routerGlobal.swapExactTokensForTokens(...)
+                tokensToBurn = routerGlobal.swapExactTokensForTokens();
             }
+            else
+            {
+                tokensToBurn = _amount;
+            }
+
+            SafeNativeTokenTransfer(BURN_ADDRESS, tokensToBurn);
             //XXXXXXXXTOKENSGLOBALS DE DALT.transfer(BURN_ADDRESS, _amount);
             return;
         }
@@ -654,7 +662,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard {
 
             // XXXXXXXXXXXX tokens BNB que ens enviem a devaddress/nosaltres
             return;
-        }
+        }*/
     }
 
     // Withdraw of all tokens. Rewards are lost.
