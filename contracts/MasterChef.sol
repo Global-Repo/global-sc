@@ -549,6 +549,7 @@ contract MasterChef is Ownable, DevPower, IMinter {
         // Emetem un event.
         emit Deposit(msg.sender, _pid, _amount);
     }
+
     // Withdraw LP tokens from MasterChef.
     function withdraw(uint256 _pid, uint256 _amount) public {
 
