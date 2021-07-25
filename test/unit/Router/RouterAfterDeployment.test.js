@@ -103,13 +103,123 @@ describe("Router: Basic Set-up", function () {
 
 });
 
-describe("Router: Add liquidity to a new pair", function () {
+describe("Router: Add liquidity to a pair", function () {
 
-    it("Add liquidity to a Pair", async function () {
+    it("Can't add liquidity if we don't have liquidity", async function () {
         let date = new Date();
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
 
-        await expect(router.addLiquidity(
+        await expect( router.connect(addr3).addLiquidity(
+            tokenA.address,
+            tokenC.address,
+            BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            owner.address,
+            deadline
+        )).to.revertedWith('TransferHelper: TRANSFER_FROM_FAILED');
+    });
+
+    it("Mint tokens, transfer them to a new address (full example) so we can add liquidity", async function () {
+        //Owner already has some tokens (we minted them beforeeach functions)
+        expect( await tokenA.connect(owner).balanceOf(owner.address) ).to.equal(INITIAL_SUPPLY);
+        expect( await tokenC.connect(owner).balanceOf(owner.address) ).to.equal(INITIAL_SUPPLY);
+
+        // We mint some more, by default since we are not using connect, we are minting to owner
+        // note we can only mint from owner, therefore to send someone tokens we need to follow these steps shown
+        const tkns_to_mint = BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER)
+        await tokenA.connect(owner).mint( tkns_to_mint );
+        await tokenC.connect(owner).mint( tkns_to_mint );
+        expect( await tokenA.balanceOf(owner.address) ).to.equal(INITIAL_SUPPLY.add(tkns_to_mint));
+        expect( await tokenC.balanceOf(owner.address) ).to.equal(INITIAL_SUPPLY.add(tkns_to_mint));
+
+        //Now we transfer 'tkns_to_mint' qty to a new address
+        //owner will have INITIAL_SUPPLY again, since he transferred tkns_to_mint to addr3
+        //addr3 will have tkns_to_mint
+        expect( await tokenA.balanceOf(addr3.address) ).to.equal(0);
+        expect( await tokenC.balanceOf(addr3.address) ).to.equal(0);
+        await tokenA.connect(owner).transfer(addr3.address, tkns_to_mint )
+        await tokenC.connect(owner).transfer(addr3.address, tkns_to_mint )
+        expect( await tokenA.balanceOf(owner.address) ).to.equal(INITIAL_SUPPLY);
+        expect( await tokenC.balanceOf(owner.address) ).to.equal(INITIAL_SUPPLY);
+        expect( await tokenA.balanceOf(addr3.address) ).to.equal(tkns_to_mint);
+        expect( await tokenC.balanceOf(addr3.address) ).to.equal(tkns_to_mint);
+
+        // print some data
+        console.log(addr3.address);
+        console.log(tkns_to_mint.toString());
+        await tokenA.approve(router.address, INITIAL_SUPPLY.toHexString());
+        await tokenC.approve(router.address, INITIAL_SUPPLY.toHexString());
+
+
+        //finally, addr3 can add liquidity to the pool!
+        //TODO. why can't I add liquidity from addr3?
+        //TODO. why is this not working? What would we need to do to let addr3 call addLiquidity?
+        let date = new Date();
+        const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+
+        await expect( router.connect(addr3).addLiquidity(
+            tokenA.address,
+            tokenC.address,
+            tkns_to_mint,
+            tkns_to_mint,
+            tkns_to_mint.div(10),
+            tkns_to_mint.div(10),
+            owner.address,
+            deadline
+        )).to.emit(router, 'AddedLiquidity')
+            .withArgs(tkns_to_mint,
+                tkns_to_mint,
+                tkns_to_mint.sub(1000));
+    });
+
+    it("Add liquidity from owner, owner not having enough liquidity", async function () {
+        //TODO, why does this work as well? If owner has not enough supply (which he shouldn't),
+        // router should return an INSUFFICIENT_B_AMOUNT.
+        // Instead, I'm getting a TransferHelper: TRANSFER_FROM_FAILED error. Why?
+
+
+        let date = new Date();
+        const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+
+        //the first returned value is the qty of tokensA
+        //the second is qty tokensB
+        //the third is liquidity, which is calculated by sqrt of two tokens minus minimum liquidity, which
+        // is 1000 for the first deposit
+        await expect( router.addLiquidity(
+            tokenA.address,
+            tokenB.address,
+            INITIAL_SUPPLY.mul(100),
+            INITIAL_SUPPLY.mul(100),
+            INITIAL_SUPPLY.mul(100),
+            INITIAL_SUPPLY.mul(100),
+            owner.address,
+            deadline
+        )).to.emit(router, 'AddedLiquidity')
+            .withArgs(INITIAL_SUPPLY,
+                INITIAL_SUPPLY,
+                INITIAL_SUPPLY.sub(1000));
+
+
+        //TODO check owner wallet for the pair
+        const pairAddress = await factory.getPair(tokenA.address, tokenB.address);
+
+        //TODO check pair balance make sure the money from woner is there
+    });
+
+
+    it("Add liquidity from owner, this time we have enough liquidity", async function () {
+        //Owner has liquidity because we minted before each test. Otherwise this should
+        // return not enough funds
+        let date = new Date();
+        const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+
+        //the first returned value is the qty of tokensA
+        //the second is qty tokensB
+        //the third is liquidity, which is calculated by sqrt of two tokens minus minimum liquidity, which
+        // is 1000 for the first deposit
+        await expect( router.connect(owner).addLiquidity(
             tokenA.address,
             tokenB.address,
             BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
@@ -124,26 +234,10 @@ describe("Router: Add liquidity to a new pair", function () {
                 BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER).sub(1000));
 
 
-
+        //TODO check owner wallet for the pair
         const pairAddress = await factory.getPair(tokenA.address, tokenB.address);
 
-        console.log('hi')
-
-
-
-        /*expect(await masterChef.poolLength()).to.equal(1);
-        expect(poolInfo.allocPoint).to.equal(BigNumber.from(40).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
-        expect(poolInfo.lpToken).to.equal(pairAddress);
-        expect(poolInfo.harvestInterval).to.equal(259200);
-        expect(poolInfo.maxWithdrawalInterval).to.equal(259200);
-        expect(poolInfo.withDrawalFeeOfLpsBurn).to.equal(50);
-        expect(poolInfo.withDrawalFeeOfLpsTeam).to.equal(50);
-        expect(poolInfo.performanceFeesOfNativeTokensBurn).to.equal(100);
-        expect(poolInfo.performanceFeesOfNativeTokensToLockedVault).to.equal(100);
-        */
-
-        //check balances
-
+        //TODO check pair balance make sure the money from woner is there
     });
 
     it("Add liquidity to a non-existent Pair. Router should create it auto and perform normally.", async function () {
@@ -190,6 +284,7 @@ describe("Router: Add liquidity to a new pair", function () {
         const pairAddress2 = await factory.getPair(tokenA.address, tokenNotAdded.address);
         const pairContract2 = await ethers.getContractFactory("Pair");
         const pair2 = await pairContract2.attach(pairAddress2);
+
         console.log('pair2 address should be 0x0, because it has not been added from the factory. pair address is:', pairAddress2);
         //find balance owner
         /*const balance_owner2 = await pair2.balanceOf(owner.address);
