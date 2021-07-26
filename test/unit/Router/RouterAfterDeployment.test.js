@@ -149,12 +149,8 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
 
         await tokenA.connect(addr3).approve(router.address, INITIAL_SUPPLY.toHexString());
         await tokenC.connect(addr3).approve(router.address, INITIAL_SUPPLY.toHexString());
-        await tokenA.connect(owner).approve(router.address, INITIAL_SUPPLY.toHexString());
-        await tokenC.connect(owner).approve(router.address, INITIAL_SUPPLY.toHexString());
 
         //finally, addr3 can add liquidity to the pool!
-        //TODO. why can't I add liquidity from addr3?
-        //TODO. why is this not working? What would we need to do to let addr3 call addLiquidity?
         let date = new Date();
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
 
@@ -266,17 +262,21 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
         expect(reserves_timestamp).lessThanOrEqual(deadline );
     });
 
-    it("Add liquidity with an outdated datetime stamp.", async function () {
+    it("Add liquidity using an outdated datetime stamp.", async function () {
         //test datetime stamp; 'PancakeRouter: EXPIRED'
-        //Owner has liquidity because we minted before each test. Otherwise this should
-        // return not enough funds
+        //Owner sends tkns to addr3, addr has liquidity
+        const tkns_to_mint = BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER)
+        expect( await tokenA.balanceOf(addr3.address) ).to.equal(0);
+        expect( await tokenC.balanceOf(addr3.address) ).to.equal(0);
+        await tokenA.connect(owner).transfer(addr3.address, tkns_to_mint )
+        await tokenC.connect(owner).transfer(addr3.address, tkns_to_mint )
+        expect( await tokenA.balanceOf(addr3.address) ).to.equal(tkns_to_mint);
+        expect( await tokenC.balanceOf(addr3.address) ).to.equal(tkns_to_mint);
+
+        // However the transfer does not go thoruhg since the we did not approve the token
+        // from addr3
         let date = new Date();
         const deadline = date.setTime(date.getTime() - (2 * 86400000)); // +2 days
-
-        //the first returned value is the qty of tokensA
-        //the second is qty tokensB
-        //the third is liquidity, which is calculated by sqrt of two tokens minus minimum liquidity, which
-        // is 1000 for the first deposit
         await expect( router.connect(owner).addLiquidity(
             tokenA.address,
             tokenB.address,
@@ -289,8 +289,28 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
         )).to.revertedWith('PancakeRouter: EXPIRED');
     });
 
-    it("Adding liquidity using a non approved token should break.", async function () {
+    it("Adding liquidity from a non approved addr should break.", async function () {
         //test adding loquidity using a non approved token, check error 'TransferHelper: TRANSFER_FROM_FAILED'
+        //Owner has liquidity because we minted before each test. Otherwise this should
+        // return not enough funds
+        let date = new Date();
+        const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+
+        //the first returned value is the qty of tokensA
+        //the second is qty tokensB
+        //the third is liquidity, which is calculated by sqrt of two tokens minus minimum liquidity, which
+        // is 1000 for the first deposit
+        await expect( router.connect(addr3).addLiquidity(
+            tokenA.address,
+            tokenB.address,
+            BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            owner.address,
+            deadline
+        )).to.revertedWith('TransferHelper: TRANSFER_FROM_FAILED');
+
     });
 
     it("Test amountAMin and amountBMin", async function () {
