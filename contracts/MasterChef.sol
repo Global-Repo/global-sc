@@ -97,6 +97,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
     // POSAR AQUÍ LA DIRECCIÓ WETH HARDCODED!!!!!!!!!!!!!!!!!!!!!!!!
     // SHA DE MODIFICAAAAAAAAAAAR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     address public constant WETH = 0x000000000000000000000000000000000000dEaD;
+    address private constant WBNB = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
 
     // En cas d'exploit, deixem sortir a la gent per l'emergency sense pagar LP fees. Not safu = no LPs fees in emergencywithdraw
     bool safu = true;
@@ -161,6 +162,9 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
     // Llistat de pools que poden demanar tokens natius
     mapping(address => bool) private _minters;
 
+    // relació de cada token amb el token que li fa d'intermediari per arribar a WBNB
+    mapping(address => address) private routeAddresses;
+
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
@@ -190,6 +194,28 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
         routerGlobal = IRouterV2(_router);
     }
 
+    function addRouteAddress(address _token, address _intermedi) public onlyOwner {
+        routeAddresses[_token] = _intermedi;
+    }
+
+    function getRouteAddress(address _token) external view returns (address) {
+        return routeAddresses[_token];
+    }
+
+    function checkDirectRouteToWBNB(address _token) internal view returns (bool) {
+        IPair iPair;
+        for(uint i=0; i < poolInfo.length; i++)
+        {
+            iPair = IPair(address(poolInfo[i].lpToken));
+            if((iPair.token0()==_token && iPair.token1()==WBNB) ||
+                (iPair.token1()==_token && iPair.token0()==WBNB))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     function setLockedVaultAddress(address _newLockedVault) external onlyDevPower{
         require(_newLockedVault != address(0), "(f) SetLockedVaultAddress: you can't set the locked vault address to 0.");
@@ -264,13 +290,33 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
         uint256 _withDrawalFeeOfLpsBurn,
         uint256 _withDrawalFeeOfLpsTeam,
         uint256 _performanceFeesOfNativeTokensBurn,
-        uint256 _performanceFeesOfNativeTokensToLockedVault
+        uint256 _performanceFeesOfNativeTokensToLockedVault,
+        address routeToken0,
+        address routeToken1
     ) public onlyOwner {
         require(_harvestInterval <= MAX_INTERVAL, "[f] Add: invalid harvest interval");
         require(_maxWithdrawalInterval <= MAX_INTERVAL, "[f] Add: invalid withdrawal interval. Owner, there is a limit! Check your numbers.");
         require(_withDrawalFeeOfLpsTeam.add(_withDrawalFeeOfLpsBurn) <= MAX_FEE_LPS, "[f] Add: invalid withdrawal fees. Owner, you are trying to charge way too much! Check your numbers.");
         require(_performanceFeesOfNativeTokensBurn.add(_performanceFeesOfNativeTokensToLockedVault) <= MAX_FEE_PERFORMANCE, "[f] Add: invalid performance fees. Owner, you are trying to charge way too much! Check your numbers.");
 
+        // Comprovar que cada cop que s'afegeixi una pool hi hagi path fins a globals
+        {
+            IPair iPair = IPair(address(_lpToken));
+            if(iPair.token0()!=WBNB && iPair.token1()!=WBNB)
+            {
+                if(routeAddresses[iPair.token0()]==address(0) && !checkDirectRouteToWBNB(iPair.token0()))
+                {
+                    require(routeToken0 != address(0) /*&& checkDirectRouteToWBNB(routeToken0)*/, "[f] Add: route for token0 needed"); //TODO descomentar per comprovar que el token indicat fa d'enllaç amb BNB
+                    addRouteAddress(iPair.token0(), routeToken0);
+                }
+                if(routeAddresses[iPair.token1()]==address(0) && !checkDirectRouteToWBNB(iPair.token1()))
+                {
+                    require(routeToken1 != address(0) /*&& checkDirectRouteToWBNB(routeToken1)*/, "[f] Add: route for token1 needed"); //TODO descomentar per comprovar que el token indicat fa d'enllaç amb BNB
+                    addRouteAddress(iPair.token1(), routeToken1);
+                }
+            }
+
+        }
 
         if (_withUpdate) {
             massUpdatePools();
@@ -631,10 +677,10 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
             // Si tenim Nativetokens els cremem directament
             if(_token == WETH){
                 //routerGlobal.swapETHForExactTokens(...)
-                tokensToBurn = routerGlobal.swapExactETHForTokens();
+                tokensToBurn = routerGlobal.swapExactETHForTokens(); //swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
             } else if(_token != address(nativeToken)){
                 //routerGlobal.swapExactTokensForTokens(...)
-                tokensToBurn = routerGlobal.swapExactTokensForTokens();
+                tokensToBurn = routerGlobal.swapExactTokensForTokens(); //swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
             }
             else
             {
