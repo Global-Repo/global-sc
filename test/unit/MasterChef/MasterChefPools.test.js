@@ -14,6 +14,8 @@ let factory;
 let router;
 let tokenA;
 let tokenB;
+let tokenARoute;
+let tokenBRoute;
 let weth;
 let masterChef;
 
@@ -34,6 +36,14 @@ beforeEach(async function () {
   const TokenB = await ethers.getContractFactory("BEP20");
   tokenB = await TokenB.deploy('tokenB', 'BB');
   await tokenB.deployed();
+
+  const TokenARoute = await ethers.getContractFactory("BEP20");
+  tokenARoute = await TokenARoute.deploy('tokenARoute', 'AA');
+  await tokenARoute.deployed();
+
+  const TokenBRoute = await ethers.getContractFactory("BEP20");
+  tokenBRoute = await TokenBRoute.deploy('tokenBRoute', 'BB');
+  await tokenBRoute.deployed();
 
   const Factory = await ethers.getContractFactory("Factory");
   factory = await Factory.deploy(owner.address);
@@ -86,6 +96,15 @@ describe("MasterChef: Pools", function () {
 
     const pairAddress = await factory.getPair(tokenA.address, tokenB.address);
 
+    const IPair = await ethers.getContractAt("IPair", await factory.getPair(tokenA.address, tokenB.address));
+    //console.log(await IPair.token0());
+    if((await IPair.token0())==tokenB.address) {
+      let aux = tokenARoute;
+      tokenARoute = tokenBRoute;
+      tokenBRoute = aux;
+    }
+
+
     await masterChef.addPool(
         BigNumber.from(40).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
         pairAddress,
@@ -95,7 +114,9 @@ describe("MasterChef: Pools", function () {
         50,
         50,
         100,
-        100
+        100,
+        tokenARoute.address,
+        tokenBRoute.address
     );
 
     const poolInfo = await masterChef.poolInfo(0);
@@ -109,6 +130,9 @@ describe("MasterChef: Pools", function () {
     expect(poolInfo.withDrawalFeeOfLpsTeam).to.equal(50);
     expect(poolInfo.performanceFeesOfNativeTokensBurn).to.equal(100);
     expect(poolInfo.performanceFeesOfNativeTokensToLockedVault).to.equal(100);
+
+    expect(await masterChef.getRouteAddress(token0)).to.equal(tokenARoute.address);
+    expect(await masterChef.getRouteAddress(token1)).to.equal(tokenBRoute.address);
   });
 
   xit("Should to update pool info properly", async function () {
