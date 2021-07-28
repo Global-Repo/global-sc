@@ -15,10 +15,13 @@ let weth;
 let router;
 let minter;
 let cakeMasterChefMock;
+let tokenAddresses;
+let routerMock;
+let routerPathFinder;
 let vaultCake;
 
 beforeEach(async function () {
-  [owner, lockedVault, keeper, addr3, ...addrs] = await ethers.getSigners();
+  [owner, treasury, keeper, addr3, ...addrs] = await ethers.getSigners();
 
   const CURRENT_BLOCK = await ethers.provider.getBlockNumber();
   startBlock = CURRENT_BLOCK + 1;
@@ -48,7 +51,7 @@ beforeEach(async function () {
       nativeToken.address,
       NATIVE_TOKEN_PER_BLOCK,
       startBlock,
-      lockedVault.address,
+      keeper.address,
       router.address
   );
   await minter.deployed();
@@ -57,12 +60,28 @@ beforeEach(async function () {
   cakeMasterChefMock = await CakeMasterChefMock.deploy(cakeToken.address);
   await cakeMasterChefMock.deployed();
 
+  const TokenAddresses = await ethers.getContractFactory("TokenAddresses");
+  tokenAddresses = await TokenAddresses.deploy();
+  await tokenAddresses.deployed();
+
+  const RouterMock = await ethers.getContractFactory("RouterMock");
+  routerMock = await RouterMock.deploy();
+  await routerMock.deployed();
+
+  const RouterPathFinder = await ethers.getContractFactory("RouterPathFinderMock");
+  routerPathFinder = await RouterPathFinder.deploy();
+  await routerPathFinder.deployed();
+
   const VaultCake = await ethers.getContractFactory("VaultCake");
   vaultCake = await VaultCake.deploy(
-    cakeToken.address,
-    nativeToken.address,
-    cakeMasterChefMock.address,
-    keeper.address
+      cakeToken.address,
+      nativeToken.address,
+      cakeMasterChefMock.address,
+      treasury.address,
+      tokenAddresses.address,
+      routerMock.address,
+      routerPathFinder.address,
+      keeper.address
   );
   await vaultCake.deployed();
 
