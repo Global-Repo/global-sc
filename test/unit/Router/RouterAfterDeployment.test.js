@@ -596,9 +596,9 @@ describe("Router: removeLiquidity and fees", function () {
         )).to.revertedWith('SafeMath: subtraction overflow');
     });
 
-    it("Add and remove liquidity.", async function () {
 
-        //AddLiquidity
+    it("Add and remove liquidity.", async function () {
+        //add liquidity
         let date = new Date();
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
         await expect( router.connect(owner).addLiquidity(
@@ -634,32 +634,67 @@ describe("Router: removeLiquidity and fees", function () {
         expect(pairAddress).not.equal(0);
         const pairContract = await ethers.getContractFactory("Pair");
         const pair = await pairContract.attach(pairAddress);
-        expect(await pair.balanceOf(owner.address)).equal(BigNumber.from(20000).sub(1000) );
-        const ownerABbalance = await pair.balanceOf(owner.address);
-        console.log('pair.balanceOf(owner.address)',  ownerABbalance.toString());
-        //pair reserves should be the same qty of tkns introduced by owner after adding liquidity
-        //reserves_timestamsp should be less than the deadline
+
+        //balance of owner should be 19000 A-B LPs (the two addliquidity)
+        expect(await pair.balanceOf(owner.address)).equal(19000 );
+        //balance of owner for token1 and tokenb should be 99999999999999980000 (minted - liquidity added)
+        expect(await tokenA.balanceOf(owner.address)).equal( INITIAL_SUPPLY.sub(20000) );
+        expect(await tokenB.balanceOf(owner.address)).equal( INITIAL_SUPPLY.sub(20000) );
+        //pair reserves should be 20k
         let {0: reserves0, 1:reserves1, 2:reserves_timestamp} = await pair.getReserves();
         expect(reserves0).equal(BigNumber.from(20000) );
         expect(reserves1).equal(BigNumber.from(20000) );
         expect(reserves_timestamp).lessThanOrEqual(deadline );
+        await pair.connect(owner).approve(router.address, 50000);
 
-        /*
-        NOW WE TAKE THE PAIR BACK.
-        TODO why overflow here? it seems the problem comes from the Pair._update frunction
-        */
+        //allow owner to retrieve LP from router
+        //since the proportion between A:B es 1:1, we will retrieve the maximum
+        //possible between amountAMin and amountBMin considering the liquidity and the qty
+        // we want to retrieve of the pool (which is 1000) and send it to the owner address
         await expect( router.connect(owner).removeLiquidity(
             tokenA.address,
             tokenB.address,
-            10,
-            10,
+            1000,
+            100,
             1,
             owner.address,
             deadline
         )).to.emit(router, 'RemovedLiquidity')
-            .withArgs(BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-                BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+            .withArgs(1000, 1000);
 
+        //now, the owner recovered 1000 tokensA and 1000 tokensB, therefore he now must have
+        //INITIAL_SUPPLY.sub(19000)
+        expect(await tokenA.balanceOf(owner.address)).equal( INITIAL_SUPPLY.sub(19000) );
+        expect(await tokenB.balanceOf(owner.address)).equal( INITIAL_SUPPLY.sub(19000));
+        //since we retrieved 1000A-B Pairs, now the owner only has 18000 left
+        expect(await pair.balanceOf(owner.address)).equal(18000 );
+        //if we check the ABpair..
+
+
+        //
+        // retrieve all thats left
+        //
+        await expect( router.connect(owner).removeLiquidity(
+            tokenA.address,
+            tokenB.address,
+            18000,
+            100,
+            1,
+            owner.address,
+            deadline
+        )).to.emit(router, 'RemovedLiquidity')
+            .withArgs(18000, 18000);
+
+        //now, the owner recovered 1000 tokensA and 1000 tokensB, therefore he now must have
+        //INITIAL_SUPPLY.sub(19000)
+        expect(await tokenA.balanceOf(owner.address)).equal( INITIAL_SUPPLY.sub(1000) );
+        expect(await tokenB.balanceOf(owner.address)).equal( INITIAL_SUPPLY.sub(1000));
+        //since we retrieved 1000A-B Pairs, now the owner only has 18000 left
+        expect(await pair.balanceOf(owner.address)).equal(0 );
+        //check the ABPair reserves. It must contain 1000 which is the blocked liquidity
+        let {0: reserves01, 1:reserves11, 2:reserves_timestamp1} = await pair.getReserves();
+        expect(reserves01).equal(BigNumber.from(1000) );
+        expect(reserves11).equal(BigNumber.from(1000) );
     });
 
 });

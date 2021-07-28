@@ -72,7 +72,7 @@ describe("Remove liquidity", function () {
     const pair = await pairContract.attach(pairAddress);
     const liquidity = await pair.balanceOf(owner.address);
 
-    await pair.approve(router.address, liquidity.toHexString());
+    await pair.connect(owner).approve(router.address, liquidity.toHexString());
 
     await router.connect(owner).removeLiquidity(
         tokenA.address,
