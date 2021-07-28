@@ -17,6 +17,7 @@ contract Router is IRouterV2 {
     address public immutable override WETH;
 
     event AddedLiquidity(uint amountA, uint amountB, uint addedLiquidity);
+    event RemovedLiquidity(uint amountA, uint amountB);
 
     modifier ensure(uint deadline) {
         require(deadline >= block.timestamp, 'PancakeRouter: EXPIRED');
@@ -121,6 +122,8 @@ contract Router is IRouterV2 {
         (amountA, amountB) = tokenA == token0 ? (amount0, amount1) : (amount1, amount0);
         require(amountA >= amountAMin, 'PancakeRouter: INSUFFICIENT_A_AMOUNT');
         require(amountB >= amountBMin, 'PancakeRouter: INSUFFICIENT_B_AMOUNT');
+
+        emit RemovedLiquidity(amountA, amountB);
     }
     function removeLiquidityETH(
         address token,

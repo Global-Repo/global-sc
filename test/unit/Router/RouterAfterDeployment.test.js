@@ -493,6 +493,173 @@ describe("Router: swap and fees", function () {
 });
 
 describe("Router: removeLiquidity and fees", function () {
-    //TODO, removeLiquidity and fees
+
+
+    it("Can't remove liquidity with an expired deadline.", async function () {
+        //AddLiquidity
+        let date = new Date();
+        const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+        await expect( router.connect(owner).addLiquidity(
+            tokenA.address,
+            tokenB.address,
+            BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            owner.address,
+            deadline
+        ))
+
+        //Removeliquidity breaks cause expired deadline
+        await expect( router.connect(owner).removeLiquidity(
+            tokenA.address,
+            tokenB.address,
+            BigNumber.from(5).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            owner.address,
+            0
+        )).to.revertedWith('PancakeRouter: EXPIRED');
+
+    });
+
+    it("Can't remove liquidity from a non-existing pair.", async function () {
+
+        //Removeliquidity breaks cause we do not have liquidity for that pair
+        let date = new Date();
+        const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+        await expect( router.connect(owner).removeLiquidity(
+            tokenA.address,
+            tokenB.address,
+            BigNumber.from(5).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            owner.address,
+            deadline
+        )).to.revertedWith('SafeMath: subtraction overflow');
+
+    });
+
+    it("Can't remove liquidity if we don't have liquidity in that pair.", async function () {
+
+        //AddLiquidity
+        let date = new Date();
+        const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+        await expect( router.connect(owner).addLiquidity(
+            tokenA.address,
+            tokenB.address,
+            BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            owner.address,
+            deadline
+        ))
+
+        //
+        await expect( router.connect(owner).removeLiquidity(
+            tokenA.address,
+            tokenC.address,
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            owner.address,
+            deadline
+        )).to.revertedWith('SafeMath: subtraction overflow');
+    });
+
+    it("Can't remove liquidity if we don't have liquidity in that pair (reversed).", async function () {
+
+        //AddLiquidity
+        let date = new Date();
+        const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+        await expect( router.connect(owner).addLiquidity(
+            tokenA.address,
+            tokenB.address,
+            BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            owner.address,
+            deadline
+        ))
+
+        //
+        await expect( router.connect(owner).removeLiquidity(
+            tokenB.address,
+            tokenC.address,
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            owner.address,
+            deadline
+        )).to.revertedWith('SafeMath: subtraction overflow');
+    });
+
+    it("Add and remove liquidity.", async function () {
+
+        //AddLiquidity
+        let date = new Date();
+        const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+        await expect( router.connect(owner).addLiquidity(
+            tokenA.address,
+            tokenB.address,
+            BigNumber.from(10000),
+            BigNumber.from(10000),
+            BigNumber.from(1000),
+            BigNumber.from(1000),
+            owner.address,
+            deadline
+        )).to.emit(router, 'AddedLiquidity')
+            .withArgs(BigNumber.from(10000),
+                BigNumber.from(10000),
+                BigNumber.from(10000).sub(1000));
+
+        await expect( router.connect(owner).addLiquidity(
+            tokenA.address,
+            tokenB.address,
+            BigNumber.from(10000),
+            BigNumber.from(10000),
+            BigNumber.from(1000),
+            BigNumber.from(1000),
+            owner.address,
+            deadline
+        )).to.emit(router, 'AddedLiquidity')
+            .withArgs(BigNumber.from(10000),
+                BigNumber.from(10000),
+                BigNumber.from(10000));
+
+        //Also, the pair A-B has been created
+        const pairAddress = await factory.getPair(tokenA.address, tokenB.address);
+        expect(pairAddress).not.equal(0);
+        const pairContract = await ethers.getContractFactory("Pair");
+        const pair = await pairContract.attach(pairAddress);
+        expect(await pair.balanceOf(owner.address)).equal(BigNumber.from(20000).sub(1000) );
+        const ownerABbalance = await pair.balanceOf(owner.address);
+        console.log('pair.balanceOf(owner.address)',  ownerABbalance.toString());
+        //pair reserves should be the same qty of tkns introduced by owner after adding liquidity
+        //reserves_timestamsp should be less than the deadline
+        let {0: reserves0, 1:reserves1, 2:reserves_timestamp} = await pair.getReserves();
+        expect(reserves0).equal(BigNumber.from(20000) );
+        expect(reserves1).equal(BigNumber.from(20000) );
+        expect(reserves_timestamp).lessThanOrEqual(deadline );
+
+        /*
+        NOW WE TAKE THE PAIR BACK.
+        TODO why overflow here? it seems the problem comes from the Pair._update frunction
+        */
+        await expect( router.connect(owner).removeLiquidity(
+            tokenA.address,
+            tokenB.address,
+            10,
+            10,
+            1,
+            owner.address,
+            deadline
+        )).to.emit(router, 'RemovedLiquidity')
+            .withArgs(BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+                BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+
+    });
 
 });
