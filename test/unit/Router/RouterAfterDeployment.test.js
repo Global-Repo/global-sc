@@ -106,7 +106,7 @@ describe("Router: Basic Set-up", function () {
 
 describe("Router: Add liquidity to a pair, and pair proportions + functions", function () {
 
-    it("Can't add liquidity if we don't have liquidity", async function () {
+    it("Can't add liquidity if we don't have liquidity nor permission", async function () {
         let date = new Date();
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
 
@@ -262,6 +262,74 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
         expect(reserves_timestamp).lessThanOrEqual(deadline );
     });
 
+    it("Add liquidity from owner twice, first normally (AB) then swapping pairs (BA)", async function () {
+        //Owner has liquidity because we minted before each test. Otherwise this should
+        // return not enough funds
+        let date = new Date();
+        const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+
+        //the first returned value is the qty of tokensA
+        //the second is qty tokensB
+        //the third is liquidity, which is calculated by sqrt of two tokens minus minimum liquidity, which
+        // is 1000 for the first deposit
+        await expect( router.connect(owner).addLiquidity(
+            tokenA.address,
+            tokenB.address,
+            BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            owner.address,
+            deadline
+        )).to.emit(router, 'AddedLiquidity')
+            .withArgs(BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+                BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+                BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER).sub(1000));
+
+
+        //since the tx did go through, owner has less tokens now
+        expect( await tokenA.connect(owner).balanceOf(owner.address) ).to.equal(INITIAL_SUPPLY.sub(BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER)));
+        expect( await tokenB.connect(owner).balanceOf(owner.address) ).to.equal(INITIAL_SUPPLY.sub(BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER)));
+
+        //Also, the pair A-B has been created
+        const pairAddress = await factory.getPair(tokenA.address, tokenB.address);
+        expect(pairAddress).not.equal(0);
+        const pairContract = await ethers.getContractFactory("Pair");
+        const pair = await pairContract.attach(pairAddress);
+
+        //find balance of owner reagrding the pair A-B, which should be the qty of Pair minus the blocking fee
+        expect(await pair.balanceOf(owner.address)).equal(BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER).sub(1000) );
+
+        //pair reserves should be the same qty of tkns introduced by owner after adding liquidity
+        //reserves_timestamsp should be less than the deadline
+        let {0: reserves0, 1:reserves1, 2:reserves_timestamp} = await pair.getReserves();
+        expect(reserves0).equal(BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER) );
+        expect(reserves1).equal(BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+        expect(reserves_timestamp).lessThanOrEqual(deadline );
+
+        //add liquidity swapping pairs (BA)
+        await expect( router.connect(owner).addLiquidity(
+            tokenB.address,
+            tokenA.address,
+            BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            owner.address,
+            deadline
+        )).to.emit(router, 'AddedLiquidity')
+            .withArgs(BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+                BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+                BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+        //since the tx did go through, owner has less tokens now
+        expect( await tokenA.connect(owner).balanceOf(owner.address) ).to.equal(INITIAL_SUPPLY.sub(BigNumber.from(20).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER)));
+        expect( await tokenB.connect(owner).balanceOf(owner.address) ).to.equal(INITIAL_SUPPLY.sub(BigNumber.from(20).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER)));
+        expect(await pair.balanceOf(owner.address)).equal(BigNumber.from(20).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER).sub(1000) );
+        let {0: reserves01, 1:reserves11, 2:reserves_timestamp1} = await pair.getReserves();
+        expect(reserves01).equal(BigNumber.from(20).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER) );
+        expect(reserves11).equal(BigNumber.from(20).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+    });
+
     it("Add liquidity using an outdated datetime stamp.", async function () {
         //test datetime stamp; 'PancakeRouter: EXPIRED'
         //Owner sends tkns to addr3, addr has liquidity
@@ -359,6 +427,22 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
 
 
 
+    });
+
+    it("Add 0 liquidity", async function () {
+        //add liquidity with owner and create the pair AB
+        let date = new Date();
+        const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+        await expect(router.connect(owner).addLiquidity(
+            tokenA.address,
+            tokenB.address,
+            BigNumber.from(0),
+            BigNumber.from(0),
+            BigNumber.from(0),
+            BigNumber.from(0),
+            owner.address,
+            deadline
+        )).to.revertedWith('SafeMath: subtraction overflow');
     });
 
     it("Checking amountAMin and amountBMin on an already created pair", async function () {
@@ -472,10 +556,83 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
             owner.address,
             deadline
         )).to.revertedWith('PancakeRouter: INSUFFICIENT_A_AMOUNT');
-
-
     });
 
+    it("Two users adding liquidity to the same Pair", async function () {
+        let date = new Date();
+        const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+
+        //
+        // first addliquidity from owner
+        //
+        // first addliquidity should go trough, establishing the proportion between tokens 1:1
+        await expect(router.connect(owner).addLiquidity(
+            tokenA.address,
+            tokenB.address,
+            BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            owner.address,
+            deadline
+        )).to.emit(router, 'AddedLiquidity')
+            .withArgs(BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+                BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+                BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER).sub(1000));
+
+        //Also, the pair A-B has been created
+        const pairAddress = await factory.getPair(tokenA.address, tokenB.address);
+        expect(pairAddress).not.equal(0);
+        const pairContract = await ethers.getContractFactory("Pair");
+        const pair = await pairContract.attach(pairAddress);
+
+        // find balance of owner from pair,
+        // which should be the qty of LPs minus the comission for opoening the trade
+        expect(await pair.balanceOf(owner.address)).equal(
+            BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER).sub(1000)
+        );
+
+        //pair reserves should also not be zero
+        let {0: reserves0, 1: reserves1, 2: reserves_timestamp} = await pair.getReserves();
+        expect(reserves0).equal(BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),);
+        expect(reserves1).equal(BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),);
+        expect(reserves_timestamp).lessThanOrEqual(deadline);
+
+        //
+        // addliquidity from addr3
+        //
+        // first we need to give addr3 tokens
+        expect( await tokenA.balanceOf(addr3.address) ).to.equal(0);
+        expect( await tokenB.balanceOf(addr3.address) ).to.equal(0);
+        await tokenA.connect(owner).transfer(addr3.address, 1000 )
+        await tokenB.connect(owner).transfer(addr3.address, 1000 )
+        expect( await tokenA.balanceOf(addr3.address) ).to.equal(1000);
+        expect( await tokenB.balanceOf(addr3.address) ).to.equal(1000);
+        await tokenA.connect(addr3).approve(router.address, INITIAL_SUPPLY);
+        await tokenB.connect(addr3).approve(router.address, INITIAL_SUPPLY);
+        await pair.connect(addr3).approve(router.address, INITIAL_SUPPLY);
+        await expect(router.connect(addr3).addLiquidity(
+            tokenA.address,
+            tokenB.address,
+            1000,
+            1000,
+            1,
+            1,
+            addr3.address,
+            deadline
+        )).to.emit(router, 'AddedLiquidity').withArgs(1000,1000,1000);
+
+        //check reserves of tokens again
+        let {0: reserves01, 1: reserves11, 2: reserves_timestamp1} = await pair.getReserves();
+        expect(reserves01).equal(10000001000);
+        expect(reserves11).equal(10000001000);
+        //check AB LP in addr3
+        expect(await pair.balanceOf(addr3.address)).equal(1000);
+    });
+
+});
+
+describe("Router: swap and fees", function () {
     it("Change pair.devfeeto address and check that fees are sent the correct way", async function () {
     });
 
@@ -484,217 +641,4 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
 
     it("perform different liquidity adds and withdraws and check that everything works fine", async function () {
     });
-
-});
-
-describe("Router: swap and fees", function () {
-    //TODO, swap and fees
-
-});
-
-describe("Router: removeLiquidity and fees", function () {
-
-
-    it("Can't remove liquidity with an expired deadline.", async function () {
-        //AddLiquidity
-        let date = new Date();
-        const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
-        await expect( router.connect(owner).addLiquidity(
-            tokenA.address,
-            tokenB.address,
-            BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            owner.address,
-            deadline
-        ))
-
-        //Removeliquidity breaks cause expired deadline
-        await expect( router.connect(owner).removeLiquidity(
-            tokenA.address,
-            tokenB.address,
-            BigNumber.from(5).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            owner.address,
-            0
-        )).to.revertedWith('PancakeRouter: EXPIRED');
-
-    });
-
-    it("Can't remove liquidity from a non-existing pair.", async function () {
-
-        //Removeliquidity breaks cause we do not have liquidity for that pair
-        let date = new Date();
-        const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
-        await expect( router.connect(owner).removeLiquidity(
-            tokenA.address,
-            tokenB.address,
-            BigNumber.from(5).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            owner.address,
-            deadline
-        )).to.revertedWith('SafeMath: subtraction overflow');
-
-    });
-
-    it("Can't remove liquidity if we don't have liquidity in that pair.", async function () {
-
-        //AddLiquidity
-        let date = new Date();
-        const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
-        await expect( router.connect(owner).addLiquidity(
-            tokenA.address,
-            tokenB.address,
-            BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            owner.address,
-            deadline
-        ))
-
-        //
-        await expect( router.connect(owner).removeLiquidity(
-            tokenA.address,
-            tokenC.address,
-            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            owner.address,
-            deadline
-        )).to.revertedWith('SafeMath: subtraction overflow');
-    });
-
-    it("Can't remove liquidity if we don't have liquidity in that pair (reversed).", async function () {
-
-        //AddLiquidity
-        let date = new Date();
-        const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
-        await expect( router.connect(owner).addLiquidity(
-            tokenA.address,
-            tokenB.address,
-            BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            owner.address,
-            deadline
-        ))
-
-        //
-        await expect( router.connect(owner).removeLiquidity(
-            tokenB.address,
-            tokenC.address,
-            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            owner.address,
-            deadline
-        )).to.revertedWith('SafeMath: subtraction overflow');
-    });
-
-
-    it("Add and remove liquidity.", async function () {
-        //add liquidity
-        let date = new Date();
-        const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
-        await expect( router.connect(owner).addLiquidity(
-            tokenA.address,
-            tokenB.address,
-            BigNumber.from(10000),
-            BigNumber.from(10000),
-            BigNumber.from(1000),
-            BigNumber.from(1000),
-            owner.address,
-            deadline
-        )).to.emit(router, 'AddedLiquidity')
-            .withArgs(BigNumber.from(10000),
-                BigNumber.from(10000),
-                BigNumber.from(10000).sub(1000));
-
-        await expect( router.connect(owner).addLiquidity(
-            tokenA.address,
-            tokenB.address,
-            BigNumber.from(10000),
-            BigNumber.from(10000),
-            BigNumber.from(1000),
-            BigNumber.from(1000),
-            owner.address,
-            deadline
-        )).to.emit(router, 'AddedLiquidity')
-            .withArgs(BigNumber.from(10000),
-                BigNumber.from(10000),
-                BigNumber.from(10000));
-
-        //Also, the pair A-B has been created
-        const pairAddress = await factory.getPair(tokenA.address, tokenB.address);
-        expect(pairAddress).not.equal(0);
-        const pairContract = await ethers.getContractFactory("Pair");
-        const pair = await pairContract.attach(pairAddress);
-
-        //balance of owner should be 19000 A-B LPs (the two addliquidity)
-        expect(await pair.balanceOf(owner.address)).equal(19000 );
-        //balance of owner for token1 and tokenb should be 99999999999999980000 (minted - liquidity added)
-        expect(await tokenA.balanceOf(owner.address)).equal( INITIAL_SUPPLY.sub(20000) );
-        expect(await tokenB.balanceOf(owner.address)).equal( INITIAL_SUPPLY.sub(20000) );
-        //pair reserves should be 20k
-        let {0: reserves0, 1:reserves1, 2:reserves_timestamp} = await pair.getReserves();
-        expect(reserves0).equal(BigNumber.from(20000) );
-        expect(reserves1).equal(BigNumber.from(20000) );
-        expect(reserves_timestamp).lessThanOrEqual(deadline );
-        await pair.connect(owner).approve(router.address, 50000);
-
-        //allow owner to retrieve LP from router
-        //since the proportion between A:B es 1:1, we will retrieve the maximum
-        //possible between amountAMin and amountBMin considering the liquidity and the qty
-        // we want to retrieve of the pool (which is 1000) and send it to the owner address
-        await expect( router.connect(owner).removeLiquidity(
-            tokenA.address,
-            tokenB.address,
-            1000,
-            100,
-            1,
-            owner.address,
-            deadline
-        )).to.emit(router, 'RemovedLiquidity')
-            .withArgs(1000, 1000);
-
-        //now, the owner recovered 1000 tokensA and 1000 tokensB, therefore he now must have
-        //INITIAL_SUPPLY.sub(19000)
-        expect(await tokenA.balanceOf(owner.address)).equal( INITIAL_SUPPLY.sub(19000) );
-        expect(await tokenB.balanceOf(owner.address)).equal( INITIAL_SUPPLY.sub(19000));
-        //since we retrieved 1000A-B Pairs, now the owner only has 18000 left
-        expect(await pair.balanceOf(owner.address)).equal(18000 );
-        //if we check the ABpair..
-
-
-        //
-        // retrieve all thats left
-        //
-        await expect( router.connect(owner).removeLiquidity(
-            tokenA.address,
-            tokenB.address,
-            18000,
-            100,
-            1,
-            owner.address,
-            deadline
-        )).to.emit(router, 'RemovedLiquidity')
-            .withArgs(18000, 18000);
-
-        //now, the owner recovered 1000 tokensA and 1000 tokensB, therefore he now must have
-        //INITIAL_SUPPLY.sub(19000)
-        expect(await tokenA.balanceOf(owner.address)).equal( INITIAL_SUPPLY.sub(1000) );
-        expect(await tokenB.balanceOf(owner.address)).equal( INITIAL_SUPPLY.sub(1000));
-        //since we retrieved 1000A-B Pairs, now the owner only has 18000 left
-        expect(await pair.balanceOf(owner.address)).equal(0 );
-        //check the ABPair reserves. It must contain 1000 which is the blocked liquidity
-        let {0: reserves01, 1:reserves11, 2:reserves_timestamp1} = await pair.getReserves();
-        expect(reserves01).equal(BigNumber.from(1000) );
-        expect(reserves11).equal(BigNumber.from(1000) );
-    });
-
 });
