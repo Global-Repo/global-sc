@@ -26,19 +26,6 @@ async function main() {
 
     // console.log("QuoteToken deployed to:", quoteToken.address);
 
-    const MasterChef = await hre.ethers.getContractFactory("MasterChef");
-    const masterChef = await MasterChef.deploy(
-        nativeToken.address,
-        NATIVE_TOKEN_PER_BLOCK,
-        CURRENT_BLOCK + 1,
-        "0xae1671Faa94A7Cc296D3cb0c3619e35600de384C" // TODO: Router Global
-    );
-    await masterChef.deployed();
-
-    console.log("Masterchef deployed to:", masterChef.address);
-
-    // TODO: mint x tokens and change token owner by masterchef address
-
     const Factory = await hre.ethers.getContractFactory("Factory");
     const factory = await Factory.deploy(owner.address);
     await factory.deployed();
@@ -51,6 +38,20 @@ async function main() {
     await router.deployed();
 
     console.log("Router deployed to:", router.address);
+
+    const MasterChef = await hre.ethers.getContractFactory("MasterChef");
+    const masterChef = await MasterChef.deploy(
+        nativeToken.address,
+        NATIVE_TOKEN_PER_BLOCK,
+        CURRENT_BLOCK + 1,
+        "0xae1671Faa94A7Cc296D3cb0c3619e35600de384C", // TODO: _nativeTokenLockedVaultAddr
+        router.address//"0xae1671Faa94A7Cc296D3cb0c3619e35600de384C" // TODO: Router Global -> en principi està canviat
+    );
+    await masterChef.deployed();
+
+    console.log("Masterchef deployed to:", masterChef.address);
+
+    // TODO: mint x tokens and change token owner by masterchef address
 
     // Set ups
     await nativeToken.transferOwnership(masterChef.address);
