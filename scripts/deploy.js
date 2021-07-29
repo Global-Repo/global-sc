@@ -56,6 +56,14 @@ async function main() {
     // Set ups
     await nativeToken.transferOwnership(masterChef.address);
     console.log("Masterchef is now the Native token's owner.");
+
+    console.log("Data for verification");
+    console.log(masterChef.address);
+    console.log(nativeToken.address);
+    console.log(NATIVE_TOKEN_PER_BLOCK);
+    console.log(CURRENT_BLOCK + 1);
+    console.log("0xae1671Faa94A7Cc296D3cb0c3619e35600de384C");
+    console.log(router.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
