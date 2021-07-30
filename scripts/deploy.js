@@ -44,8 +44,8 @@ async function main() {
         nativeToken.address,
         NATIVE_TOKEN_PER_BLOCK,
         CURRENT_BLOCK + 1,
-        "0xae1671Faa94A7Cc296D3cb0c3619e35600de384C", // TODO: _nativeTokenLockedVaultAddr
-        router.address//"0xae1671Faa94A7Cc296D3cb0c3619e35600de384C" // TODO: Router Global -> en principi està canviat
+        owner.address, // TODO: locked vault address
+        router.address
     );
     await masterChef.deployed();
 

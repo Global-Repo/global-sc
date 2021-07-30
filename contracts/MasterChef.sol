@@ -266,10 +266,10 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
     // Per lo tant, els càlculs de quants tokens volem, sempre es faràn al propi vault. La lògica queda delegada al vault.
     function mintNativeTokens(uint _quantityToMint) external override onlyMinter returns (address) {
         // Mintem un ~10% dels tokens a l'equip (10/110)
-        nativeToken.mint(devAddr, _quantityToMint.div(10));
+        nativeToken.mints(devAddr, _quantityToMint.div(10));
 
         // Mintem tokens al que ens ho ha demanat
-        nativeToken.mint(msg.sender, _quantityToMint);
+        nativeToken.mints(msg.sender, _quantityToMint);
 
         return nativeTokenLockedVaultAddr;
     }
@@ -453,10 +453,10 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
         uint256 nativeTokenReward = multiplier.mul(nativeTokenPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
 
         // Mintem un ~10% dels tokens a l'equip (10/110)
-        nativeToken.mint(devAddr, nativeTokenReward.div(10));
+        nativeToken.mints(devAddr, nativeTokenReward.div(10));
 
         // Mintem tokens a aquest contracte.
-        nativeToken.mint(address(this), nativeTokenReward);
+        nativeToken.mints(address(this), nativeTokenReward);
 
         // Al accNativeTokenPerShare de la pool li afegim [els rewards mintats ara dividit entre el total de LPs]. Bàsicament, actualitzem accNativeTokenPerShare per indicar els rewards a cobrar per cada LP.
         pool.accNativeTokenPerShare = pool.accNativeTokenPerShare.add(nativeTokenReward.mul(1e12).div(lpSupply));

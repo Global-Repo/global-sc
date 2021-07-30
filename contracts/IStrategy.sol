@@ -5,9 +5,9 @@ pragma experimental ABIEncoderV2;
 interface IStrategy {
     function deposit(uint _amount) external;
     function depositAll() external;
-    function withdraw(uint _amount) external;    // BUNNY STAKING POOL ONLY
+    function withdraw(uint _amount) external; // BUNNY STAKING POOL ONLY
     function withdrawAll() external;
-    function getReward() external;                  // BUNNY STAKING POOL ONLY
+    function getReward() external;            // BUNNY STAKING POOL ONLY
     function harvest() external;
 
     function totalSupply() external view returns (uint);
@@ -27,7 +27,7 @@ interface IStrategy {
 
     event Deposited(address indexed user, uint amount);
     event Withdrawn(address indexed user, uint amount, uint withdrawalFee);
-    event ProfitPaid(address indexed user, uint profit, uint performanceFee);
-    event BunnyPaid(address indexed user, uint profit, uint performanceFee);
+    event ProfitPaid(address indexed user, uint amount);
     event Harvested(uint profit);
+    event Recovered(address token, uint amount);
 }
