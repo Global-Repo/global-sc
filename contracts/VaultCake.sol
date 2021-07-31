@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
 
-import "hardhat/console.sol";
-
 import "./SafeBEP20.sol";
 import "./Math.sol";
 import "./IStrategy.sol";
@@ -14,6 +12,7 @@ import "./IMinter.sol";
 import "./IRouterV2.sol";
 import "./IRouterPathFinder.sol";
 import "./TokenAddresses.sol";
+import './DevPower.sol';
 
 contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     using SafeBEP20 for IBEP20;
@@ -241,7 +240,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         _harvest(cakeHarvested);
     }
 
-    function withdrawUnderlying(uint _amount) external onlyNonContract {
+    function withdrawUnderlying(uint _amount) external override onlyNonContract {
         uint amount = Math.min(_amount, _principal[msg.sender]);
         uint shares = Math.min(amount.mul(totalShares).div(balance()), _shares[msg.sender]);
 

@@ -5,9 +5,10 @@ pragma experimental ABIEncoderV2;
 interface IStrategy {
     function deposit(uint _amount) external;
     function depositAll() external;
-    function withdraw(uint _amount) external; // BUNNY STAKING POOL ONLY
+    function withdraw(uint _amount) external;
     function withdrawAll() external;
-    function getReward() external;            // BUNNY STAKING POOL ONLY
+    function withdrawUnderlying(uint _amount) external;
+    function getReward() external;
     function harvest() external;
 
     function totalSupply() external view returns (uint);
@@ -16,10 +17,8 @@ interface IStrategy {
     function sharesOf(address account) external view returns (uint);
     function principalOf(address account) external view returns (uint);
     function earned(address account) external view returns (uint);
-    function withdrawableBalanceOf(address account) external view returns (uint);   // BUNNY STAKING POOL ONLY
+    function withdrawableBalanceOf(address account) external view returns (uint);
     function priceShare() external view returns (uint);
-
-    /* ========== Strategy Information ========== */
 
     function pid() external view returns (uint);
     function depositedAt(address account) external view returns (uint);

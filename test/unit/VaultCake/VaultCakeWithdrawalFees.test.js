@@ -118,7 +118,7 @@ beforeEach(async function () {
 });
 
 describe("VaultCake: Withdrawal fees", function () {
-  xit("No withdrawal fees on withdrawal all", async function () {
+  it("No withdrawal fees on withdrawal all", async function () {
     const depositedAmount = BigNumber.from(5).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
 
     await vaultCake.setWithdrawalFees(0, 0, 0);
@@ -143,7 +143,7 @@ describe("VaultCake: Withdrawal fees", function () {
     expect(await cakeToken.balanceOf(user1.address)).to.equal("6500000000000000000");
   });
 
-  xit("Withdrawal fees applied over principal deposit when user withdraws before defined interval days", async function () {
+  it("Withdrawal fees applied over principal deposit when user withdraws before defined interval days", async function () {
     const timestamp4days = new Date().setTime(4 * 86400); // +3 days
     const depositedAmount = BigNumber.from(5).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
 
