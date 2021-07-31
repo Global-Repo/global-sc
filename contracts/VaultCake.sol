@@ -31,8 +31,9 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     TokenAddresses private tokenAddresses;
 
     uint public constant override pid = 0;
-    uint private constant DUST = 1000;
     uint16 public constant MAX_WITHDRAWAL_FEES = 100; // 1%
+    uint private constant DUST = 1000;
+    address private constant GLOBAL_BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     uint public totalShares;
     mapping (address => uint) private _shares;
@@ -191,7 +192,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         return address(cake);
     }
 
-    function deposit(uint _amount) public override {
+    function deposit(uint _amount) public override onlyNonContract {
         _deposit(_amount, msg.sender);
 
         if (isWhitelist(msg.sender) == false) {
@@ -200,7 +201,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         }
     }
 
-    function depositAll() external override {
+    function depositAll() external override onlyNonContract {
         deposit(cake.balanceOf(msg.sender));
     }
 
@@ -229,29 +230,28 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
 
     function withdraw(uint shares) external override onlyWhitelisted onlyNonContract {
         uint amount = balance().mul(shares).div(totalShares);
-        totalShares = totalShares.sub(shares);
-        _shares[msg.sender] = _shares[msg.sender].sub(shares);
+
         uint cakeHarvested = _withdrawStakingToken(amount);
 
-        // TODO: cobrar fees del % del principal/shares
         handleWithdrawalFees(amount);
-        emit Withdrawn(msg.sender, amount, 0);
+
+        totalShares = totalShares.sub(shares);
+        _shares[msg.sender] = _shares[msg.sender].sub(shares);
 
         _harvest(cakeHarvested);
     }
 
-    // @dev underlying only + withdrawal fee + no perf fee
     function withdrawUnderlying(uint _amount) external onlyNonContract {
         uint amount = Math.min(_amount, _principal[msg.sender]);
         uint shares = Math.min(amount.mul(totalShares).div(balance()), _shares[msg.sender]);
 
-        totalShares = totalShares.sub(shares);
-        _shares[msg.sender] = _shares[msg.sender].sub(shares);
-        _principal[msg.sender] = _principal[msg.sender].sub(amount);
-
         uint cakeHarvested = _withdrawStakingToken(amount);
 
         handleWithdrawalFees(amount);
+
+        totalShares = totalShares.sub(shares);
+        _shares[msg.sender] = _shares[msg.sender].sub(shares);
+        _principal[msg.sender] = _principal[msg.sender].sub(amount);
 
         _harvest(cakeHarvested);
     }
@@ -260,13 +260,13 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         uint amount = earned(msg.sender);
         uint shares = Math.min(amount.mul(totalShares).div(balance()), _shares[msg.sender]);
 
-        totalShares = totalShares.sub(shares);
-        _shares[msg.sender] = _shares[msg.sender].sub(shares);
-        _cleanupIfDustShares();
-
         uint cakeHarvested = _withdrawStakingToken(amount);
 
         handleRewards(amount);
+
+        totalShares = totalShares.sub(shares);
+        _shares[msg.sender] = _shares[msg.sender].sub(shares);
+        _cleanupIfDustShares();
 
         _harvest(cakeHarvested);
     }
@@ -280,35 +280,30 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         }
 
         uint deadline = block.timestamp.add(2 hours);
-        address burnAddress = 0x000000000000000000000000000000000000dEaD;
-        uint16 maxDepth = 3;
-
-        uint amountToTeam = _amount.mul(withdrawalFees.team).div(10000);
         uint amountToBurn = _amount.mul(withdrawalFees.burn).div(10000);
+        uint amountToTeam = _amount.mul(withdrawalFees.team).div(10000);
         uint amountToUser = _amount.sub(amountToTeam).sub(amountToBurn);
 
         address[] memory pathToGlobal = routerPathFinder.findPath(
             tokenAddresses.findByName(tokenAddresses.CAKE()),
-            tokenAddresses.findByName(tokenAddresses.GLOBAL()),
-            maxDepth
+            tokenAddresses.findByName(tokenAddresses.GLOBAL())
         );
 
         address[] memory pathToBusd = routerPathFinder.findPath(
             tokenAddresses.findByName(tokenAddresses.CAKE()),
-            tokenAddresses.findByName(tokenAddresses.BUSD()),
-            maxDepth
+            tokenAddresses.findByName(tokenAddresses.BUSD())
         );
+
+        if (amountToBurn < DUST) {
+            amountToUser = amountToUser.add(amountToBurn);
+        } else {
+            router.swapExactTokensForTokens(amountToBurn, 0, pathToGlobal, GLOBAL_BURN_ADDRESS, deadline);
+        }
 
         if (amountToTeam < DUST) {
             amountToUser = amountToUser.add(amountToTeam);
         } else {
             router.swapExactTokensForTokens(amountToTeam, 0, pathToBusd, treasury, deadline);
-        }
-
-        if (amountToBurn < DUST) {
-            amountToUser = amountToUser.add(amountToBurn);
-        } else {
-            router.swapExactTokensForTokens(amountToBurn, 0, pathToGlobal, burnAddress, deadline);
         }
 
         cake.safeTransfer(msg.sender, amountToUser);
@@ -321,8 +316,6 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         }
 
         uint deadline = block.timestamp.add(2 hours);
-        uint16 maxDepth = 3;
-
         uint amountToUser = _amount.mul(rewards.toUser).div(10000);
         uint amountToOperations = _amount.mul(rewards.toOperations).div(10000);
         uint amountToBuyGlobal = _amount.mul(rewards.toBuyGlobal).div(10000);
@@ -330,20 +323,17 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
 
         address[] memory pathToGlobal = routerPathFinder.findPath(
             tokenAddresses.findByName(tokenAddresses.CAKE()),
-            tokenAddresses.findByName(tokenAddresses.GLOBAL()),
-            maxDepth
+            tokenAddresses.findByName(tokenAddresses.GLOBAL())
         );
 
         address[] memory pathToBusd = routerPathFinder.findPath(
             tokenAddresses.findByName(tokenAddresses.CAKE()),
-            tokenAddresses.findByName(tokenAddresses.BUSD()),
-            maxDepth
+            tokenAddresses.findByName(tokenAddresses.BUSD())
         );
 
         address[] memory pathToBnb = routerPathFinder.findPath(
             tokenAddresses.findByName(tokenAddresses.CAKE()),
-            tokenAddresses.findByName(tokenAddresses.BNB()),
-            maxDepth
+            tokenAddresses.findByName(tokenAddresses.BNB())
         );
 
         if (amountToOperations < DUST) {

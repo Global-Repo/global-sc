@@ -118,7 +118,83 @@ beforeEach(async function () {
 });
 
 describe("VaultCake: Withdrawal fees", function () {
-  it("--", async function () {
+  xit("No withdrawal fees on withdrawal all", async function () {
+    const depositedAmount = BigNumber.from(5).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
 
+    await vaultCake.setWithdrawalFees(0, 0, 0);
+    await vaultCake.setRewards(10000, 0, 0, 0, 0);
+    await cakeToken.connect(owner).transfer(user1.address, depositedAmount);
+    await cakeToken.connect(owner).transfer(user2.address, depositedAmount);
+    await cakeToken.connect(owner).approve(vaultCake.address, OWNER_INITIAL_CAKES);
+    await cakeToken.connect(user1).approve(vaultCake.address, OWNER_INITIAL_CAKES);
+    await cakeToken.connect(user2).approve(vaultCake.address, OWNER_INITIAL_CAKES);
+
+    await vaultCake.connect(owner).deposit(depositedAmount);
+    await vaultCake.connect(user1).deposit(depositedAmount);
+    await vaultCake.connect(user2).deposit(depositedAmount);
+    await vaultCake.connect(owner).withdrawAll();
+
+    // So now, there are 15 - 5 = 10 tokens + 3 of auto-compound.
+    // There are 2 users staking now so 3 tokens / 2 users = 1.5 cakes per user as a reward at this point.
+    expect(await vaultCake.earned(user1.address)).to.eq("1500000000000000000");
+
+    // Gets the deposited 5 cakes + 1.5 cakes of rewards.
+    await vaultCake.connect(user1).withdrawAll();
+    expect(await cakeToken.balanceOf(user1.address)).to.equal("6500000000000000000");
+  });
+
+  xit("Withdrawal fees applied over principal deposit when user withdraws before defined interval days", async function () {
+    const timestamp4days = new Date().setTime(4 * 86400); // +3 days
+    const depositedAmount = BigNumber.from(5).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+
+    await vaultCake.setWithdrawalFees(60, 10, timestamp4days);
+    await vaultCake.setRewards(10000, 0, 0, 0, 0);
+    await cakeToken.connect(owner).transfer(user1.address, depositedAmount);
+    await cakeToken.connect(owner).transfer(user2.address, depositedAmount);
+    await cakeToken.connect(owner).approve(vaultCake.address, OWNER_INITIAL_CAKES);
+    await cakeToken.connect(user1).approve(vaultCake.address, OWNER_INITIAL_CAKES);
+    await cakeToken.connect(user2).approve(vaultCake.address, OWNER_INITIAL_CAKES);
+
+    await vaultCake.connect(owner).deposit(depositedAmount);
+    await vaultCake.connect(user1).deposit(depositedAmount);
+    await vaultCake.connect(user2).deposit(depositedAmount);
+    await vaultCake.connect(user1).withdrawAll();
+
+    // 0.6% of deposited cakes buy global and burned (relation 1 to 1 in test)
+    expect(await nativeToken.balanceOf("0x000000000000000000000000000000000000dEaD")).to.equal("30000000000000000");
+
+    // 0.1% of deposited cakes buy BUSD and sent to devs (relation 1 to 1 in test)
+    expect(await busd.balanceOf(treasury.address)).to.equal("5000000000000000");
+
+    // User receives 100 - 0.6 - 0.1 = 99.3% of 5 cakes = 4.965 cakes back
+    expect(await cakeToken.balanceOf(user1.address)).to.equal("4965000000000000000");
+  });
+
+  it("Withdrawal fees applied when withdrawUnderlying and rewards not paid", async function () {
+    const timestamp4days = new Date().setTime(4 * 86400); // +3 days
+    const depositedAmount = BigNumber.from(5).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+    const withdrawalAmount = BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+
+    await vaultCake.setWithdrawalFees(60, 10, timestamp4days);
+    await vaultCake.setRewards(10000, 0, 0, 0, 0);
+    await cakeToken.connect(owner).transfer(user1.address, depositedAmount);
+    await cakeToken.connect(owner).transfer(user2.address, depositedAmount);
+    await cakeToken.connect(owner).approve(vaultCake.address, OWNER_INITIAL_CAKES);
+    await cakeToken.connect(user1).approve(vaultCake.address, OWNER_INITIAL_CAKES);
+    await cakeToken.connect(user2).approve(vaultCake.address, OWNER_INITIAL_CAKES);
+
+    await vaultCake.connect(owner).deposit(depositedAmount);
+    await vaultCake.connect(user1).deposit(depositedAmount);
+    await vaultCake.connect(user2).deposit(depositedAmount);
+    await vaultCake.connect(user1).withdrawUnderlying(withdrawalAmount);
+
+    // 0.6% of deposited cakes buy global and burned (relation 1 to 1 in test)
+    expect(await nativeToken.balanceOf("0x000000000000000000000000000000000000dEaD")).to.equal("12000000000000000");
+
+    // 0.1% of deposited cakes buy BUSD and sent to devs (relation 1 to 1 in test)
+    expect(await busd.balanceOf(treasury.address)).to.equal("2000000000000000");
+
+    // User receives 100 - 0.6 - 0.1 = 99.3% of 5 cakes = 4.965 cakes back
+    expect(await cakeToken.balanceOf(user1.address)).to.equal("1986000000000000000");
   });
 });
