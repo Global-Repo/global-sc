@@ -105,6 +105,7 @@ describe("MasterChef: Pools", function () {
     }
 
 
+    var routes = [tokenA.address.toString(), tokenARoute.address.toString(), tokenB.address.toString(), tokenBRoute.address.toString()];
     await masterChef.addPool(
         BigNumber.from(40).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
         pairAddress,
@@ -115,8 +116,7 @@ describe("MasterChef: Pools", function () {
         50,
         100,
         100,
-        tokenARoute.address,
-        tokenBRoute.address
+        routes
     );
 
     const poolInfo = await masterChef.poolInfo(0);
@@ -131,8 +131,8 @@ describe("MasterChef: Pools", function () {
     expect(poolInfo.performanceFeesOfNativeTokensBurn).to.equal(100);
     expect(poolInfo.performanceFeesOfNativeTokensToLockedVault).to.equal(100);
 
-    expect(await masterChef.getRouteAddress(token0)).to.equal(tokenARoute.address);
-    expect(await masterChef.getRouteAddress(token1)).to.equal(tokenBRoute.address);
+    expect(await masterChef.getRouteAddress(tokenA.address)).to.equal(tokenARoute.address);
+    expect(await masterChef.getRouteAddress(tokenB.address)).to.equal(tokenBRoute.address);
   });
 
   xit("Should to update pool info properly", async function () {

@@ -291,8 +291,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
         uint256 _withDrawalFeeOfLpsTeam,
         uint256 _performanceFeesOfNativeTokensBurn,
         uint256 _performanceFeesOfNativeTokensToLockedVault,
-        address routeToken0,
-        address routeToken1
+        address[] memory routes
     ) public onlyOwner {
         require(_harvestInterval <= MAX_INTERVAL, "[f] Add: invalid harvest interval");
         require(_maxWithdrawalInterval <= MAX_INTERVAL, "[f] Add: invalid withdrawal interval. Owner, there is a limit! Check your numbers.");
@@ -301,18 +300,17 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
 
         // Comprovar que cada cop que s'afegeixi una pool hi hagi path fins a globals
         {
-            IPair iPair = IPair(address(_lpToken));
-            if(iPair.token0()!=WBNB && iPair.token1()!=WBNB)
+            if(routes[0]!=WBNB && routes[0]!=WBNB)
             {
-                if(routeAddresses[iPair.token0()]==address(0) && !checkDirectRouteToWBNB(iPair.token0()))
+                if(routeAddresses[routes[0]]==address(0) && !checkDirectRouteToWBNB(routes[0]) && routes[1]!=address(0))
                 {
-                    require(routeToken0 != address(0) /*&& checkDirectRouteToWBNB(routeToken0)*/, "[f] Add: route for token0 needed"); //TODO descomentar per comprovar que el token indicat fa d'enllaç amb BNB
-                    addRouteAddress(iPair.token0(), routeToken0);
+                    require(routes[1] != address(0) /*&& checkDirectRouteToWBNB(routes[1])*/, "[f] Add: route for token0 needed"); //TODO descomentar per comprovar que el token indicat fa d'enllaç amb BNB
+                    addRouteAddress(routes[0], routes[1]);
                 }
-                if(routeAddresses[iPair.token1()]==address(0) && !checkDirectRouteToWBNB(iPair.token1()))
+                if(routeAddresses[routes[2]]==address(0) && !checkDirectRouteToWBNB(routes[2]) && routes[3]!=address(0))
                 {
-                    require(routeToken1 != address(0) /*&& checkDirectRouteToWBNB(routeToken1)*/, "[f] Add: route for token1 needed"); //TODO descomentar per comprovar que el token indicat fa d'enllaç amb BNB
-                    addRouteAddress(iPair.token1(), routeToken1);
+                    require(routes[3] != address(0) /*&& checkDirectRouteToWBNB(routes[3])*/, "[f] Add: route for token1 needed"); //TODO descomentar per comprovar que el token indicat fa d'enllaç amb BNB
+                    addRouteAddress(routes[2], routes[3]);
                 }
             }
 
