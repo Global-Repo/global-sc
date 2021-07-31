@@ -86,7 +86,8 @@ contract NativeToken is BEP20{
     }
 
     /// @notice Creates `_amount` token to `_to`. Must only be called by the owner (MasterChef).
-    function mint(address _to, uint256 _amount) public onlyOwner {
+    // TODO: mint to mints because of duplciated name with mint BEP20
+    function mints(address _to, uint256 _amount) public onlyOwner {
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
     }

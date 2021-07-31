@@ -11,6 +11,7 @@ const DEFAULT_REWARDS_FEES_TO_USER = 7500;
 const DEFAULT_REWARDS_FEES_TO_OPERATIONS = 400;
 const DEFAULT_REWARDS_FEES_TO_BUY_GLOBAL = 600;
 const DEFAULT_REWARDS_FEES_TO_BUY_BNB = 1500;
+const DEFAULT_REWARDS_FEES_TO_MINT_GLOBAL = 25000;
 
 let startBlock;
 
@@ -141,12 +142,13 @@ describe("VaultCake: Fees", function () {
   });
 
   it("Default rewards fees are properly configured", async function () {
-    const {0: toUser, 1: toOperations, 2: toBuyGlobal, 3: toBuyBNB} = await vaultCake.rewardsFees();
+    const {0: toUser, 1: toOperations, 2: toBuyGlobal, 3: toBuyBNB, 4: toMintGlobal} = await vaultCake.rewards();
 
     expect(toUser).to.equal(DEFAULT_REWARDS_FEES_TO_USER);
     expect(toOperations).to.equal(DEFAULT_REWARDS_FEES_TO_OPERATIONS);
     expect(toBuyGlobal).to.equal(DEFAULT_REWARDS_FEES_TO_BUY_GLOBAL);
     expect(toBuyBNB).to.equal(DEFAULT_REWARDS_FEES_TO_BUY_BNB);
+    expect(toMintGlobal).to.equal(DEFAULT_REWARDS_FEES_TO_MINT_GLOBAL);
   });
 
   it("Change rewards fees", async function () {
@@ -154,15 +156,17 @@ describe("VaultCake: Fees", function () {
     const rewardsToOperations = 500;
     const rewardsToBuyGlobal = 500;
     const rewardsToBuyBNB = 1000;
+    const rewardsToMintGlobal = 20000;
 
-    await vaultCake.setRewardsFees(rewardsToUser, rewardsToOperations, rewardsToBuyGlobal, rewardsToBuyBNB);
+    await vaultCake.setRewards(rewardsToUser, rewardsToOperations, rewardsToBuyGlobal, rewardsToBuyBNB, rewardsToMintGlobal);
 
-    const {0: toUser, 1: toOperations, 2: toBuyGlobal, 3: toBuyBNB} = await vaultCake.rewardsFees();
+    const {0: toUser, 1: toOperations, 2: toBuyGlobal, 3: toBuyBNB, 4: toMintGlobal} = await vaultCake.rewards();
 
     expect(toUser).to.equal(rewardsToUser);
     expect(toOperations).to.equal(rewardsToOperations);
     expect(toBuyGlobal).to.equal(rewardsToBuyGlobal);
     expect(toBuyBNB).to.equal(rewardsToBuyBNB);
+    expect(toMintGlobal).to.equal(rewardsToMintGlobal);
   });
 
   it("Rewards fees must add up to 100%", async function () {
@@ -170,10 +174,11 @@ describe("VaultCake: Fees", function () {
     const rewardsToOperations = 500;
     const rewardsToBuyGlobal = 500;
     const rewardsToBuyBNB = 1000;
+    const rewardsToMintGlobal = 20000;
 
     await expect(
-        vaultCake.setRewardsFees(rewardsToUser, rewardsToOperations, rewardsToBuyGlobal, rewardsToBuyBNB)
-    ).to.be.revertedWith("Rewards fees must add up to 100%");
+        vaultCake.setRewards(rewardsToUser, rewardsToOperations, rewardsToBuyGlobal, rewardsToBuyBNB, rewardsToMintGlobal)
+    ).to.be.revertedWith("Rewards must add up to 100%");
   });
 
   it("Only owner can change rewards fees", async function () {
@@ -181,9 +186,10 @@ describe("VaultCake: Fees", function () {
     const rewardsToOperations = 500;
     const rewardsToBuyGlobal = 500;
     const rewardsToBuyBNB = 1000;
+    const rewardsToMintGlobal = 20000;
 
     await expect(
-        vaultCake.connect(addr3).setRewardsFees(rewardsToUser, rewardsToOperations, rewardsToBuyGlobal, rewardsToBuyBNB)
+        vaultCake.connect(addr3).setRewards(rewardsToUser, rewardsToOperations, rewardsToBuyGlobal, rewardsToBuyBNB, rewardsToMintGlobal)
     ).to.be.revertedWith("Ownable: caller is not the owner");
   });
 });

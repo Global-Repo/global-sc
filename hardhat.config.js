@@ -1,7 +1,10 @@
 require("@nomiclabs/hardhat-waffle"); // Includes hardhat-ethers
+require("@nomiclabs/hardhat-etherscan");
 
 const fs = require('fs');
-const mnemonic = fs.readFileSync(".secret").toString().trim();
+const secrets = fs.readFileSync(".secret").toString().trim().split(/\n/);
+const mnemonic = secrets[0].trim();
+const apiKeyBSC = secrets[1].trim();
 
 /**
  * @type import('hardhat/config').HardhatUserConfig
@@ -27,6 +30,11 @@ module.exports = {
       accounts: {mnemonic: mnemonic}
     }
   },
+  etherscan: {
+    // Your API key for Etherscan
+    // Obtain one at https://bscscan.com/
+    apiKey: apiKeyBSC
+  },
   solidity: {
     compilers: [
       {
@@ -36,18 +44,9 @@ module.exports = {
             enabled: true,
             runs: 200
           }
-        },
-      },
-      {
-        version: "0.4.18",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200
-          }
-        },
+        }
       }
-    ],
+    ]
   },
   paths: {
     sources: "./contracts",
