@@ -37,7 +37,7 @@ contract PathHelper is IPathHelper, Ownable {
 
         address[] memory path;
         if ((intermediateFrom != address(0)||intermediateTo != address(0)) && (_tokenFrom == WBNB || _tokenTo == WBNB)) {
-            // [WBNB, BUSD, XXX] or [XXX, BUSD, WBNB] casos en que hi ha un intermig per arribar a WBNB
+            // [WBNB, BUSD, XXX] or [XXX, BUSD, WBNB] casos en que hi ha un intermig per arribar a WBNB i l'altre es directament WBNB
             path = new address[](3);
             path[0] = _tokenFrom;
             path[1] = intermediateFrom != address(0)?intermediateFrom:intermediateTo;

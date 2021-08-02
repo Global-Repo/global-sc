@@ -640,10 +640,8 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
                 uint256 lpsToBuyBNBAndTransferForOperations1 = amountToken1.mul(pool.withDrawalFeeOfLpsTeam).div(10000);
 
                 // Cremem i enviem els tokens a l'equip
-                manageTokens(IPair(address(pool.lpToken)).token0(), 0, lpsToBuyNativeTokenAndBurn0);
-                manageTokens(IPair(address(pool.lpToken)).token1(), 0, lpsToBuyNativeTokenAndBurn1);
-                manageTokens(IPair(address(pool.lpToken)).token0(), 1, lpsToBuyBNBAndTransferForOperations0);
-                manageTokens(IPair(address(pool.lpToken)).token1(), 1, lpsToBuyBNBAndTransferForOperations1);
+                manageTokens(IPair(address(pool.lpToken)).token0(), lpsToBuyNativeTokenAndBurn0, lpsToBuyBNBAndTransferForOperations0);
+                manageTokens(IPair(address(pool.lpToken)).token1(), lpsToBuyNativeTokenAndBurn1, lpsToBuyBNBAndTransferForOperations1);
 
                 // Possibles fallos que pot donar per aquí: usar IBEP20 enlloc de IPair o IPancakeERC20. swapAndLiquifyEnabled. Approves.
             }
@@ -679,52 +677,52 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
-    function manageTokens(address _token, uint16 _opt, uint256 _amount) private{
-
+    function manageTokens(address _token, uint256 _amountToBurn, uint256 _amountForDevs) private{
         // Tokens can be WETH, Native Tokens or a random token
         // Les funcions de burn i swap segur que s'han de corregir...!!!
-        /*
         uint deadline = block.timestamp.add(2 hours);
-        // We burn tokens
-        if (_opt == 0){
+
+        // Enviem tokens a cremar
+        {
             uint256 tokensToBurn;
-            // Si tenim Nativetokens els cremem directament
+
             if(_token == WETH){
                 //routerGlobal.swapETHForExactTokens(...)
-                uint[] memory amounts = routerGlobal.swapExactETHForTokens(0, pathHelper.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())), devAddr, deadline); //swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
+                uint[] memory amounts = routerGlobal.swapExactETHForTokens(_amountToBurn, pathHelper.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())), address(this), deadline); //swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
                 tokensToBurn = amounts[amounts.length-1];
             } else if(_token != address(nativeToken)){
                 //routerGlobal.swapExactTokensForTokens(...)
-                uint[] memory amounts = routerGlobal.swapExactTokensForTokens(_amount, 0, pathHelper.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())), devAddr, deadline); //swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
+                uint[] memory amounts = routerGlobal.swapExactTokensForTokens(_amountToBurn, 0, pathHelper.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())), address(this), deadline); //swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
                 tokensToBurn = amounts[amounts.length-1];
             }
-            else
+            else // Si tenim Nativetokens els cremem directament
             {
-                tokensToBurn = _amount;
+                tokensToBurn = _amountToBurn;
             }
 
-            SafeNativeTokenTransfer(BURN_ADDRESS, tokensToBurn);
             //XXXXXXXXTOKENSGLOBALS DE DALT.transfer(BURN_ADDRESS, _amount);
-            return;
+            IBEP20(tokenAddresses.findByName(tokenAddresses.GLOBAL())).transfer(BURN_ADDRESS, tokensToBurn);
+            //SafeNativeTokenTransfer(BURN_ADDRESS, tokensToBurn);
         }
 
         // Enviem tokens al equip
-        if (_opt == 1){
+        {
+            uint256 tokensForDevs;
 
-            // Si tenim globals, els venem per passar a BNB i ens els enviem
-            if(_token == address(nativeToken)){
+            if(_token != WETH) // Si tenim globals, els venem per passar a BNB i ens els enviem. Si no tenim globals ni WETH, ho passem a WETH
+            {
                 //routerGlobal.swapExactTokensForETH(...)
-
+                uint[] memory amounts = routerGlobal.swapExactTokensForETH(_amountForDevs, 0, pathHelper.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())), address(this), deadline); //swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
+                tokensForDevs = amounts[amounts.length-1];
             } else
-            // Si no tenim globals ni WETH, ho passem a WETH
-                if(_token != WETH){
-                    //routerGlobal.swapExactTokensForETH(...)
-
-                }
+            {
+                //routerGlobal.swapExactTokensForETH(...)
+                tokensForDevs = _amountForDevs;
+            }
 
             // XXXXXXXXXXXX tokens BNB que ens enviem a devaddress/nosaltres
-            return;
-        }*/
+            IBEP20(tokenAddresses.findByName(tokenAddresses.WBNB())).transfer(devAddr, tokensForDevs);
+        }
     }
 
     // Withdraw of all tokens. Rewards are lost.

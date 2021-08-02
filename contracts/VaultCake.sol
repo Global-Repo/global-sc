@@ -29,7 +29,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     IPathHelper private pathHelper;
     TokenAddresses private tokenAddresses;
 
-    uint public constant override pid = 0;
+    uint public constant pid = 0;
     uint16 public constant MAX_WITHDRAWAL_FEES = 100; // 1%
     uint private constant DUST = 1000;
     address private constant GLOBAL_BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
