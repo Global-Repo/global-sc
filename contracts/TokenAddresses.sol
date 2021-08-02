@@ -6,6 +6,7 @@ contract TokenAddresses {
     string public constant CAKE = "CAKE";
     string public constant BNB = "BNB";
     string public constant BUSD = "BUSD";
+    string public constant BUNNY = "BUNNY";
 
     mapping (string => address) private tokens;
 

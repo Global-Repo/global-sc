@@ -4,7 +4,7 @@ pragma solidity ^0.6.12;
 import "./SafeBEP20.sol";
 import "./Math.sol";
 import "./IStrategy.sol";
-import "./ICakeMasterChef.sol";
+import "./IBunnyPoolStrategy.sol";
 import "./PausableUpgradeable.sol";
 import "./WhitelistUpgradeable.sol";
 import "./IMinter.sol";
@@ -12,14 +12,15 @@ import "./IRouterV2.sol";
 import "./IRouterPathFinder.sol";
 import "./TokenAddresses.sol";
 
-contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
+contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     using SafeBEP20 for IBEP20;
     using SafeMath for uint;
     using SafeMath for uint16;
 
-    IBEP20 private cake;
+    IBEP20 private bunny;
     IBEP20 private global;
-    ICakeMasterChef private cakeMasterChef;
+    IBEP20 private wbnb;
+    IBunnyPoolStrategy private pool;
     IMinter private minter;
     address private treasury;
     address private keeper;
@@ -27,7 +28,6 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     IRouterPathFinder private routerPathFinder;
     TokenAddresses private tokenAddresses;
 
-    uint16 private constant PID = 0;
     uint16 public constant MAX_WITHDRAWAL_FEES = 100; // 1%
     uint private constant DUST = 1000;
     address private constant GLOBAL_BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
@@ -54,6 +54,12 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     WithdrawalFees public withdrawalFees;
     Rewards public rewards;
 
+    // TODO: in use?
+    modifier onlyKeeper {
+        require(msg.sender == keeper || msg.sender == owner(), 'VaultController: caller is not the owner or keeper');
+        _;
+    }
+
     modifier onlyNonContract() {
         require(tx.origin == msg.sender);
         address a = msg.sender;
@@ -66,22 +72,28 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     }
 
     constructor(
-        address _cake,
+        address _bunny,
         address _global,
-        address _cakeMasterChef,
+        address _wbnb,
+        address _pool,
         address _treasury,
         address _tokenAddresses,
         address _router,
         address _routerPathFinder,
         address _keeper
     ) public {
-        cake = IBEP20(_cake);
+        // BUNNY = 0xC9849E6fdB743d08fAeE3E34dd2D1bc69EA11a51
+        // BUNNY_POOL = 0xCADc8CB26c8C7cB46500E61171b5F27e9bd7889D;
+        // Minter = 0x8cB88701790F650F273c8BB2Cc4c5f439cd65219
+        // WBNB = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c
+        bunny = IBEP20(_bunny);
         global = IBEP20(_global);
-        cakeMasterChef = ICakeMasterChef(_cakeMasterChef);
+        wbnb = IBEP20(_wbnb);
+        pool = IBunnyPoolStrategy(_pool);
         treasury = _treasury;
         keeper = _keeper;
 
-        cake.safeApprove(_cakeMasterChef, uint(~0));
+        bunny.safeApprove(_pool, uint(~0));
 
         __PausableUpgradeable_init();
         __WhitelistUpgradeable_init();
@@ -97,8 +109,8 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     // init minter
     function setMinter(address _minter) external {
         require(IMinter(_minter).isMinter(address(this)) == true, "This vault must be a minter in minter's contract");
-        cake.safeApprove(_minter, 0);
-        cake.safeApprove(_minter, uint(~0));
+        bunny.safeApprove(_minter, 0);
+        bunny.safeApprove(_minter, uint(~0));
         minter = IMinter(_minter);
     }
 
@@ -147,8 +159,8 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         return totalShares;
     }
 
-    function balance() public view override returns (uint amount) {
-        (amount,) = cakeMasterChef.userInfo(PID, address(this));
+    function balance() public view override returns (uint) {
+        return pool.balanceOf(address(this));
     }
 
     function balanceOf(address account) public view override returns(uint) {
@@ -186,7 +198,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     }
 
     function rewardsToken() external view override returns (address) {
-        return address(cake);
+        return address(bunny);
     }
 
     function deposit(uint _amount) public override onlyNonContract {
@@ -199,7 +211,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     }
 
     function depositAll() external override onlyNonContract {
-        deposit(cake.balanceOf(msg.sender));
+        deposit(bunny.balanceOf(msg.sender));
     }
 
     function withdrawAll() external override onlyNonContract {
@@ -207,71 +219,80 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         uint principal = principalOf(msg.sender);
         uint profit = amount > principal ? amount.sub(principal) : 0;
 
-        uint cakeHarvested = _withdrawStakingToken(amount);
-
-        handleWithdrawalFees(principal);
-        handleRewards(profit);
-
         totalShares = totalShares.sub(_shares[msg.sender]);
         delete _shares[msg.sender];
         delete _principal[msg.sender];
         delete _depositedAt[msg.sender];
 
-        _harvest(cakeHarvested);
+        pool.withdraw(amount);
+
+        handleWithdrawalFees(principal);
+        handleRewards(profit);
     }
 
+    // TODO: modifier onlyKeeper in vault bunny
     function harvest() external override onlyNonContract {
-        uint cakeHarvested = _withdrawStakingToken(0);
-        _harvest(cakeHarvested);
+        pool.getReward();
+
+        // TODO: ensure reward of pool is in WBNB and not BUNNY
+        uint before = bunny.balanceOf(address(this));
+        uint deadline = block.timestamp.add(2 hours);
+
+        address[] memory pathToBunny = routerPathFinder.findPath(
+            tokenAddresses.findByName(tokenAddresses.BNB()),
+            tokenAddresses.findByName(tokenAddresses.BUNNY())
+        );
+
+        router.swapExactTokensForTokens(wbnb.balanceOf(address(this)), 0, pathToBunny, address(this), deadline);
+
+        uint harvested = bunny.balanceOf(address(this)).sub(before);
+        emit Harvested(harvested);
+
+        pool.deposit(harvested);
     }
 
     function withdraw(uint shares) external override onlyWhitelisted onlyNonContract {
         uint amount = balance().mul(shares).div(totalShares);
 
-        uint cakeHarvested = _withdrawStakingToken(amount);
-
-        handleWithdrawalFees(amount);
-
         totalShares = totalShares.sub(shares);
         _shares[msg.sender] = _shares[msg.sender].sub(shares);
 
-        _harvest(cakeHarvested);
+        pool.withdraw(amount);
+
+        handleWithdrawalFees(amount);
     }
 
     function withdrawUnderlying(uint _amount) external override onlyNonContract {
         uint amount = Math.min(_amount, _principal[msg.sender]);
         uint shares = Math.min(amount.mul(totalShares).div(balance()), _shares[msg.sender]);
 
-        uint cakeHarvested = _withdrawStakingToken(amount);
-
-        handleWithdrawalFees(amount);
-
         totalShares = totalShares.sub(shares);
         _shares[msg.sender] = _shares[msg.sender].sub(shares);
         _principal[msg.sender] = _principal[msg.sender].sub(amount);
 
-        _harvest(cakeHarvested);
+        pool.withdraw(amount);
+
+        handleWithdrawalFees(amount);
     }
 
+    // TODO: nonReentrant modifier
     function getReward() external override onlyNonContract {
         uint amount = earned(msg.sender);
         uint shares = Math.min(amount.mul(totalShares).div(balance()), _shares[msg.sender]);
-
-        uint cakeHarvested = _withdrawStakingToken(amount);
-
-        handleRewards(amount);
 
         totalShares = totalShares.sub(shares);
         _shares[msg.sender] = _shares[msg.sender].sub(shares);
         _cleanupIfDustShares();
 
-        _harvest(cakeHarvested);
+        pool.withdraw(amount);
+
+        handleRewards(amount);
     }
 
     function handleWithdrawalFees(uint _amount) private {
         if (_depositedAt[msg.sender].add(withdrawalFees.interval) < block.timestamp) {
             // No withdrawal fees
-            cake.safeTransfer(msg.sender, _amount);
+            bunny.safeTransfer(msg.sender, _amount);
             emit Withdrawn(msg.sender, _amount, 0);
             return;
         }
@@ -282,12 +303,12 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         uint amountToUser = _amount.sub(amountToTeam).sub(amountToBurn);
 
         address[] memory pathToGlobal = routerPathFinder.findPath(
-            tokenAddresses.findByName(tokenAddresses.CAKE()),
+            tokenAddresses.findByName(tokenAddresses.BUNNY()),
             tokenAddresses.findByName(tokenAddresses.GLOBAL())
         );
 
         address[] memory pathToBusd = routerPathFinder.findPath(
-            tokenAddresses.findByName(tokenAddresses.CAKE()),
+            tokenAddresses.findByName(tokenAddresses.BUNNY()),
             tokenAddresses.findByName(tokenAddresses.BUSD())
         );
 
@@ -303,7 +324,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             router.swapExactTokensForTokens(amountToTeam, 0, pathToBusd, treasury, deadline);
         }
 
-        cake.safeTransfer(msg.sender, amountToUser);
+        bunny.safeTransfer(msg.sender, amountToUser);
         emit Withdrawn(msg.sender, amountToUser, 0);
     }
 
@@ -319,17 +340,17 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         uint amountToBuyBNB = _amount.mul(rewards.toBuyBNB).div(10000);
 
         address[] memory pathToGlobal = routerPathFinder.findPath(
-            tokenAddresses.findByName(tokenAddresses.CAKE()),
+            tokenAddresses.findByName(tokenAddresses.BUNNY()),
             tokenAddresses.findByName(tokenAddresses.GLOBAL())
         );
 
         address[] memory pathToBusd = routerPathFinder.findPath(
-            tokenAddresses.findByName(tokenAddresses.CAKE()),
+            tokenAddresses.findByName(tokenAddresses.BUNNY()),
             tokenAddresses.findByName(tokenAddresses.BUSD())
         );
 
         address[] memory pathToBnb = routerPathFinder.findPath(
-            tokenAddresses.findByName(tokenAddresses.CAKE()),
+            tokenAddresses.findByName(tokenAddresses.BUNNY()),
             tokenAddresses.findByName(tokenAddresses.BNB())
         );
 
@@ -352,49 +373,28 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             router.swapExactTokensForTokens(amountToBuyGlobal, 0, pathToGlobal, address(this), deadline);
             uint amountGlobalBought = global.balanceOf(address(this)).sub(beforeSwap);
 
-            global.safeTransfer(keeper, amountGlobalBought); // To keeper as cake vault
+            global.safeTransfer(keeper, amountGlobalBought); // To keeper as bunny vault
 
             uint amountToMintGlobal = amountGlobalBought.mul(rewards.toMintGlobal).div(10000);
             uint beforeMint = global.balanceOf(address(this));
             minter.mintNativeTokens(amountToMintGlobal);
             uint amountGlobalMinted = global.balanceOf(address(this)).sub(beforeMint);
-            global.safeTransfer(keeper, amountGlobalMinted); // TODO to keeper as user and not as cake vault
+            global.safeTransfer(keeper, amountGlobalMinted); // TODO to keeper as user and not as bunny vault
         }
 
-        cake.safeTransfer(msg.sender, amountToUser);
+        bunny.safeTransfer(msg.sender, amountToUser);
         emit ProfitPaid(msg.sender, amountToUser);
     }
 
-    function _depositStakingToken(uint amount) private returns(uint cakeHarvested) {
-        uint before = cake.balanceOf(address(this));
-        cakeMasterChef.enterStaking(amount);
-        cakeHarvested = cake.balanceOf(address(this)).add(amount).sub(before);
-    }
-
-    function _withdrawStakingToken(uint amount) private returns(uint cakeHarvested) {
-        uint before = cake.balanceOf(address(this));
-        cakeMasterChef.leaveStaking(amount);
-        cakeHarvested = cake.balanceOf(address(this)).sub(amount).sub(before);
-    }
-
-    function _harvest(uint cakeAmount) private {
-        if (cakeAmount > 0) {
-            emit Harvested(cakeAmount);
-            cakeMasterChef.enterStaking(cakeAmount);
-        }
-    }
-
     function _deposit(uint _amount, address _to) private notPaused {
-        cake.safeTransferFrom(msg.sender, address(this), _amount);
+        bunny.safeTransferFrom(msg.sender, address(this), _amount);
 
         uint shares = totalShares == 0 ? _amount : (_amount.mul(totalShares)).div(balance());
         totalShares = totalShares.add(shares);
         _shares[_to] = _shares[_to].add(shares);
 
-        uint cakeHarvested = _depositStakingToken(_amount);
-        emit Deposited(msg.sender, _amount);
-
-        _harvest(cakeHarvested);
+        pool.deposit(_amount);
+        emit Deposited(_to, _amount);
     }
 
     function _cleanupIfDustShares() private {
@@ -406,7 +406,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     }
 
     // SALVAGE PURPOSE ONLY
-    // @dev _stakingToken(CAKE) must not remain balance in this contract. So dev should be able to salvage staking token transferred by mistake.
+    // @dev _stakingToken(token) must not remain balance in this contract. So dev should be able to salvage staking token transferred by mistake.
     function recoverToken(address _token, uint amount) virtual external onlyOwner {
         IBEP20(_token).safeTransfer(owner(), amount);
 

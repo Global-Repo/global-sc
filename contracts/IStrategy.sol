@@ -20,7 +20,6 @@ interface IStrategy {
     function withdrawableBalanceOf(address account) external view returns (uint);
     function priceShare() external view returns (uint);
 
-    function pid() external view returns (uint);
     function depositedAt(address account) external view returns (uint);
     function rewardsToken() external view returns (address);
 
