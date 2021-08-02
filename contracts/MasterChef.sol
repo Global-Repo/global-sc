@@ -179,7 +179,8 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
         uint256 _startBlock,
         address _nativeTokenLockedVaultAddr,
         address _routerGlobal,
-        address _tokenAddresses
+        address _tokenAddresses,
+        address _pathHelper
     ) public {
         nativeToken = _nativeToken;
         nativeTokenPerBlock = _nativeTokenPerBlock;
@@ -188,6 +189,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
         nativeTokenLockedVaultAddr = _nativeTokenLockedVaultAddr;
         routerGlobal = IRouterV2(_routerGlobal);
         tokenAddresses = TokenAddresses(_tokenAddresses);
+        pathHelper = IPathHelper(_pathHelper);
         // Aquípodem inicialitzar totes les pools de Native Token ja. //////////////////////////////////////////////////////////////////////
         // tOT I QUE MOLaria més tenir vaults apart on enviem la pasta i que es gestionin de forma independent, així no liem el masterchef... lo únic q aquells contractes no podràn mintar dentrada perque no farem whitelist, només serveixen per repartir tokens
 
@@ -197,9 +199,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
         routerGlobal = IRouterV2(_router);
     }
 
-    function setPathHelper(
-        address _pathHelper
-    ) public onlyOwner {
+    function setPathHelper(address _pathHelper) public onlyOwner {
         pathHelper = IPathHelper(_pathHelper);
     }
 
@@ -217,7 +217,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
 
     function checkDirectRouteToWBNB(address _token) public view returns (bool) {
         IPair iPair;
-        address WBNB = tokenAddresses.findByName(tokenAddresses.WBNB());
+        address WBNB = tokenAddresses.findByName(tokenAddresses.BNB());
         for(uint i=0; i < poolInfo.length; i++)
         {
             iPair = IPair(address(poolInfo[i].lpToken));
@@ -314,7 +314,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
 
         // Comprovar que cada cop que s'afegeixi una pool hi hagi path fins a globals
         {
-            address WBNB = tokenAddresses.findByName("WBNB");
+            address WBNB = tokenAddresses.findByName(tokenAddresses.BNB());
             if(routes[0]!=WBNB && routes[0]!=WBNB)
             {
                 if(pathHelper.getRouteAddress(routes[0])==address(0) && !checkDirectRouteToWBNB(routes[0]) && routes[1]!=address(0))
@@ -721,7 +721,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
             }
 
             // XXXXXXXXXXXX tokens BNB que ens enviem a devaddress/nosaltres
-            IBEP20(tokenAddresses.findByName(tokenAddresses.WBNB())).transfer(devAddr, tokensForDevs);
+            IBEP20(tokenAddresses.findByName(tokenAddresses.BNB())).transfer(devAddr, tokensForDevs);
         }
     }
 

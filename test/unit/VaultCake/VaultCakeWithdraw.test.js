@@ -52,31 +52,34 @@ beforeEach(async function () {
   router = await Router.deploy(factory.address, weth.address);
   await router.deployed();
 
+  const TokenAddresses = await ethers.getContractFactory("TokenAddresses");
+  tokenAddresses = await TokenAddresses.deploy();
+  await tokenAddresses.deployed();
+
+  const PathHelper = await ethers.getContractFactory("PathHelper");
+  pathHelper = await PathHelper.deploy(tokenAddresses.address);
+  await pathHelper.deployed();
+
   const Minter = await ethers.getContractFactory("MasterChef");
   minter = await Minter.deploy(
       nativeToken.address,
       NATIVE_TOKEN_PER_BLOCK,
       startBlock,
       keeper.address,
-      router.address
+      router.address,
+      tokenAddresses.address,
+      pathHelper.address
   );
   await minter.deployed();
+  await pathHelper.transferOwnership(minter.address);
 
   const CakeMasterChefMock = await ethers.getContractFactory("CakeMasterChefMock");
   cakeMasterChefMock = await CakeMasterChefMock.deploy(cakeToken.address);
   await cakeMasterChefMock.deployed();
 
-  const TokenAddresses = await ethers.getContractFactory("TokenAddresses");
-  tokenAddresses = await TokenAddresses.deploy();
-  await tokenAddresses.deployed();
-
   const RouterMock = await ethers.getContractFactory("RouterMock");
   routerMock = await RouterMock.deploy();
   await routerMock.deployed();
-
-  const PathHelper = await ethers.getContractFactory("PathHelper");
-  pathHelper = await PathHelper.deploy();
-  await pathHelper.deployed();
 
   const VaultCake = await ethers.getContractFactory("VaultCake");
   vaultCake = await VaultCake.deploy(

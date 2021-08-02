@@ -49,31 +49,34 @@ beforeEach(async function () {
   router = await Router.deploy(factory.address, weth.address);
   await router.deployed();
 
+  const TokenAddresses = await ethers.getContractFactory("TokenAddresses");
+  tokenAddresses = await TokenAddresses.deploy();
+  await tokenAddresses.deployed();
+
+  const PathHelper = await ethers.getContractFactory("PathHelper");
+  pathHelper = await PathHelper.deploy(tokenAddresses.address);
+  await pathHelper.deployed();
+
   const Minter = await ethers.getContractFactory("MasterChef");
   minter = await Minter.deploy(
       nativeToken.address,
       NATIVE_TOKEN_PER_BLOCK,
       startBlock,
       keeper.address,
-      router.address
+      router.address,
+      tokenAddresses.address,
+      pathHelper.address
   );
   await minter.deployed();
+  await pathHelper.transferOwnership(minter.address);
 
   const CakeMasterChefMock = await ethers.getContractFactory("CakeMasterChefMock");
   cakeMasterChefMock = await CakeMasterChefMock.deploy(cakeToken.address);
   await cakeMasterChefMock.deployed();
 
-  const TokenAddresses = await ethers.getContractFactory("TokenAddresses");
-  tokenAddresses = await TokenAddresses.deploy();
-  await tokenAddresses.deployed();
-
   const RouterMock = await ethers.getContractFactory("RouterMock");
   routerMock = await RouterMock.deploy();
   await routerMock.deployed();
-
-  const PathHelper = await ethers.getContractFactory("PathHelper");
-  pathHelper = await PathHelper.deploy();
-  await pathHelper.deployed();
 
   const VaultCake = await ethers.getContractFactory("VaultCake");
   vaultCake = await VaultCake.deploy(
@@ -111,10 +114,10 @@ beforeEach(async function () {
   await cakeToken.transferOwnership(cakeMasterChefMock.address);
 
   // Addresses for fees and rewards
-  tokenAddresses.addToken("GLOBAL", nativeToken.address);
-  tokenAddresses.addToken("CAKE", cakeToken.address);
-  tokenAddresses.addToken("BNB", weth.address);
-  tokenAddresses.addToken("BUSD", busd.address);
+  tokenAddresses.addToken(tokenAddresses.GLOBAL(), nativeToken.address);
+  tokenAddresses.addToken(tokenAddresses.CAKE(), cakeToken.address);
+  tokenAddresses.addToken(tokenAddresses.BNB(), weth.address);
+  tokenAddresses.addToken(tokenAddresses.BUSD(), busd.address);
 });
 
 describe("VaultCake: Rewards", function () {

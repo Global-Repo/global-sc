@@ -46,31 +46,34 @@ beforeEach(async function () {
   router = await Router.deploy(factory.address, weth.address);
   await router.deployed();
 
+  const TokenAddresses = await ethers.getContractFactory("TokenAddresses");
+  tokenAddresses = await TokenAddresses.deploy();
+  await tokenAddresses.deployed();
+
+  const PathHelper = await ethers.getContractFactory("PathHelper");
+  pathHelper = await PathHelper.deploy(tokenAddresses.address);
+  await pathHelper.deployed();
+
   const Minter = await ethers.getContractFactory("MasterChef");
   minter = await Minter.deploy(
       nativeToken.address,
       NATIVE_TOKEN_PER_BLOCK,
       startBlock,
       keeper.address,
-      router.address
+      router.address,
+      tokenAddresses.address,
+      pathHelper.address
   );
   await minter.deployed();
+  await pathHelper.transferOwnership(minter.address);
 
   const BunnyPoolMock = await ethers.getContractFactory("BunnyPoolMock");
   bunnyPoolMock = await BunnyPoolMock.deploy(bunnyToken.address);
   await bunnyPoolMock.deployed();
 
-  const TokenAddresses = await ethers.getContractFactory("TokenAddresses");
-  tokenAddresses = await TokenAddresses.deploy();
-  await tokenAddresses.deployed();
-
   const RouterMock = await ethers.getContractFactory("RouterMock");
   routerMock = await RouterMock.deploy();
   await routerMock.deployed();
-
-  const RouterPathFinder = await ethers.getContractFactory("RouterPathFinderMock");
-  routerPathFinder = await RouterPathFinder.deploy();
-  await routerPathFinder.deployed();
 
   const VaultBunny = await ethers.getContractFactory("VaultBunny");
   vaultBunny = await VaultBunny.deploy(
@@ -81,7 +84,7 @@ beforeEach(async function () {
       treasury.address,
       tokenAddresses.address,
       routerMock.address,
-      routerPathFinder.address,
+      pathHelper.address,
       keeper.address
   );
   await vaultBunny.deployed();

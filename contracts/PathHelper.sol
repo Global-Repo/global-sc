@@ -33,7 +33,7 @@ contract PathHelper is IPathHelper, Ownable {
     {
         address intermediateFrom = this.getRouteAddress(_tokenFrom);
         address intermediateTo = this.getRouteAddress(_tokenTo);
-        address WBNB = tokenAddresses.findByName(tokenAddresses.WBNB());
+        address WBNB = tokenAddresses.findByName(tokenAddresses.BNB());
 
         address[] memory path;
         if ((intermediateFrom != address(0)||intermediateTo != address(0)) && (_tokenFrom == WBNB || _tokenTo == WBNB)) {

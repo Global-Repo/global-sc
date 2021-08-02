@@ -49,15 +49,27 @@ beforeEach(async function () {
   router = await Router.deploy(factory.address, weth.address);
   await router.deployed();
 
+  const TokenAddresses = await ethers.getContractFactory("TokenAddresses");
+  tokenAddresses = await TokenAddresses.deploy();
+  await tokenAddresses.deployed();
+
+  const PathHelper = await ethers.getContractFactory("PathHelper");
+  pathHelper = await PathHelper.deploy(tokenAddresses.address);
+  await pathHelper.deployed();
+
   const MasterChef = await ethers.getContractFactory("MasterChef");
   masterChef = await MasterChef.deploy(
       nativeToken.address,
       NATIVE_TOKEN_PER_BLOCK,
       startBlock,
       lockedVault.address,
-      router.address
+      router.address,
+      tokenAddresses.address,
+      pathHelper.address
   );
   await masterChef.deployed();
+
+  await pathHelper.transferOwnership(masterChef.address);
 
   // Set up scenarios
   const INITIAL_SUPPLY = BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
