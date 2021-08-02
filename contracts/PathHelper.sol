@@ -2,27 +2,38 @@
 pragma solidity ^0.6.12;
 
 import "./IPair.sol";
-import "./IPather.sol";
 import "./IPathHelper.sol";
+import './Ownable.sol';
+import './TokenAddresses.sol';
 
-contract PathHelper is IPathHelper {
-    IPather private MASTER_CHEF;
-
-    address private constant WBNB = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
-    address private constant BUSD = 0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56;
-    address private constant USDT = 0x55d398326f99059fF775485246999027B3197955;
+contract PathHelper is IPathHelper, Ownable {
+    // relació de cada token amb el token que li fa d'intermediari per arribar a WBNB
+    mapping(address => address) private routeAddresses;
+    TokenAddresses private tokenAddresses;
 
     constructor(
-        address _masterChef
+        address _tokenAddresses
     ) public {
-        MASTER_CHEF = IPather(_masterChef);
+        tokenAddresses = TokenAddresses(_tokenAddresses);
     }
 
+    function addRouteAddress(address _token, address _tokenRoute) external onlyOwner override {
+        routeAddresses[_token] = _tokenRoute;
+    }
+
+    function removeRouteAddress(address _token) external onlyOwner override {
+        delete routeAddresses[_token];
+    }
+
+    function getRouteAddress(address _token) external view override returns (address) {
+        return routeAddresses[_token];
+    }
 
     function findPath(address _tokenFrom, address _tokenTo) external view override returns (address[] memory)
     {
-        address intermediateFrom = MASTER_CHEF.getRouteAddress(_tokenFrom);
-        address intermediateTo = MASTER_CHEF.getRouteAddress(_tokenTo);
+        address intermediateFrom = this.getRouteAddress(_tokenFrom);
+        address intermediateTo = this.getRouteAddress(_tokenTo);
+        address WBNB = tokenAddresses.findByName(tokenAddresses.WBNB());
 
         address[] memory path;
         if ((intermediateFrom != address(0)||intermediateTo != address(0)) && (_tokenFrom == WBNB || _tokenTo == WBNB)) {

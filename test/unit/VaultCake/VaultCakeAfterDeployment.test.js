@@ -68,9 +68,9 @@ beforeEach(async function () {
   routerMock = await RouterMock.deploy();
   await routerMock.deployed();
 
-  const RouterPathFinder = await ethers.getContractFactory("RouterPathFinderMock");
-  routerPathFinder = await RouterPathFinder.deploy();
-  await routerPathFinder.deployed();
+  const PathHelper = await ethers.getContractFactory("PathHelper");
+  pathHelper = await PathHelper.deploy();
+  await pathHelper.deployed();
 
   const VaultCake = await ethers.getContractFactory("VaultCake");
   vaultCake = await VaultCake.deploy(
@@ -80,7 +80,7 @@ beforeEach(async function () {
       treasury.address,
       tokenAddresses.address,
       routerMock.address,
-      routerPathFinder.address,
+      pathHelper.address,
       keeper.address
   );
   await vaultCake.deployed();
