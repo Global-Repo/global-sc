@@ -17,7 +17,7 @@ import './ReentrancyGuard.sol';
 import "./IMinter.sol";
 import "./IMinter.sol";
 import "./TokenAddresses.sol";
-import "./IPathHelper.sol";
+import "./IPathFinder.sol";
 
 // HEM DE FER IMPORT DE LA INTERFACE I DEL SC DEL VAULT!!!!!!!!!
 
@@ -165,7 +165,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
     // Llistat de pools que poden demanar tokens natius
     mapping(address => bool) private _minters;
 
-    IPathHelper public pathHelper;
+    IPathFinder public pathFinder;
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
@@ -180,7 +180,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
         address _nativeTokenLockedVaultAddr,
         address _routerGlobal,
         address _tokenAddresses,
-        address _pathHelper
+        address _pathFinder
     ) public {
         nativeToken = _nativeToken;
         nativeTokenPerBlock = _nativeTokenPerBlock;
@@ -189,7 +189,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
         nativeTokenLockedVaultAddr = _nativeTokenLockedVaultAddr;
         routerGlobal = IRouterV2(_routerGlobal);
         tokenAddresses = TokenAddresses(_tokenAddresses);
-        pathHelper = IPathHelper(_pathHelper);
+        pathFinder = IPathFinder(_pathFinder);
         // Aquípodem inicialitzar totes les pools de Native Token ja. //////////////////////////////////////////////////////////////////////
         // tOT I QUE MOLaria més tenir vaults apart on enviem la pasta i que es gestionin de forma independent, així no liem el masterchef... lo únic q aquells contractes no podràn mintar dentrada perque no farem whitelist, només serveixen per repartir tokens
 
@@ -199,20 +199,20 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
         routerGlobal = IRouterV2(_router);
     }
 
-    function setPathHelper(address _pathHelper) public onlyOwner {
-        pathHelper = IPathHelper(_pathHelper);
+    function setPathFinder(address _pathFinder) public onlyOwner {
+        pathFinder = IPathFinder(_pathFinder);
     }
 
-    function addRouteToPathHelper(
+    function addRouteToPathFinder(
         address _token, address _tokenRoute
     ) public onlyOwner {
-        pathHelper.addRouteAddress(_token,_tokenRoute);
+        pathFinder.addRouteAddress(_token,_tokenRoute);
     }
 
-    function removeRouteToPathHelper(
+    function removeRouteToPathFinder(
         address _token
     ) public onlyOwner {
-        pathHelper.removeRouteAddress(_token);
+        pathFinder.removeRouteAddress(_token);
     }
 
     function checkDirectRouteToWBNB(address _token) public view returns (bool) {
@@ -317,15 +317,15 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
             address WBNB = tokenAddresses.findByName(tokenAddresses.BNB());
             if(routes[0]!=WBNB && routes[0]!=WBNB)
             {
-                if(pathHelper.getRouteAddress(routes[0])==address(0) && !checkDirectRouteToWBNB(routes[0]) && routes[1]!=address(0))
+                if(pathFinder.getRouteAddress(routes[0])==address(0) && !checkDirectRouteToWBNB(routes[0]) && routes[1]!=address(0))
                 {
                     require(routes[1] != address(0) /*&& checkDirectRouteToWBNB(routes[1])*/, "[f] Add: route for token0 needed"); //TODO descomentar per comprovar que el token indicat fa d'enllaç amb BNB
-                    pathHelper.addRouteAddress(routes[0], routes[1]);
+                    pathFinder.addRouteAddress(routes[0], routes[1]);
                 }
-                if(pathHelper.getRouteAddress(routes[2])==address(0) && !checkDirectRouteToWBNB(routes[2]) && routes[3]!=address(0))
+                if(pathFinder.getRouteAddress(routes[2])==address(0) && !checkDirectRouteToWBNB(routes[2]) && routes[3]!=address(0))
                 {
                     require(routes[3] != address(0) /*&& checkDirectRouteToWBNB(routes[3])*/, "[f] Add: route for token1 needed"); //TODO descomentar per comprovar que el token indicat fa d'enllaç amb BNB
-                    pathHelper.addRouteAddress(routes[2], routes[3]);
+                    pathFinder.addRouteAddress(routes[2], routes[3]);
                 }
             }
 
@@ -688,11 +688,11 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
 
             if(_token == WETH){
                 //routerGlobal.swapETHForExactTokens(...)
-                uint[] memory amounts = routerGlobal.swapExactETHForTokens(_amountToBurn, pathHelper.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())), address(this), deadline); //swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
+                uint[] memory amounts = routerGlobal.swapExactETHForTokens(_amountToBurn, pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())), address(this), deadline); //swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
                 tokensToBurn = amounts[amounts.length-1];
             } else if(_token != address(nativeToken)){
                 //routerGlobal.swapExactTokensForTokens(...)
-                uint[] memory amounts = routerGlobal.swapExactTokensForTokens(_amountToBurn, 0, pathHelper.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())), address(this), deadline); //swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
+                uint[] memory amounts = routerGlobal.swapExactTokensForTokens(_amountToBurn, 0, pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())), address(this), deadline); //swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
                 tokensToBurn = amounts[amounts.length-1];
             }
             else // Si tenim Nativetokens els cremem directament
@@ -712,7 +712,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
             if(_token != WETH) // Si tenim globals, els venem per passar a BNB i ens els enviem. Si no tenim globals ni WETH, ho passem a WETH
             {
                 //routerGlobal.swapExactTokensForETH(...)
-                uint[] memory amounts = routerGlobal.swapExactTokensForETH(_amountForDevs, 0, pathHelper.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())), address(this), deadline); //swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
+                uint[] memory amounts = routerGlobal.swapExactTokensForETH(_amountForDevs, 0, pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())), address(this), deadline); //swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
                 tokensForDevs = amounts[amounts.length-1];
             } else
             {

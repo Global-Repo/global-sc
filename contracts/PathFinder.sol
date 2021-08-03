@@ -2,11 +2,11 @@
 pragma solidity ^0.6.12;
 
 import "./IPair.sol";
-import "./IPathHelper.sol";
+import "./IPathFinder.sol";
 import './Ownable.sol';
 import './TokenAddresses.sol';
 
-contract PathHelper is IPathHelper, Ownable {
+contract PathFinder is IPathFinder, Ownable {
     // relació de cada token amb el token que li fa d'intermediari per arribar a WBNB
     mapping(address => address) private routeAddresses;
     TokenAddresses private tokenAddresses;

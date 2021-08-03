@@ -46,11 +46,11 @@ async function main() {
 
     console.log("TokenAddresses deployed to:", tokenAddresses.address);
 
-    const PathHelper = await ethers.getContractFactory("PathHelper");
-    pathHelper = await PathHelper.deploy(tokenAddresses.address);
-    await pathHelper.deployed();
+    const PathFinder = await ethers.getContractFactory("PathFinder");
+    pathFinder = await PathFinder.deploy(tokenAddresses.address);
+    await pathFinder.deployed();
 
-    console.log("PathHelper deployed to:", pathHelper.address);
+    console.log("PathFinder deployed to:", pathFinder.address);
 
     const MasterChef = await hre.ethers.getContractFactory("MasterChef");
     const masterChef = await MasterChef.deploy(
@@ -60,7 +60,7 @@ async function main() {
         owner.address, // TODO: locked vault address
         router.address,
         tokenAddresses.address,
-        pathHelper.address
+        pathFinder.address
     );
     await masterChef.deployed();
 
@@ -69,8 +69,8 @@ async function main() {
     // TODO: mint x tokens and change token owner by masterchef address
 
     // Set ups
-    await pathHelper.transferOwnership(masterChef.address);
-    console.log("Masterchef is now the PathHelper's owner.");
+    await pathFinder.transferOwnership(masterChef.address);
+    console.log("Masterchef is now the PathFinder's owner.");
 
     await nativeToken.transferOwnership(masterChef.address);
     console.log("Masterchef is now the Native token's owner.");

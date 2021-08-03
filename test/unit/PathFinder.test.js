@@ -144,7 +144,7 @@ describe("MasterChef: Pools", function () {
     expect(poolInfo.performanceFeesOfNativeTokensBurn).to.equal(100);
     expect(poolInfo.performanceFeesOfNativeTokensToLockedVault).to.equal(100);
 
-    expect(await pathFinder.pathFinder(tokenA.address)).to.equal(tokenARoute.address);
+    expect(await pathFinder.getRouteAddress(tokenA.address)).to.equal(tokenARoute.address);
     expect(await pathFinder.getRouteAddress(tokenB.address)).to.equal(tokenBRoute.address);
   });
 

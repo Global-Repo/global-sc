@@ -56,9 +56,9 @@ beforeEach(async function () {
   tokenAddresses = await TokenAddresses.deploy();
   await tokenAddresses.deployed();
 
-  const PathHelper = await ethers.getContractFactory("PathHelper");
-  pathHelper = await PathHelper.deploy(tokenAddresses.address);
-  await pathHelper.deployed();
+  const PathFinder = await ethers.getContractFactory("PathFinder");
+  pathFinder = await PathFinder.deploy(tokenAddresses.address);
+  await pathFinder.deployed();
 
   const Minter = await ethers.getContractFactory("MasterChef");
   minter = await Minter.deploy(
@@ -68,10 +68,10 @@ beforeEach(async function () {
       keeper.address,
       router.address,
       tokenAddresses.address,
-      pathHelper.address
+      pathFinder.address
   );
   await minter.deployed();
-  await pathHelper.transferOwnership(minter.address);
+  await pathFinder.transferOwnership(minter.address);
 
   const CakeMasterChefMock = await ethers.getContractFactory("CakeMasterChefMock");
   cakeMasterChefMock = await CakeMasterChefMock.deploy(cakeToken.address);
@@ -89,7 +89,7 @@ beforeEach(async function () {
       treasury.address,
       tokenAddresses.address,
       routerMock.address,
-      pathHelper.address,
+      pathFinder.address,
       keeper.address
   );
   await vaultCake.deployed();
@@ -110,7 +110,7 @@ beforeEach(async function () {
   tokenAddresses.addToken(tokenAddresses.BUSD(), busd.address);
 });
 
-describe("VaultCake: Withdraw", function () {
+describe("PathFinder", function () {
   it("Cannot withdraw without previous deposit", async function () {
     expect(await vaultCake.withdrawableBalanceOf(owner.address)).to.equal(0);
     await expect(
