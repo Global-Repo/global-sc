@@ -18,8 +18,8 @@ let minter;
 let cakeMasterChefMock;
 let tokenAddresses;
 let routerMock;
-let routerPathFinder;
-let vaultCakeBNBLP;
+let pathFinder;
+let vaultCake;
 
 beforeEach(async function () {
   [owner, treasury, keeper, addr3, ...addrs] = await ethers.getSigners();
@@ -47,34 +47,37 @@ beforeEach(async function () {
   router = await Router.deploy(factory.address, weth.address);
   await router.deployed();
 
+  const TokenAddresses = await ethers.getContractFactory("TokenAddresses");
+  tokenAddresses = await TokenAddresses.deploy();
+  await tokenAddresses.deployed();
+
+  const PathFinder = await ethers.getContractFactory("PathFinder");
+  pathFinder = await PathFinder.deploy(tokenAddresses.address);
+  await pathFinder.deployed();
+
   const Minter = await ethers.getContractFactory("MasterChef");
   minter = await Minter.deploy(
       nativeToken.address,
       NATIVE_TOKEN_PER_BLOCK,
       startBlock,
       keeper.address,
-      router.address
+      router.address,
+      tokenAddresses.address,
+      pathFinder.address
   );
   await minter.deployed();
+  await pathFinder.transferOwnership(minter.address);
 
   const CakeMasterChefMock = await ethers.getContractFactory("CakeMasterChefMock");
   cakeMasterChefMock = await CakeMasterChefMock.deploy(cakeToken.address);
   await cakeMasterChefMock.deployed();
 
-  const TokenAddresses = await ethers.getContractFactory("TokenAddresses");
-  tokenAddresses = await TokenAddresses.deploy();
-  await tokenAddresses.deployed();
-
   const RouterMock = await ethers.getContractFactory("RouterMock");
   routerMock = await RouterMock.deploy();
   await routerMock.deployed();
 
-  const RouterPathFinder = await ethers.getContractFactory("RouterPathFinderMock");
-  routerPathFinder = await RouterPathFinder.deploy();
-  await routerPathFinder.deployed();
-
-  const VaultCakeBNBLP = await ethers.getContractFactory("VaultCakeBNBLP");
-  vaultCakeBNBLP = await VaultCakeBNBLP.deploy(
+  const VaultCake = await ethers.getContractFactory("VaultCakeBNBLP");
+  vaultCake = await VaultCake.deploy(
       PID,
       cakeToken.address,
       nativeToken.address,
@@ -82,17 +85,17 @@ beforeEach(async function () {
       treasury.address,
       tokenAddresses.address,
       routerMock.address,
-      routerPathFinder.address,
+      pathFinder.address,
       keeper.address
   );
-  await vaultCakeBNBLP.deployed();
+  await vaultCake.deployed();
 
   // Set up scenarios
   await nativeToken.transferOwnership(minter.address);
 });
 
 describe("VaultCakeBNBLP: After deployment", function () {
-  it("Check Cake BNB LP pool id (pid)", async function () {
-    expect(await vaultCakeBNBLP.pid()).to.equal(PID);
+  it("Check Cake pool id (pid)", async function () {
+    expect(await vaultCake.pid()).to.equal(PID);
   });
 });
