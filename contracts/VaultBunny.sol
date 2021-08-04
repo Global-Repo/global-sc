@@ -9,7 +9,7 @@ import "./PausableUpgradeable.sol";
 import "./WhitelistUpgradeable.sol";
 import "./IMinter.sol";
 import "./IRouterV2.sol";
-import "./IRouterPathFinder.sol";
+import "./IPathFinder.sol";
 import "./TokenAddresses.sol";
 
 contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
@@ -25,7 +25,7 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     address private treasury;
     address private keeper;
     IRouterV2 private router;
-    IRouterPathFinder private routerPathFinder;
+    IPathFinder private pathFinder;
     TokenAddresses private tokenAddresses;
 
     uint16 public constant MAX_WITHDRAWAL_FEES = 100; // 1%
@@ -79,7 +79,7 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         address _treasury,
         address _tokenAddresses,
         address _router,
-        address _routerPathFinder,
+        address _pathFinder,
         address _keeper
     ) public {
         // BUNNY = 0xC9849E6fdB743d08fAeE3E34dd2D1bc69EA11a51
@@ -103,7 +103,7 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
 
         tokenAddresses = TokenAddresses(_tokenAddresses);
         router = IRouterV2(_router);
-        routerPathFinder = IRouterPathFinder(_routerPathFinder);
+        pathFinder = IPathFinder(_pathFinder);
     }
 
     // init minter
@@ -238,7 +238,7 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         uint before = bunny.balanceOf(address(this));
         uint deadline = block.timestamp.add(2 hours);
 
-        address[] memory pathToBunny = routerPathFinder.findPath(
+        address[] memory pathToBunny = pathFinder.findPath(
             tokenAddresses.findByName(tokenAddresses.BNB()),
             tokenAddresses.findByName(tokenAddresses.BUNNY())
         );
@@ -302,12 +302,12 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         uint amountToTeam = _amount.mul(withdrawalFees.team).div(10000);
         uint amountToUser = _amount.sub(amountToTeam).sub(amountToBurn);
 
-        address[] memory pathToGlobal = routerPathFinder.findPath(
+        address[] memory pathToGlobal = pathFinder.findPath(
             tokenAddresses.findByName(tokenAddresses.BUNNY()),
             tokenAddresses.findByName(tokenAddresses.GLOBAL())
         );
 
-        address[] memory pathToBusd = routerPathFinder.findPath(
+        address[] memory pathToBusd = pathFinder.findPath(
             tokenAddresses.findByName(tokenAddresses.BUNNY()),
             tokenAddresses.findByName(tokenAddresses.BUSD())
         );
@@ -339,17 +339,17 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         uint amountToBuyGlobal = _amount.mul(rewards.toBuyGlobal).div(10000);
         uint amountToBuyBNB = _amount.mul(rewards.toBuyBNB).div(10000);
 
-        address[] memory pathToGlobal = routerPathFinder.findPath(
+        address[] memory pathToGlobal = pathFinder.findPath(
             tokenAddresses.findByName(tokenAddresses.BUNNY()),
             tokenAddresses.findByName(tokenAddresses.GLOBAL())
         );
 
-        address[] memory pathToBusd = routerPathFinder.findPath(
+        address[] memory pathToBusd = pathFinder.findPath(
             tokenAddresses.findByName(tokenAddresses.BUNNY()),
             tokenAddresses.findByName(tokenAddresses.BUSD())
         );
 
-        address[] memory pathToBnb = routerPathFinder.findPath(
+        address[] memory pathToBnb = pathFinder.findPath(
             tokenAddresses.findByName(tokenAddresses.BUNNY()),
             tokenAddresses.findByName(tokenAddresses.BNB())
         );

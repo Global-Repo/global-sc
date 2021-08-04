@@ -9,8 +9,8 @@ import "./PausableUpgradeable.sol";
 import "./WhitelistUpgradeable.sol";
 import "./IMinter.sol";
 import "./IRouterV2.sol";
-import "./IRouterPathFinder.sol";
 import "./TokenAddresses.sol";
+import './IPathFinder.sol';
 
 contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     using SafeBEP20 for IBEP20;
@@ -24,7 +24,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     address private treasury;
     address private keeper;
     IRouterV2 private router;
-    IRouterPathFinder private routerPathFinder;
+    IPathFinder private pathFinder;
     TokenAddresses private tokenAddresses;
 
     uint16 public constant MAX_WITHDRAWAL_FEES = 100; // 1%
@@ -72,7 +72,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         address _treasury,
         address _tokenAddresses,
         address _router,
-        address _routerPathFinder,
+        address _pathFinder,
         address _keeper
     ) public {
         pid = 0;
@@ -92,7 +92,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
 
         tokenAddresses = TokenAddresses(_tokenAddresses);
         router = IRouterV2(_router);
-        routerPathFinder = IRouterPathFinder(_routerPathFinder);
+        pathFinder = IPathFinder(_pathFinder);
     }
 
     // init minter
@@ -282,12 +282,12 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         uint amountToTeam = _amount.mul(withdrawalFees.team).div(10000);
         uint amountToUser = _amount.sub(amountToTeam).sub(amountToBurn);
 
-        address[] memory pathToGlobal = routerPathFinder.findPath(
+        address[] memory pathToGlobal = pathFinder.findPath(
             tokenAddresses.findByName(tokenAddresses.CAKE()),
             tokenAddresses.findByName(tokenAddresses.GLOBAL())
         );
 
-        address[] memory pathToBusd = routerPathFinder.findPath(
+        address[] memory pathToBusd = pathFinder.findPath(
             tokenAddresses.findByName(tokenAddresses.CAKE()),
             tokenAddresses.findByName(tokenAddresses.BUSD())
         );
@@ -319,17 +319,17 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         uint amountToBuyGlobal = _amount.mul(rewards.toBuyGlobal).div(10000);
         uint amountToBuyBNB = _amount.mul(rewards.toBuyBNB).div(10000);
 
-        address[] memory pathToGlobal = routerPathFinder.findPath(
+        address[] memory pathToGlobal = pathFinder.findPath(
             tokenAddresses.findByName(tokenAddresses.CAKE()),
             tokenAddresses.findByName(tokenAddresses.GLOBAL())
         );
 
-        address[] memory pathToBusd = routerPathFinder.findPath(
+        address[] memory pathToBusd = pathFinder.findPath(
             tokenAddresses.findByName(tokenAddresses.CAKE()),
             tokenAddresses.findByName(tokenAddresses.BUSD())
         );
 
-        address[] memory pathToBnb = routerPathFinder.findPath(
+        address[] memory pathToBnb = pathFinder.findPath(
             tokenAddresses.findByName(tokenAddresses.CAKE()),
             tokenAddresses.findByName(tokenAddresses.BNB())
         );

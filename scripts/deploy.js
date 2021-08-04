@@ -1,6 +1,7 @@
 const hre = require("hardhat");
 const { BigNumber } = require("@ethersproject/bignumber");
 require("@nomiclabs/hardhat-ethers");
+const {ethers} = require("hardhat");
 
 const TOKEN_DECIMALS = 18;
 const BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER = BigNumber.from(10).pow(TOKEN_DECIMALS);
@@ -39,13 +40,27 @@ async function main() {
 
     console.log("Router deployed to:", router.address);
 
+    const TokenAddresses = await ethers.getContractFactory("TokenAddresses");
+    tokenAddresses = await TokenAddresses.deploy();
+    await tokenAddresses.deployed();
+
+    console.log("TokenAddresses deployed to:", tokenAddresses.address);
+
+    const PathFinder = await ethers.getContractFactory("PathFinder");
+    pathFinder = await PathFinder.deploy(tokenAddresses.address);
+    await pathFinder.deployed();
+
+    console.log("PathFinder deployed to:", pathFinder.address);
+
     const MasterChef = await hre.ethers.getContractFactory("MasterChef");
     const masterChef = await MasterChef.deploy(
         nativeToken.address,
         NATIVE_TOKEN_PER_BLOCK,
         CURRENT_BLOCK + 1,
         owner.address, // TODO: locked vault address
-        router.address
+        router.address,
+        tokenAddresses.address,
+        pathFinder.address
     );
     await masterChef.deployed();
 
@@ -54,6 +69,9 @@ async function main() {
     // TODO: mint x tokens and change token owner by masterchef address
 
     // Set ups
+    await pathFinder.transferOwnership(masterChef.address);
+    console.log("Masterchef is now the PathFinder's owner.");
+
     await nativeToken.transferOwnership(masterChef.address);
     console.log("Masterchef is now the Native token's owner.");
 
