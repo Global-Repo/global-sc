@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Unlicensed
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
 
 import "../ICakeMasterChef.sol";
@@ -19,7 +19,7 @@ contract CakeMasterChefMock is ICakeMasterChef {
 
     mapping(address => UserInfo) private userInfoInternal;
 
-    uint private defaultReward = 1000000000000000000;
+    uint private defaultReward = 1e18;
 
     constructor(address _cake) public {
         cakeToken = BEP20(_cake);
@@ -29,8 +29,24 @@ contract CakeMasterChefMock is ICakeMasterChef {
         return (userInfoInternal[_user].amount, userInfoInternal[_user].rewardDebt);
     }
 
+    function enterStaking(uint256 _amount) external override {
+        _enterStaking(_amount);
+    }
+
+    function leaveStaking(uint256 _amount) external override {
+        _leaveStaking(_amount);
+    }
+
+    function deposit(uint256 _pid, uint256 _amount) external override {
+        _enterStaking(_amount);
+    }
+
+    function withdraw(uint256 _pid, uint256 _amount) external override {
+        _leaveStaking(_amount);
+    }
+
     // Always 1 token of reward when stacking
-    function enterStaking(uint256 _amount) public override {
+    function _enterStaking(uint256 _amount) private {
         UserInfo storage user = userInfoInternal[msg.sender];
 
         cakeToken.safeTransferFrom(address(msg.sender), address(this), _amount);
@@ -39,7 +55,7 @@ contract CakeMasterChefMock is ICakeMasterChef {
         user.rewardDebt = user.rewardDebt.add(defaultReward);
     }
 
-    function leaveStaking(uint256 _amount) public override {
+    function _leaveStaking(uint256 _amount) private {
         UserInfo storage user = userInfoInternal[msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
 

@@ -12,12 +12,12 @@ import "./IRouterV2.sol";
 import "./IRouterPathFinder.sol";
 import "./TokenAddresses.sol";
 
-contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
+contract VaultCakeBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     using SafeBEP20 for IBEP20;
     using SafeMath for uint;
     using SafeMath for uint16;
 
-    IBEP20 private cake;
+    IBEP20 private lpToken;
     IBEP20 private global;
     ICakeMasterChef private cakeMasterChef;
     IMinter private minter;
@@ -66,7 +66,8 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     }
 
     constructor(
-        address _cake,
+        uint256 _pid,
+        address _lpToken,
         address _global,
         address _cakeMasterChef,
         address _treasury,
@@ -75,14 +76,14 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         address _routerPathFinder,
         address _keeper
     ) public {
-        pid = 0;
-        cake = IBEP20(_cake);
+        pid = _pid;
+        lpToken = IBEP20(_lpToken);
         global = IBEP20(_global);
         cakeMasterChef = ICakeMasterChef(_cakeMasterChef);
         treasury = _treasury;
         keeper = _keeper;
 
-        cake.safeApprove(_cakeMasterChef, uint(~0));
+        lpToken.safeApprove(_cakeMasterChef, uint(~0));
 
         __PausableUpgradeable_init();
         __WhitelistUpgradeable_init();
@@ -98,8 +99,8 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     // init minter
     function setMinter(address _minter) external {
         require(IMinter(_minter).isMinter(address(this)) == true, "This vault must be a minter in minter's contract");
-        cake.safeApprove(_minter, 0);
-        cake.safeApprove(_minter, uint(~0));
+        lpToken.safeApprove(_minter, 0);
+        lpToken.safeApprove(_minter, uint(~0));
         minter = IMinter(_minter);
     }
 
@@ -187,7 +188,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     }
 
     function rewardsToken() external view override returns (address) {
-        return address(cake);
+        return address(lpToken);
     }
 
     function deposit(uint _amount) public override onlyNonContract {
@@ -200,7 +201,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     }
 
     function depositAll() external override onlyNonContract {
-        deposit(cake.balanceOf(msg.sender));
+        deposit(lpToken.balanceOf(msg.sender));
     }
 
     function withdrawAll() external override onlyNonContract {
@@ -272,7 +273,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     function handleWithdrawalFees(uint _amount) private {
         if (_depositedAt[msg.sender].add(withdrawalFees.interval) < block.timestamp) {
             // No withdrawal fees
-            cake.safeTransfer(msg.sender, _amount);
+            lpToken.safeTransfer(msg.sender, _amount);
             emit Withdrawn(msg.sender, _amount, 0);
             return;
         }
@@ -304,7 +305,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             router.swapExactTokensForTokens(amountToTeam, 0, pathToBusd, treasury, deadline);
         }
 
-        cake.safeTransfer(msg.sender, amountToUser);
+        lpToken.safeTransfer(msg.sender, amountToUser);
         emit Withdrawn(msg.sender, amountToUser, 0);
     }
 
@@ -362,20 +363,20 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             global.safeTransfer(keeper, amountGlobalMinted); // TODO to keeper as user and not as cake vault
         }
 
-        cake.safeTransfer(msg.sender, amountToUser);
+        lpToken.safeTransfer(msg.sender, amountToUser);
         emit ProfitPaid(msg.sender, amountToUser);
     }
 
     function _depositStakingToken(uint amount) private returns(uint cakeHarvested) {
-        uint before = cake.balanceOf(address(this));
-        cakeMasterChef.enterStaking(amount);
-        cakeHarvested = cake.balanceOf(address(this)).add(amount).sub(before);
+        uint before = lpToken.balanceOf(address(this));
+        cakeMasterChef.deposit(pid, amount);
+        cakeHarvested = lpToken.balanceOf(address(this)).add(amount).sub(before);
     }
 
     function _withdrawStakingToken(uint amount) private returns(uint cakeHarvested) {
-        uint before = cake.balanceOf(address(this));
-        cakeMasterChef.leaveStaking(amount);
-        cakeHarvested = cake.balanceOf(address(this)).sub(amount).sub(before);
+        uint before = lpToken.balanceOf(address(this));
+        cakeMasterChef.withdraw(pid, amount);
+        cakeHarvested = lpToken.balanceOf(address(this)).sub(amount).sub(before);
     }
 
     function _harvest(uint cakeAmount) private {
@@ -385,8 +386,9 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         }
     }
 
+    // TODO: nonReentrant ?
     function _deposit(uint _amount, address _to) private notPaused {
-        cake.safeTransferFrom(msg.sender, address(this), _amount);
+        lpToken.safeTransferFrom(msg.sender, address(this), _amount);
 
         uint shares = totalShares == 0 ? _amount : (_amount.mul(totalShares)).div(balance());
         totalShares = totalShares.add(shares);
