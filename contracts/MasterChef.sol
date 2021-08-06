@@ -350,6 +350,8 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
         performanceFeesOfNativeTokensBurn: _performanceFeesOfNativeTokensBurn,
         performanceFeesOfNativeTokensToLockedVault: _performanceFeesOfNativeTokensToLockedVault
         }));
+
+        updateStakingPool();
     }
 
     // Update the given pool's Native tokens allocation point, withdrawal fees, performance fees and harvest interval. Can only be called by the owner.
@@ -373,6 +375,8 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
             massUpdatePools();
         }
 
+        uint256 prevAllocPoint = poolInfo[_pid].allocPoint;
+
         totalAllocPoint = totalAllocPoint.sub(poolInfo[_pid].allocPoint).add(_allocPoint);
         poolInfo[_pid].allocPoint = _allocPoint;
         poolInfo[_pid].harvestInterval = _harvestInterval;
@@ -382,7 +386,25 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
         poolInfo[_pid].performanceFeesOfNativeTokensBurn = _performanceFeesOfNativeTokensBurn;
         poolInfo[_pid].performanceFeesOfNativeTokensToLockedVault = _performanceFeesOfNativeTokensToLockedVault;
 
+        if (prevAllocPoint != _allocPoint) {
+            updateStakingPool();
+        }
+
     }
+
+    function updateStakingPool() internal {
+        uint256 length = poolInfo.length;
+        uint256 points = 0;
+        for (uint256 pid = 1; pid < length; ++pid) {
+            points = points.add(poolInfo[pid].allocPoint);
+        }
+        if (points != 0) {
+            points = points.div(3);
+            totalAllocPoint = totalAllocPoint.sub(poolInfo[0].allocPoint).add(points);
+            poolInfo[0].allocPoint = points;
+        }
+    }
+
     // Set the migrator contract. Can only be called by the owner.
     function setMigrator(IMigratorChef _migrator) public onlyOwner {
         migrator = _migrator;
@@ -723,6 +745,45 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
             // XXXXXXXXXXXX tokens BNB que ens enviem a devaddress/nosaltres
             IBEP20(tokenAddresses.findByName(tokenAddresses.BNB())).transfer(devAddr, tokensForDevs);
         }
+    }
+
+    // Stake CAKE tokens to MasterChef
+    function enterStaking(uint256 _amount) public {
+        PoolInfo storage pool = poolInfo[0];
+        UserInfo storage user = userInfo[0][msg.sender];
+        updatePool(0);
+        if (user.amount > 0) {
+            uint256 pending = user.amount.mul(pool.accNativeTokenPerShare).div(1e12).sub(user.rewardDebt);
+            if(pending > 0) {
+                SafeNativeTokenTransfer(msg.sender, pending);
+            }
+        }
+        if(_amount > 0) {
+            pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
+            user.amount = user.amount.add(_amount);
+        }
+        user.rewardDebt = user.amount.mul(pool.accNativeTokenPerShare).div(1e12);
+
+        emit Deposit(msg.sender, 0, _amount);
+    }
+
+    // Withdraw CAKE tokens from STAKING.
+    function leaveStaking(uint256 _amount) public {
+        PoolInfo storage pool = poolInfo[0];
+        UserInfo storage user = userInfo[0][msg.sender];
+        require(user.amount >= _amount, "withdraw: not good");
+        updatePool(0);
+        uint256 pending = user.amount.mul(pool.accNativeTokenPerShare).div(1e12).sub(user.rewardDebt);
+        if(pending > 0) {
+            SafeNativeTokenTransfer(msg.sender, pending);
+        }
+        if(_amount > 0) {
+            user.amount = user.amount.sub(_amount);
+            pool.lpToken.safeTransfer(address(msg.sender), _amount);
+        }
+        user.rewardDebt = user.amount.mul(pool.accNativeTokenPerShare).div(1e12);
+
+        emit Withdraw(msg.sender, 0, _amount);
     }
 
     // Withdraw of all tokens. Rewards are lost.
