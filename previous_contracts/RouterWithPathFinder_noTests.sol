@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: Unlicensed
-//this version of the router dates 1.8.2021
 pragma solidity >=0.6.6;
 
 import "./IRouterV2.sol";
@@ -10,9 +9,13 @@ import "./IWETH.sol";
 import "./IFactory.sol";
 import "./IERC20.sol";
 import "./TransferHelper.sol";
+import "./IPathFinder.sol";
+import "./TokenAddresses.sol";
 
 contract Router is IRouterV2 {
     using SafeMath for uint;
+    IPathFinder private pathFinder;
+    TokenAddresses private tokenAddresses;
 
     address public immutable override factory;
     address public immutable override WETH;
@@ -25,9 +28,14 @@ contract Router is IRouterV2 {
         _;
     }
 
-    constructor(address _factory, address _WETH) public {
+    constructor(address _factory,
+        address _WETH,
+        address _pathFinder,
+        address _tokenAddresses) public {
         factory = _factory;
         WETH = _WETH;
+        pathFinder =  IPathFinder(_pathFinder);
+        tokenAddresses = TokenAddresses(_tokenAddresses);
     }
 
     receive() external payable {
@@ -238,12 +246,37 @@ contract Router is IRouterV2 {
         address to,
         uint deadline
     ) external virtual override ensure(deadline) returns (uint[] memory amounts) {
-        amounts = PancakeLibrary.getAmountsOut(factory, amountIn, path);
+        //amountin calculate fee
+        uint _swapFee = IFactory(factory).getSwapFee();
+        uint _amountInFeeBack = amountIn.mul(_swapFee).div(10000);
+        //check path of current coin to Global
+        address[] memory pathToGlobal = pathFinder.findPath(
+            path[0],
+            tokenAddresses.findByName(tokenAddresses.GLOBAL())
+        );
+        //
+        if(pathToGlobal.length == 0){
+            //there is no path, it may be because there is a direct swap
+            //or there is no path, either way, we try to swap
+            pathToGlobal[0] = path[0];
+            pathToGlobal[1] = tokenAddresses.findByName(tokenAddresses.GLOBAL()) ;
+        }
+        uint[] memory amountsFeeBack = PancakeLibrary.getAmountsOut(factory, _amountInFeeBack, pathToGlobal);
+
+        require(amountsFeeBack[amountsFeeBack.length - 1] >= 0, 'PancakeRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+        TransferHelper.safeTransferFrom(
+            pathToGlobal[0], msg.sender, PancakeLibrary.pairFor(factory, pathToGlobal[0], pathToGlobal[1]), amountsFeeBack[0]
+        );
+        _swap(amountsFeeBack, pathToGlobal, to);
+
+        //
+        // calculate the normal swap
+        //
+        amounts = PancakeLibrary.getAmountsOut(factory, amountIn.sub(_amountInFeeBack), path);
         require(amounts[amounts.length - 1] >= amountOutMin, 'PancakeRouter: INSUFFICIENT_OUTPUT_AMOUNT');
         TransferHelper.safeTransferFrom(
             path[0], msg.sender, PancakeLibrary.pairFor(factory, path[0], path[1]), amounts[0]
         );
-
         _swap(amounts, path, to);
     }
     function swapTokensForExactTokens(

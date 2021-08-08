@@ -244,6 +244,15 @@ contract Router is IRouterV2 {
             path[0], msg.sender, PancakeLibrary.pairFor(factory, path[0], path[1]), amounts[0]
         );
 
+        //aqui biswap genera BISWAP COOINS amb les fees generades
+        //path[] = PathHelper.findPath(token0, TokenAddresses.getTokenByName(TokenAddresses.GLOBAL()))
+        // comprovar si el que diu el boji va cap a BNB
+        // if( PancakeLibrary.pairFor(tokenA, tokenB) != address(0) or path.length == 0 ){
+        //      // si pathhelper torna ple, fer el swap del path fins a global.
+        //      // si el pathhelper em torna buit, mirar si el token address[0] te sortida a BNB.
+        //      // si en te, fer swap path token, BNB, GLOBAL
+        // }
+        // Vault Cake mirar lineas
         _swap(amounts, path, to);
     }
     function swapTokensForExactTokens(
