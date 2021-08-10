@@ -270,7 +270,7 @@ describe("Swap tokens", function () {
         // WITHDRAW, see how the LPs and total tkns has changed
         //
         await pair.connect(owner).approve(router.address, 100000000000000);
-        await expect( router.connect(owner).removeLiquidity(
+        await router.connect(owner).removeLiquidity(
             nativeToken.address,
             tokenB.address,
             owner_pair_balance,
@@ -278,15 +278,14 @@ describe("Swap tokens", function () {
             1,
             owner.address,
             deadline
-        ));
+        );
 
-        owner_pair_balance = await pair.balanceOf(owner.address);
+        owner_pair_balance = (await pair.balanceOf(owner.address));
         owner_native_balance = await nativeToken.balanceOf(owner.address);
         owner_b_balance = await tokenB.balanceOf(owner.address);
         console.log('\nAFTER WITHDRAW')
         console.log('tkn native balance', owner_native_balance.toString());
         console.log('tkn b balance', owner_b_balance.toString());
-        //TODO pq el owner_pair_balance no s'updateja? te el mateix valor que abans del withdraw
         console.log('pair balance', owner_pair_balance.toString());
 
         let {0: reserves_0, 1:reserves_1} = await pair.getReserves();
@@ -320,7 +319,7 @@ describe("Swap tokens", function () {
             30000,
             200,
             200,
-            owner.address,
+            addr3.address,
             deadline
         );
         let {0: reserves__0, 1:reserves__1} = await pair.getReserves();
@@ -328,24 +327,6 @@ describe("Swap tokens", function () {
         console.log('pair reserves0', reserves__0.toString());
         console.log('pair reserves1', reserves__1.toString());
 
-
-        //TODO como puede el owner volver a sacar liquidity de la pool si en
-        // ya la ha sacado antes toda con el total del 'owner_pair_balance'?
-        await expect( router.connect(owner).removeLiquidity(
-            nativeToken.address,
-            tokenB.address,
-            10000,
-            10,
-            5,
-            owner.address,
-            deadline
-        ));
-
-        // TODO, como puede ser q el pair balance del owner sea 5k aun? wtf?
-        // y aunque sea 5k, no me deja sacar mas dinero aunque haya reservas suficientes.
-        // ademas si saco mas dinero del que he puesto en el pair con owner, parece como que
-        // no actualiza los 'pair reserves' pero me suma la pasta en el owner. WTF
-        // puede que este mintando al ser el owner?
         let {0: reserves___0, 1:reserves___1} = await pair.getReserves();
         console.log('\nOWNER removed liquidity')
         console.log('pair reserves0', reserves___0.toString());
@@ -357,9 +338,6 @@ describe("Swap tokens", function () {
         console.log('tkn b balance', owner_b_balance.toString());
         console.log('pair balance', owner_pair_balance.toString());
 
-        // Ahora intentamos recuperar la pasta desde el addr3
-        // TODO, no me deja sacarla. Porque? en teoria tengo permiso de todos
-        // los pares y monedas.
         await expect( router.connect(addr3).removeLiquidity(
             nativeToken.address,
             tokenB.address,
