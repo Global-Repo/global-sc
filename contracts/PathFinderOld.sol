@@ -1,21 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
-
+/*
 import "./IPair.sol";
-import "./IPathFinder.sol";
+import "./IPathFinderOld.sol";
 import './Ownable.sol';
 import './TokenAddresses.sol';
 
-contract PathFinder is IPathFinder, Ownable {
-    TokenAddresses private tokenAddresses;
-
+contract PathFinderOld is IPathFinderOld, Ownable {
     // relació de cada token amb el token que li fa d'intermediari per arribar a WBNB
-    mapping (address => RouteInfo) private routeInfos;
-
-    struct RouteInfo {
-        bool directBNB;
-        address tokenRoute;
-    }
+    mapping(address => address) private routeAddresses;
+    mapping(address => bool) private directAddresses;
+    TokenAddresses private tokenAddresses;
 
     constructor(
         address _tokenAddresses
@@ -23,103 +18,89 @@ contract PathFinder is IPathFinder, Ownable {
         tokenAddresses = TokenAddresses(_tokenAddresses);
     }
 
-    function addRouteInfoDirect(address _token) external onlyOwner override {
-        routeInfos[_token].directBNB=true;
+    function addRouteAddress(address _token, address _tokenRoute) external onlyOwner override {
+        routeAddresses[_token] = _tokenRoute;
+        this.removeDirectAddress(_token);
     }
 
-    function addRouteInfoRoute(address _token, address _tokenRoute) external onlyOwner override {
-        require(_tokenRoute!=address(0), 'PathFinder: you must define either a direct path to BNB or a routeToken to BNB');
-        routeInfos[_token].tokenRoute=_tokenRoute;
+    function removeRouteAddress(address _token) external onlyOwner override {
+        delete routeAddresses[_token];
     }
 
-    function addRouteInfo(address _token, address _tokenRoute, bool _directBNB) external onlyOwner override {
-        require(_tokenRoute!=address(0) || _directBNB, 'PathFinder: you must define either a direct path to BNB or a routeToken to BNB');
-
-        routeInfos[_token].tokenRoute=_tokenRoute;
-        routeInfos[_token].directBNB=_directBNB;
+    function getRouteAddress(address _token) external view override returns (address) {
+        return routeAddresses[_token];
     }
 
-    function removeRouteInfo(address _token) external onlyOwner override {
-        delete routeInfos[_token];
+    function addDirectAddress(address _token) external onlyOwner override {
+        directAddresses[_token] = true;
+        this.removeRouteAddress(_token);
     }
 
-    function isTokenConnected(address _token) external view override returns (bool) {
-        return routeInfos[_token].tokenRoute != address(0) || routeInfos[_token].directBNB;
+    function removeDirectAddress(address _token) external onlyOwner override {
+        delete directAddresses[_token];
     }
 
-    function getRouteInfoTokenRoute(address _token) external view override returns (address) {
-        return routeInfos[_token].tokenRoute;
-    }
-
-    function getRouteInfoDirectBNB(address _token) external view override returns (bool) {
-        return routeInfos[_token].directBNB;
-    }
-
-    function getRouteInfo(address _token) internal view returns (RouteInfo memory) {
-        return routeInfos[_token];
+    function getDirectAddress(address _token) external view override returns (bool) {
+        return directAddresses[_token];
     }
 
     function findPath(address _tokenFrom, address _tokenTo) external view override returns (address[] memory)
     {
-        RouteInfo memory infoFrom = getRouteInfo(_tokenFrom);
-        RouteInfo memory infoTo = getRouteInfo(_tokenTo);
+        address intermediateFrom = this.getRouteAddress(_tokenFrom);
+        address intermediateTo = this.getRouteAddress(_tokenTo);
         address WBNB = tokenAddresses.findByName(tokenAddresses.BNB());
 
         address[] memory path;
-        if((infoFrom.tokenRoute != address(0) && infoFrom.directBNB) || (infoTo.tokenRoute != address(0) && infoFrom.directBNB))
-        {
-            path = new address[](0);
-        } else if ((_tokenFrom == WBNB && infoTo.directBNB) || (_tokenTo == WBNB && infoFrom.directBNB)) {
-            // [WBNB, BUNNY] or [BUNNY, WBNB] casos en que no hi ha intermedi i un dels tokens es directament el WBNB
-            path = new address[](2);
-            path[0] = _tokenFrom;
-            path[1] = _tokenTo;
-        }
-        else if ((infoFrom.tokenRoute != address(0)&&_tokenTo == WBNB)||(infoTo.tokenRoute != address(0) && _tokenFrom == WBNB)) {
+        if ((intermediateFrom != address(0)||intermediateTo != address(0)) && (_tokenFrom == WBNB || _tokenTo == WBNB)) {
             // [WBNB, BUSD, XXX] or [XXX, BUSD, WBNB] casos en que hi ha un intermig per arribar a WBNB i l'altre es directament WBNB
             path = new address[](3);
             path[0] = _tokenFrom;
-            path[1] = infoFrom.tokenRoute != address(0)?infoFrom.tokenRoute:infoTo.tokenRoute;
+            path[1] = intermediateFrom != address(0)?intermediateFrom:intermediateTo;
             path[2] = _tokenTo;
-        } else if (_tokenFrom == infoTo.tokenRoute || _tokenTo == infoFrom.tokenRoute) {
+        } else if ((intermediateFrom != address(0) || intermediateTo != address(0)) && (_tokenFrom == intermediateTo || _tokenTo == intermediateFrom)) {
             // [VAI, BUSD] or [BUSD, VAI] casos en que directament l'intermedi de un dels tokens es l'altre token
             path = new address[](2);
             path[0] = _tokenFrom;
             path[1] = _tokenTo;
-        } else if (infoFrom.tokenRoute != address(0) && infoFrom.tokenRoute == infoTo.tokenRoute) {
+        } else if ((intermediateFrom != address(0)||intermediateTo != address(0)) && intermediateFrom == intermediateTo) {
             // [VAI, DAI] or [VAI, USDC] casos en que l'intermedi es el mateix pels 2 tokens
             path = new address[](3);
             path[0] = _tokenFrom;
-            path[1] = infoFrom.tokenRoute;
+            path[1] = intermediateFrom;
             path[2] = _tokenTo;
-        } else if (infoFrom.directBNB && infoTo.directBNB) {
+        } else if (intermediateFrom != address(0) && intermediateTo != address(0)) {
+            // [VAI, BUSD, WBNB, xRoute, xToken] casos en que els 2 tenen intermedis
+            path = new address[](5);
+            path[0] = _tokenFrom;
+            path[1] = intermediateFrom;
+            path[2] = WBNB;
+            path[3] = intermediateTo;
+            path[4] = _tokenTo;
+        } else if (intermediateFrom != address(0)) {
+            // [VAI, BUSD, WBNB, BUNNY] casos en que nomes el from te intermedi
+            path = new address[](4);
+            path[0] = _tokenFrom;
+            path[1] = intermediateFrom;
+            path[2] = WBNB;
+            path[3] = _tokenTo;
+        } else if (intermediateTo != address(0)) {
+            // [BUNNY, WBNB, BUSD, VAI] casos en que nomes el to te intermedi
+            path = new address[](4);
+            path[0] = _tokenFrom;
+            path[1] = WBNB;
+            path[2] = intermediateTo;
+            path[3] = _tokenTo;
+        } else if (_tokenFrom == WBNB || _tokenTo == WBNB) {
+            // [WBNB, BUNNY] or [BUNNY, WBNB] casos en que no hi ha intermedi i un dels tokens es directament el WBNB
+            path = new address[](2);
+            path[0] = _tokenFrom;
+            path[1] = _tokenTo;
+        } else {
             // [USDT, BUNNY] or [BUNNY, USDT] casos en que no hi ha intermedi per cap dels tokens
             path = new address[](3);
             path[0] = _tokenFrom;
             path[1] = WBNB;
             path[2] = _tokenTo;
-        } else if (infoFrom.tokenRoute != address(0) && infoTo.directBNB) {
-            // [VAI, BUSD, WBNB, BUNNY] casos en que nomes el from te intermedi
-            path = new address[](4);
-            path[0] = _tokenFrom;
-            path[1] = infoFrom.tokenRoute;
-            path[2] = WBNB;
-            path[3] = _tokenTo;
-        } else if (infoTo.tokenRoute != address(0) && infoFrom.directBNB) {
-            // [BUNNY, WBNB, BUSD, VAI] casos en que nomes el to te intermedi
-            path = new address[](4);
-            path[0] = _tokenFrom;
-            path[1] = WBNB;
-            path[2] = infoTo.tokenRoute;
-            path[3] = _tokenTo;
-        }  else if (infoFrom.tokenRoute != address(0) && infoTo.tokenRoute != address(0)) {
-            // [VAI, BUSD, WBNB, xRoute, xToken] casos en que els 2 tenen intermedis
-            path = new address[](5);
-            path[0] = _tokenFrom;
-            path[1] = infoFrom.tokenRoute;
-            path[2] = WBNB;
-            path[3] = infoTo.tokenRoute;
-            path[4] = _tokenTo;
         }
         return path;
     }
@@ -220,5 +201,5 @@ contract PathFinder is IPathFinder, Ownable {
             }
         }
         return path;
-    }*/
-}
+    }
+}*/
