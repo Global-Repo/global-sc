@@ -1,10 +1,13 @@
+const {TOKEN_DECIMALS, greet} = require("../../helpers");
+
 const ethers = require("hardhat").ethers;
 const { expect } = require("chai");
 const { BigNumber } = require("@ethersproject/bignumber");
 
-const TOKEN_DECIMALS = 18;
 const BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER = BigNumber.from(10).pow(TOKEN_DECIMALS);
 const NATIVE_TOKEN_PER_BLOCK = BigNumber.from(40).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+
+greet()
 
 let startBlock;
 

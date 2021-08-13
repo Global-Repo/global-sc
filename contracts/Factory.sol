@@ -7,8 +7,8 @@ import "./Pair.sol";
 contract Factory is IFactory {
     // bytes32 public constant INIT_CODE_PAIR_HASH = keccak256(abi.encodePacked(type(Pair).creationCode));
 
-    address public feeTo;
-    address public feeToSetter;
+    address public override feeTo;
+    address public override feeToSetter;
 
 
     mapping(address => mapping(address => address)) public override getPair;
