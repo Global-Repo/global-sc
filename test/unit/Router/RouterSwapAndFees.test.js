@@ -73,7 +73,7 @@ describe("Swap tokens", function () {
     it("Cannot swap tokens if there isn't enough liquidity for these pairs. -- PancakeRouter: INSUFFICIENT_OUTPUT_AMOUNT", async function () {
         let date = new Date();
         const timestamp = date.setTime(date.getTime() + 2 * 86400000); // +2 days
-        await factory.setSwapFee(0);
+        //await factory.setSwapFee(0);
         await router.addLiquidity(
             tokenA.address,
             tokenB.address,
@@ -99,7 +99,7 @@ describe("Swap tokens", function () {
     it("Cannot swap tokens from a non token address in path", async function () {
         let date = new Date();
         const timestamp = date.setTime(date.getTime() + 2 * 86400000); // +2 days
-        await factory.setSwapFee(0);
+        //await factory.setSwapFee(0);
         await router.addLiquidity(
             tokenA.address,
             tokenB.address,
@@ -126,7 +126,7 @@ describe("Swap tokens", function () {
     it("Cannot swap 0 tokens -- PancakeLibrary: INSUFFICIENT_INPUT_AMOUNT", async function () {
         let date = new Date();
         const timestamp = date.setTime(date.getTime() + 2 * 86400000); // +2 days
-        await factory.setSwapFee(0);
+        //await factory.setSwapFee(0);
         await router.addLiquidity(
             tokenA.address,
             tokenB.address,
@@ -356,7 +356,7 @@ describe("Swap tokens", function () {
         let date = new Date();
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
 
-        await factory.setSwapFee(0);
+        //await factory.setSwapFee(0);
 
         await router.addLiquidity(
             tokenA.address,

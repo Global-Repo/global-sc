@@ -37,14 +37,6 @@ beforeEach(async function () {
   tokenB = await TokenB.deploy('tokenB', 'BB');
   await tokenB.deployed();
 
-  const TokenARoute = await ethers.getContractFactory("BEP20");
-  tokenARoute = await TokenARoute.deploy('tokenARoute', 'AA');
-  await tokenARoute.deployed();
-
-  const TokenBRoute = await ethers.getContractFactory("BEP20");
-  tokenBRoute = await TokenBRoute.deploy('tokenBRoute', 'BB');
-  await tokenBRoute.deployed();
-
   const Factory = await ethers.getContractFactory("Factory");
   factory = await Factory.deploy(owner.address);
   await factory.deployed();
@@ -85,9 +77,9 @@ beforeEach(async function () {
   const INITIAL_SUPPLY = BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
 
   await tokenA.mint(INITIAL_SUPPLY);
-  await tokenB.mint(INITIAL_SUPPLY);
+  await weth.mint(INITIAL_SUPPLY);
   await tokenA.approve(router.address, INITIAL_SUPPLY.toHexString());
-  await tokenB.approve(router.address, INITIAL_SUPPLY.toHexString());
+  await weth.approve(router.address, INITIAL_SUPPLY.toHexString());
   tokenAddresses.addToken(tokenAddresses.BNB(), weth.address);
 });
 
@@ -98,7 +90,7 @@ describe("MasterChef: Pools", function () {
 
     await router.addLiquidity(
         tokenA.address,
-        tokenB.address,
+        weth.address,
         BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
         BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
         BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
@@ -107,20 +99,10 @@ describe("MasterChef: Pools", function () {
         deadline
     );
 
-    const pairAddress = await factory.getPair(tokenA.address, tokenB.address);
+    const pairAddress = await factory.getPair(tokenA.address, weth.address);
 
-    const IPair = await ethers.getContractAt("IPair", await factory.getPair(tokenA.address, tokenB.address));
-    //console.log(await IPair.token0());
-    if((await IPair.token0())==tokenB.address) {
-      let aux = tokenARoute;
-      tokenARoute = tokenBRoute;
-      tokenBRoute = aux;
-    }
-
-
-    var routes = [tokenA.address.toString(), tokenARoute.address.toString(), tokenB.address.toString(), tokenBRoute.address.toString()];
     await masterChef.addPool(
-        BigNumber.from(40).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        NATIVE_TOKEN_PER_BLOCK,
         pairAddress,
         DAY_IN_SECONDS * 3,
         false,
@@ -128,14 +110,13 @@ describe("MasterChef: Pools", function () {
         50,
         50,
         100,
-        100,
-        routes
+        100
     );
 
-    const poolInfo = await masterChef.poolInfo(0);
+    const poolInfo = await masterChef.poolInfo(1);
 
-    expect(await masterChef.poolLength()).to.equal(1);
-    expect(poolInfo.allocPoint).to.equal(BigNumber.from(40).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+    expect(await masterChef.poolLength()).to.equal(2);
+    expect(poolInfo.allocPoint).to.equal(NATIVE_TOKEN_PER_BLOCK);
     expect(poolInfo.lpToken).to.equal(pairAddress);
     expect(poolInfo.harvestInterval).to.equal(259200);
     expect(poolInfo.maxWithdrawalInterval).to.equal(259200);
@@ -143,9 +124,6 @@ describe("MasterChef: Pools", function () {
     expect(poolInfo.withDrawalFeeOfLpsTeam).to.equal(50);
     expect(poolInfo.performanceFeesOfNativeTokensBurn).to.equal(100);
     expect(poolInfo.performanceFeesOfNativeTokensToLockedVault).to.equal(100);
-
-    expect(await pathFinder.pathFinder(tokenA.address)).to.equal(tokenARoute.address);
-    expect(await pathFinder.getRouteAddress(tokenB.address)).to.equal(tokenBRoute.address);
   });
 
   xit("Should to update pool info properly", async function () {

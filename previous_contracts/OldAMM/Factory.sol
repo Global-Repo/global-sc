@@ -23,6 +23,7 @@ contract Factory is IFactory {
 
     constructor(address _feeSetter) public {
         feeSetter = _feeSetter;
+        devFeeTo = _feeSetter;
         devFeeNum = 2; //originalment 4
         devFeeDenum = 9; // originalment 18
         swapFee = 18;

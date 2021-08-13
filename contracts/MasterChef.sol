@@ -19,6 +19,7 @@ import "./IMinter.sol";
 import "./IMinter.sol";
 import "./TokenAddresses.sol";
 import "./IPathFinder.sol";
+import "hardhat/console.sol";
 
 // HEM DE FER IMPORT DE LA INTERFACE I DEL SC DEL VAULT!!!!!!!!!
 
@@ -46,6 +47,7 @@ import "./IPathFinder.sol";
 // SHA DE FER UN PAUSE ALL DEPOSITS!!!!! I ROLLBACK!!!
 // I no fer el càlcul manual, q sino la liariem pardíssima
 // Lock the swap
+// S'ha de testejar be el manageTokens
 
 
 // We hope code is bug-free. For everyone's life savings.
@@ -194,6 +196,18 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         // Aquípodem inicialitzar totes les pools de Native Token ja. //////////////////////////////////////////////////////////////////////
         // tOT I QUE MOLaria més tenir vaults apart on enviem la pasta i que es gestionin de forma independent, així no liem el masterchef... lo únic q aquells contractes no podràn mintar dentrada perque no farem whitelist, només serveixen per repartir tokens
 
+        poolInfo.push(PoolInfo({
+        lpToken: _nativeToken,
+        allocPoint: 1000,
+        lastRewardBlock: _startBlock,
+        accNativeTokenPerShare: 0,
+        harvestInterval: 0,
+        maxWithdrawalInterval: 0,
+        withDrawalFeeOfLpsBurn: 0,
+        withDrawalFeeOfLpsTeam: 0,
+        performanceFeesOfNativeTokensBurn: 0,
+        performanceFeesOfNativeTokensToLockedVault: 0
+        }));
     }
 
     function setRouter(address _router) public onlyOwner {

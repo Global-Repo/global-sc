@@ -17,12 +17,12 @@ describe("Factory: After deployment", function () {
   });
 
   it("Fee setter must be the owner by default", async function () {
-    expect(await factory.feeSetter()).to.equal(owner.address);
+    expect(await factory.feeToSetter()).to.equal(owner.address);
   });
 
   it("Check the proper init code hash", async function () {
     expect(
         await factory.INIT_CODE_PAIR_HASH()
-    ).to.equal("0x1a9de43b8c4e8e5d8bc44da576be23ffdda123b6a447048ab376d2ca7c11af6b");
+    ).to.equal("0xba94b3d495df207c4ce8eaf49f2a2aec75678aebb3b5cd8e6fa2fbe68e298007");
   });
 });

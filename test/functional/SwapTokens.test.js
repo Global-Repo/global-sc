@@ -69,7 +69,7 @@ describe("Swap tokens", function () {
     let date = new Date();
     const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
 
-    await factory.setSwapFee(0);
+    //await factory.setSwapFee(0);
 
     await router.addLiquidity(
         tokenA.address,
