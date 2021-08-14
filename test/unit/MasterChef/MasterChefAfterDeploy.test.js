@@ -81,7 +81,7 @@ beforeEach(async function () {
 });
 
 describe("MasterChef: After deployment", function () {
-  it("Should to have zero pools", async function () {
-    expect(await masterChef.poolLength()).to.equal(0);
+  it("Should have 1 pool", async function () {
+    expect(await masterChef.poolLength()).to.equal(1);
   });
 });

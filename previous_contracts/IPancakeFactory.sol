@@ -1,7 +1,6 @@
-// SPDX-License-Identifier: Unlicensed
-pragma solidity >=0.6.6;
+pragma solidity >=0.5.0;
 
-interface IFactory {
+interface IPancakeFactory {
     event PairCreated(address indexed token0, address indexed token1, address pair, uint);
 
     function feeTo() external view returns (address);
@@ -15,6 +14,4 @@ interface IFactory {
 
     function setFeeTo(address) external;
     function setFeeToSetter(address) external;
-
-    function INIT_CODE_PAIR_HASH() external view returns (bytes32);
 }

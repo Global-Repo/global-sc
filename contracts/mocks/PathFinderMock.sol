@@ -7,14 +7,27 @@ contract PathFinderMock is IPathFinder {
         path[1] = _tokenB;
     }
 
-    function addRouteAddress(address _token, address _tokenRoute) external override {
-
-    }
-    function removeRouteAddress(address _token) external override {
-
+    function addRouteInfoDirect(address _token) external override {
     }
 
-    function getRouteAddress(address _token) external view override returns (address) {
+    function addRouteInfoRoute(address _token, address _tokenRoute) external override {
+    }
+
+    function addRouteInfo(address _token, address _tokenRoute, bool _directBNB) external override {
+    }
+
+    function removeRouteInfo(address _token) external override {
+    }
+
+    function isTokenConnected(address _token) external view override returns (bool) {
+        return true;
+    }
+
+    function getRouteInfoTokenRoute(address _token) external view override returns (address) {
         return address(this);
+    }
+
+    function getRouteInfoDirectBNB(address _token) external view override returns (bool) {
+        return true;
     }
 }

@@ -4,6 +4,7 @@ pragma solidity 0.6.12;
 import './BEP20.sol';
 import './Context.sol';
 import './Ownable.sol';
+import './Trusted.sol';
 import './Address.sol';
 import './SafeBEP20.sol';
 import './SafeMath.sol';
@@ -18,6 +19,7 @@ import "./IMinter.sol";
 import "./IMinter.sol";
 import "./TokenAddresses.sol";
 import "./IPathFinder.sol";
+import "hardhat/console.sol";
 
 // HEM DE FER IMPORT DE LA INTERFACE I DEL SC DEL VAULT!!!!!!!!!
 
@@ -45,10 +47,11 @@ import "./IPathFinder.sol";
 // SHA DE FER UN PAUSE ALL DEPOSITS!!!!! I ROLLBACK!!!
 // I no fer el càlcul manual, q sino la liariem pardíssima
 // Lock the swap
+// S'ha de testejar be el manageTokens
 
 
 // We hope code is bug-free. For everyone's life savings.
-contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
+contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
@@ -193,6 +196,18 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
         // Aquípodem inicialitzar totes les pools de Native Token ja. //////////////////////////////////////////////////////////////////////
         // tOT I QUE MOLaria més tenir vaults apart on enviem la pasta i que es gestionin de forma independent, així no liem el masterchef... lo únic q aquells contractes no podràn mintar dentrada perque no farem whitelist, només serveixen per repartir tokens
 
+        poolInfo.push(PoolInfo({
+        lpToken: _nativeToken,
+        allocPoint: 1000,
+        lastRewardBlock: _startBlock,
+        accNativeTokenPerShare: 0,
+        harvestInterval: 0,
+        maxWithdrawalInterval: 0,
+        withDrawalFeeOfLpsBurn: 0,
+        withDrawalFeeOfLpsTeam: 0,
+        performanceFeesOfNativeTokensBurn: 0,
+        performanceFeesOfNativeTokensToLockedVault: 0
+        }));
     }
 
     function setRouter(address _router) public onlyOwner {
@@ -204,31 +219,15 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
     }
 
     function addRouteToPathFinder(
-        address _token, address _tokenRoute
+        address _token, address _tokenRoute, bool _directBNB
     ) public onlyOwner {
-        pathFinder.addRouteAddress(_token,_tokenRoute);
+        pathFinder.addRouteInfo(_token,_tokenRoute, _directBNB);
     }
 
     function removeRouteToPathFinder(
         address _token
     ) public onlyOwner {
-        pathFinder.removeRouteAddress(_token);
-    }
-
-    function checkDirectRouteToWBNB(address _token) public view returns (bool) {
-        IPair iPair;
-        address WBNB = tokenAddresses.findByName(tokenAddresses.BNB());
-        for(uint i=0; i < poolInfo.length; i++)
-        {
-            iPair = IPair(address(poolInfo[i].lpToken));
-            if((iPair.token0()==_token && iPair.token1()==WBNB) ||
-                (iPair.token1()==_token && iPair.token0()==WBNB))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        pathFinder.removeRouteInfo(_token);
     }
 
     function setLockedVaultAddress(address _newLockedVault) external onlyDevPower{
@@ -293,6 +292,36 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
         return poolInfo.length;
     }
 
+    function CheckTokensRoutes(IBEP20 _lpToken) internal returns (bool bothConnected)
+    {
+        address WBNB = tokenAddresses.findByName(tokenAddresses.BNB());
+        IPair pair = IPair(address(_lpToken));
+        if(pair.token0()==WBNB)
+        {
+            pathFinder.addRouteInfoDirect(pair.token1());
+            bothConnected = true;
+        }
+        else if(pair.token1()==WBNB)
+        {
+            pathFinder.addRouteInfoDirect(pair.token0());
+            bothConnected = true;
+        }
+        else if(!pathFinder.isTokenConnected(pair.token0()) && pathFinder.getRouteInfoDirectBNB(pair.token1()))
+        {
+            pathFinder.addRouteInfoRoute(pair.token0(),pair.token1());
+            bothConnected = true;
+        }
+        else if(!pathFinder.isTokenConnected(pair.token1()) && pathFinder.getRouteInfoDirectBNB(pair.token0()))
+        {
+            pathFinder.addRouteInfoRoute(pair.token1(),pair.token0());
+            bothConnected = true;
+        }
+        else if(pathFinder.isTokenConnected(pair.token0()) && pathFinder.isTokenConnected(pair.token1()))
+        {
+            bothConnected = true;
+        }
+    }
+
     // Add a new lp to the pool. Can only be called by the owner.
     // XXX DO NOT add the same LP token more than once. Rewards will be messed up if you do.
     function addPool(
@@ -304,32 +333,13 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
         uint256 _withDrawalFeeOfLpsBurn,
         uint256 _withDrawalFeeOfLpsTeam,
         uint256 _performanceFeesOfNativeTokensBurn,
-        uint256 _performanceFeesOfNativeTokensToLockedVault,
-        address[] memory routes
+        uint256 _performanceFeesOfNativeTokensToLockedVault
     ) public onlyOwner {
         require(_harvestInterval <= MAX_INTERVAL, "[f] Add: invalid harvest interval");
         require(_maxWithdrawalInterval <= MAX_INTERVAL, "[f] Add: invalid withdrawal interval. Owner, there is a limit! Check your numbers.");
         require(_withDrawalFeeOfLpsTeam.add(_withDrawalFeeOfLpsBurn) <= MAX_FEE_LPS, "[f] Add: invalid withdrawal fees. Owner, you are trying to charge way too much! Check your numbers.");
         require(_performanceFeesOfNativeTokensBurn.add(_performanceFeesOfNativeTokensToLockedVault) <= MAX_FEE_PERFORMANCE, "[f] Add: invalid performance fees. Owner, you are trying to charge way too much! Check your numbers.");
-
-        // Comprovar que cada cop que s'afegeixi una pool hi hagi path fins a globals
-        {
-            address WBNB = tokenAddresses.findByName(tokenAddresses.BNB());
-            if(routes[0]!=WBNB && routes[0]!=WBNB)
-            {
-                if(pathFinder.getRouteAddress(routes[0])==address(0) && !checkDirectRouteToWBNB(routes[0]) && routes[1]!=address(0))
-                {
-                    require(routes[1] != address(0) /*&& checkDirectRouteToWBNB(routes[1])*/, "[f] Add: route for token0 needed"); //TODO descomentar per comprovar que el token indicat fa d'enllaç amb BNB
-                    pathFinder.addRouteAddress(routes[0], routes[1]);
-                }
-                if(pathFinder.getRouteAddress(routes[2])==address(0) && !checkDirectRouteToWBNB(routes[2]) && routes[3]!=address(0))
-                {
-                    require(routes[3] != address(0) /*&& checkDirectRouteToWBNB(routes[3])*/, "[f] Add: route for token1 needed"); //TODO descomentar per comprovar que el token indicat fa d'enllaç amb BNB
-                    pathFinder.addRouteAddress(routes[2], routes[3]);
-                }
-            }
-
-        }
+        require(CheckTokensRoutes(_lpToken), "[f] Add: token/s not connected to WBNB");
 
         if (_withUpdate) {
             massUpdatePools();
@@ -587,6 +597,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
 
     // Deposit 0 tokens = harvest. Deposit for LP pairs, not for staking.
     function deposit(uint256 _pid, uint256 _amount) public nonReentrant{
+        require (_pid != 0, 'deposit GLOBAL by staking');
 
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
@@ -678,6 +689,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
 
     // Withdraw LP tokens from MasterChef.
     function withdraw(uint256 _pid, uint256 _amount) public nonReentrant{
+        require (_pid != 0, 'withdraw GLOBAL by unstaking');
 
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
@@ -748,7 +760,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
     }
 
     // Stake CAKE tokens to MasterChef
-    function enterStaking(uint256 _amount) public {
+    function enterStaking(uint256 _amount) public onlyHumanOrWhitelisted {
         PoolInfo storage pool = poolInfo[0];
         UserInfo storage user = userInfo[0][msg.sender];
         updatePool(0);
@@ -768,7 +780,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter {
     }
 
     // Withdraw CAKE tokens from STAKING.
-    function leaveStaking(uint256 _amount) public {
+    function leaveStaking(uint256 _amount) public onlyHumanOrWhitelisted {
         PoolInfo storage pool = poolInfo[0];
         UserInfo storage user = userInfo[0][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");

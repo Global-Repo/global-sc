@@ -93,23 +93,23 @@ contract Pair is IPair, PancakeERC20 {
 
     // if fee is on, mint liquidity equivalent to 8/25 of the growth in sqrt(k)
     function _mintFee(uint112 _reserve0, uint112 _reserve1) private returns (bool feeOn) {
-        //(address devFeeTo, uint devFeeNum, uint devFeeDenum) = IFactory(factory).getDevFee();
-        //feeOn = (devFeeTo != address(0)) && (devFeeNum > 0);
-        //uint _kLast = kLast; // gas savings
-        //if (feeOn) {
-        //    if (_kLast != 0) {
-        //        uint rootK = Math.sqrt(uint(_reserve0).mul(_reserve1));
-        //        uint rootKLast = Math.sqrt(_kLast);
-        //        if (rootK > rootKLast) {
-        //            uint numerator = totalSupply.mul(rootK.sub(rootKLast)).mul(devFeeNum);
-        //            uint denominator = rootK.mul(devFeeDenum.sub(devFeeNum)).add(rootKLast.mul(devFeeNum));
-        //            uint liquidity = numerator / denominator;
-        //            if (liquidity > 0) _mint(devFeeTo, liquidity);
-        //        }
-        //    }
-        //} else if (_kLast != 0) {
-        //    kLast = 0;
-        //}
+        (address devFeeTo, uint devFeeNum, uint devFeeDenum) = IFactory(factory).getDevFee();
+        feeOn = (devFeeTo != address(0)) && (devFeeNum > 0);
+        uint _kLast = kLast; // gas savings
+        if (feeOn) {
+            if (_kLast != 0) {
+                uint rootK = Math.sqrt(uint(_reserve0).mul(_reserve1));
+                uint rootKLast = Math.sqrt(_kLast);
+                if (rootK > rootKLast) {
+                    uint numerator = totalSupply.mul(rootK.sub(rootKLast)).mul(devFeeNum);
+                    uint denominator = rootK.mul(devFeeDenum.sub(devFeeNum)).add(rootKLast.mul(devFeeNum));
+                    uint liquidity = numerator / denominator;
+                    if (liquidity > 0) _mint(devFeeTo, liquidity);
+                }
+            }
+        } else if (_kLast != 0) {
+            kLast = 0;
+        }
     }
 
     // this low-level function should be called from a contract which performs important safety checks
@@ -163,34 +163,34 @@ contract Pair is IPair, PancakeERC20 {
 
     // this low-level function should be called from a contract which performs important safety checks
     function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external override lock {
-        //require(amount0Out > 0 || amount1Out > 0, 'Pancake: INSUFFICIENT_OUTPUT_AMOUNT');
-        //(uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
-        //require(amount0Out < _reserve0 && amount1Out < _reserve1, 'Pancake: INSUFFICIENT_LIQUIDITY');
-//
-        //uint balance0;
-        //uint balance1;
-        //{ // scope for _token{0,1}, avoids stack too deep errors
-        //    address _token0 = token0;
-        //    address _token1 = token1;
-        //    require(to != _token0 && to != _token1, 'Pancake: INVALID_TO');
-        //    if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out); // optimistically transfer tokens
-        //    if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out); // optimistically transfer tokens
-        //    if (data.length > 0) ICallee(to).pancakeCall(msg.sender, amount0Out, amount1Out, data);
-        //    balance0 = IERC20(_token0).balanceOf(address(this));
-        //    balance1 = IERC20(_token1).balanceOf(address(this));
-        //}
-        //uint amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
-        //uint amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
-        //require(amount0In > 0 || amount1In > 0, 'Pancake: INSUFFICIENT_INPUT_AMOUNT');
-        //{ // scope for reserve{0,1}Adjusted, avoids stack too deep errors
-        //    uint swapFeeAm = IFactory(factory).getSwapFee();
-        //    uint balance0Adjusted = (balance0.mul(10000).sub(amount0In.mul(swapFeeAm)));
-        //    uint balance1Adjusted = (balance1.mul(10000).sub(amount1In.mul(swapFeeAm)));
-        //    require(balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0).mul(_reserve1).mul(10000**2), 'Pancake: K');
-        //}
-//
-        //_update(balance0, balance1, _reserve0, _reserve1);
-        //emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
+        require(amount0Out > 0 || amount1Out > 0, 'Pancake: INSUFFICIENT_OUTPUT_AMOUNT');
+        (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
+        require(amount0Out < _reserve0 && amount1Out < _reserve1, 'Pancake: INSUFFICIENT_LIQUIDITY');
+
+        uint balance0;
+        uint balance1;
+        { // scope for _token{0,1}, avoids stack too deep errors
+            address _token0 = token0;
+            address _token1 = token1;
+            require(to != _token0 && to != _token1, 'Pancake: INVALID_TO');
+            if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out); // optimistically transfer tokens
+            if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out); // optimistically transfer tokens
+            if (data.length > 0) ICallee(to).pancakeCall(msg.sender, amount0Out, amount1Out, data);
+            balance0 = IERC20(_token0).balanceOf(address(this));
+            balance1 = IERC20(_token1).balanceOf(address(this));
+        }
+        uint amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
+        uint amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
+        require(amount0In > 0 || amount1In > 0, 'Pancake: INSUFFICIENT_INPUT_AMOUNT');
+        { // scope for reserve{0,1}Adjusted, avoids stack too deep errors
+            uint swapFeeAm = IFactory(factory).getSwapFee();
+            uint balance0Adjusted = (balance0.mul(10000).sub(amount0In.mul(swapFeeAm)));
+            uint balance1Adjusted = (balance1.mul(10000).sub(amount1In.mul(swapFeeAm)));
+            require(balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0).mul(_reserve1).mul(10000**2), 'Pancake: K');
+        }
+
+        _update(balance0, balance1, _reserve0, _reserve1);
+        emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
     }
 
     // force balances to match reserves
