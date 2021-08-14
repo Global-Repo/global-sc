@@ -2,7 +2,7 @@ import "../IPathFinder.sol";
 
 contract PathFinderMock is IPathFinder {
     function findPath(address _tokenA, address _tokenB) external view override returns (address[] memory path) {
-        address[] memory path = new address[](2);
+        path = new address[](2);
         path[0] = _tokenA;
         path[1] = _tokenB;
     }

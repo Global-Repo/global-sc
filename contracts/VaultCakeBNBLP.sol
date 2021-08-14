@@ -19,7 +19,7 @@ contract VaultCakeBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable 
 
     IBEP20 private lpToken;
     IBEP20 private global;
-    ICakeMasterChef private cakeMasterChef;
+    IGlobalMasterChef private cakeMasterChef;
     IMinter private minter;
     address private treasury;
     address private keeper;
@@ -79,7 +79,7 @@ contract VaultCakeBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable 
         pid = _pid;
         lpToken = IBEP20(_lpToken);
         global = IBEP20(_global);
-        cakeMasterChef = ICakeMasterChef(_cakeMasterChef);
+        cakeMasterChef = IGlobalMasterChef(_cakeMasterChef);
         treasury = _treasury;
         keeper = _keeper;
 
@@ -209,7 +209,7 @@ contract VaultCakeBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable 
         uint principal = principalOf(msg.sender);
         uint profit = amount > principal ? amount.sub(principal) : 0;
 
-        uint cakeHarvested = _withdrawStakingToken(amount);
+        uint lpTokenHarvested = _withdrawStakingToken(amount);
 
         handleWithdrawalFees(principal);
         handleRewards(profit);
@@ -219,32 +219,32 @@ contract VaultCakeBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable 
         delete _principal[msg.sender];
         delete _depositedAt[msg.sender];
 
-        _harvest(cakeHarvested);
+        _harvest(lpTokenHarvested);
     }
 
     function harvest() external override onlyNonContract {
-        uint cakeHarvested = _withdrawStakingToken(0);
-        _harvest(cakeHarvested);
+        uint lpTokenHarvested = _withdrawStakingToken(0);
+        _harvest(lpTokenHarvested);
     }
 
     function withdraw(uint shares) external override onlyWhitelisted onlyNonContract {
         uint amount = balance().mul(shares).div(totalShares);
 
-        uint cakeHarvested = _withdrawStakingToken(amount);
+        uint lpTokenHarvested = _withdrawStakingToken(amount);
 
         handleWithdrawalFees(amount);
 
         totalShares = totalShares.sub(shares);
         _shares[msg.sender] = _shares[msg.sender].sub(shares);
 
-        _harvest(cakeHarvested);
+        _harvest(lpTokenHarvested);
     }
 
     function withdrawUnderlying(uint _amount) external override onlyNonContract {
         uint amount = Math.min(_amount, _principal[msg.sender]);
         uint shares = Math.min(amount.mul(totalShares).div(balance()), _shares[msg.sender]);
 
-        uint cakeHarvested = _withdrawStakingToken(amount);
+        uint lpTokenHarvested = _withdrawStakingToken(amount);
 
         handleWithdrawalFees(amount);
 
@@ -252,14 +252,14 @@ contract VaultCakeBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable 
         _shares[msg.sender] = _shares[msg.sender].sub(shares);
         _principal[msg.sender] = _principal[msg.sender].sub(amount);
 
-        _harvest(cakeHarvested);
+        _harvest(lpTokenHarvested);
     }
 
     function getReward() external override onlyNonContract {
         uint amount = earned(msg.sender);
         uint shares = Math.min(amount.mul(totalShares).div(balance()), _shares[msg.sender]);
 
-        uint cakeHarvested = _withdrawStakingToken(amount);
+        uint lpTokenHarvested = _withdrawStakingToken(amount);
 
         handleRewards(amount);
 
@@ -267,7 +267,7 @@ contract VaultCakeBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable 
         _shares[msg.sender] = _shares[msg.sender].sub(shares);
         _cleanupIfDustShares();
 
-        _harvest(cakeHarvested);
+        _harvest(lpTokenHarvested);
     }
 
     function handleWithdrawalFees(uint _amount) private {
@@ -284,12 +284,12 @@ contract VaultCakeBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable 
         uint amountToUser = _amount.sub(amountToTeam).sub(amountToBurn);
 
         address[] memory pathToGlobal = pathFinder.findPath(
-            tokenAddresses.findByName(tokenAddresses.CAKE()),
+            tokenAddresses.findByName(tokenAddresses.CAKE_BNB_LP()),
             tokenAddresses.findByName(tokenAddresses.GLOBAL())
         );
 
         address[] memory pathToBusd = pathFinder.findPath(
-            tokenAddresses.findByName(tokenAddresses.CAKE()),
+            tokenAddresses.findByName(tokenAddresses.CAKE_BNB_LP()),
             tokenAddresses.findByName(tokenAddresses.BUSD())
         );
 
@@ -321,17 +321,17 @@ contract VaultCakeBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable 
         uint amountToBuyBNB = _amount.mul(rewards.toBuyBNB).div(10000);
 
         address[] memory pathToGlobal = pathFinder.findPath(
-            tokenAddresses.findByName(tokenAddresses.CAKE()),
+            tokenAddresses.findByName(tokenAddresses.CAKE_BNB_LP()),
             tokenAddresses.findByName(tokenAddresses.GLOBAL())
         );
 
         address[] memory pathToBusd = pathFinder.findPath(
-            tokenAddresses.findByName(tokenAddresses.CAKE()),
+            tokenAddresses.findByName(tokenAddresses.CAKE_BNB_LP()),
             tokenAddresses.findByName(tokenAddresses.BUSD())
         );
 
         address[] memory pathToBnb = pathFinder.findPath(
-            tokenAddresses.findByName(tokenAddresses.CAKE()),
+            tokenAddresses.findByName(tokenAddresses.CAKE_BNB_LP()),
             tokenAddresses.findByName(tokenAddresses.BNB())
         );
 
@@ -367,22 +367,22 @@ contract VaultCakeBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable 
         emit ProfitPaid(msg.sender, amountToUser);
     }
 
-    function _depositStakingToken(uint amount) private returns(uint cakeHarvested) {
+    function _depositStakingToken(uint amount) private returns(uint lpTokenHarvested) {
         uint before = lpToken.balanceOf(address(this));
         cakeMasterChef.deposit(pid, amount);
-        cakeHarvested = lpToken.balanceOf(address(this)).add(amount).sub(before);
+        lpTokenHarvested = lpToken.balanceOf(address(this)).add(amount).sub(before);
     }
 
-    function _withdrawStakingToken(uint amount) private returns(uint cakeHarvested) {
+    function _withdrawStakingToken(uint amount) private returns(uint lpTokenHarvested) {
         uint before = lpToken.balanceOf(address(this));
         cakeMasterChef.withdraw(pid, amount);
-        cakeHarvested = lpToken.balanceOf(address(this)).sub(amount).sub(before);
+        lpTokenHarvested = lpToken.balanceOf(address(this)).sub(amount).sub(before);
     }
 
-    function _harvest(uint cakeAmount) private {
-        if (cakeAmount > 0) {
-            emit Harvested(cakeAmount);
-            cakeMasterChef.enterStaking(cakeAmount);
+    function _harvest(uint lpTokenAmount) private {
+        if (lpTokenAmount > 0) {
+            emit Harvested(lpTokenAmount);
+            cakeMasterChef.enterStaking(lpTokenAmount);
         }
     }
 
@@ -394,10 +394,10 @@ contract VaultCakeBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable 
         totalShares = totalShares.add(shares);
         _shares[_to] = _shares[_to].add(shares);
 
-        uint cakeHarvested = _depositStakingToken(_amount);
+        uint lpTokenHarvested = _depositStakingToken(_amount);
         emit Deposited(msg.sender, _amount);
 
-        _harvest(cakeHarvested);
+        _harvest(lpTokenHarvested);
     }
 
     function _cleanupIfDustShares() private {
@@ -409,7 +409,7 @@ contract VaultCakeBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable 
     }
 
     // SALVAGE PURPOSE ONLY
-    // @dev _stakingToken(CAKE) must not remain balance in this contract. So dev should be able to salvage staking token transferred by mistake.
+    // @dev _stakingToken() must not remain balance in this contract. So dev should be able to salvage staking token transferred by mistake.
     function recoverToken(address _token, uint amount) virtual external onlyOwner {
         IBEP20(_token).safeTransfer(owner(), amount);
 

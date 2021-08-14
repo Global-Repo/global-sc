@@ -1,34 +1,32 @@
 const ethers = require("hardhat").ethers;
 const { expect } = require("chai");
-const { BigNumber } = require("@ethersproject/bignumber");
 
-let weth;
+let wbnb;
+let global;
 let vaultDistribution;
 
 beforeEach(async function () {
-  [owner, devPower, beneficiary1, beneficiary2, ...addrs] = await ethers.getSigners();
+  [owner, devPower, ...addrs] = await ethers.getSigners();
 
-  const Weth = await ethers.getContractFactory("BEP20");
-  weth = await Weth.deploy('Wrapped BNB', 'WBNB');
-  await weth.deployed();
+  const Wbnb = await ethers.getContractFactory("BEP20");
+  wbnb = await Wbnb.deploy('Wrapped BNB', 'WBNB');
+  await wbnb.deployed();
+
+  const Global = await ethers.getContractFactory("BEP20");
+  global = await Global.deploy('Wrapped BNB', 'WBNB');
+  await global.deployed();
 
   const VaultDistribution = await ethers.getContractFactory("VaultDistribution");
-  vaultDistribution = await VaultDistribution.deploy(weth.address, devPower.address);
+  vaultDistribution = await VaultDistribution.deploy(wbnb.address, global.address, devPower.address);
   await vaultDistribution.deployed();
 });
 
 describe("VaultDistribution: After deployment", function () {
-  it("Check BNB is the distributed token", async function () {
-    expect(await vaultDistribution.distributionToken()).to.equal(weth.address);
+  it("Check BNB is the distribution token", async function () {
+    expect(await vaultDistribution.distributionToken()).to.equal(wbnb.address);
   });
 
-  it("Only devPower is able to change beneficiaries", async function () {
-    await expect(vaultDistribution.setBeneficiary(beneficiary1.address, 1000))
-        .to.be.revertedWith("DevPower: caller is not the dev with powers");
-  });
-
-  it("---", async function () {
-    vaultDistribution.connect(devPower).setBeneficiary(beneficiary1.address, 1000);
-    vaultDistribution.connect(devPower).setBeneficiary(beneficiary2.address, 1000);
+  it("Check Global is the beneficiary token keeper", async function () {
+    expect(await vaultDistribution.beneficiaryToken()).to.equal(global.address);
   });
 });

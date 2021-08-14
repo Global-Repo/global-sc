@@ -6,7 +6,7 @@ import "../BEP20.sol";
 import "../SafeMath.sol";
 import "../SafeBEP20.sol";
 
-contract CakeMasterChefMock is ICakeMasterChef {
+contract CakeMasterChefMock is IGlobalMasterChef {
     using SafeMath for uint256;
     using SafeBEP20 for BEP20;
 

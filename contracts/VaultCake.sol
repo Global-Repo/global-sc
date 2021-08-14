@@ -11,6 +11,7 @@ import "./IMinter.sol";
 import "./IRouterV2.sol";
 import "./TokenAddresses.sol";
 import './IPathFinder.sol';
+import './VaultDistribution.sol';
 
 contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     using SafeBEP20 for IBEP20;
@@ -19,10 +20,13 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
 
     IBEP20 private cake;
     IBEP20 private global;
-    ICakeMasterChef private cakeMasterChef;
+    IBEP20 private wbnb;
+    IBEP20 private busd;
+    IGlobalMasterChef private cakeMasterChef;
     IMinter private minter;
     address private treasury;
-    address private keeper;
+    address private vaultVested;
+    VaultDistribution private vaultDistribution;
     IRouterV2 private router;
     IPathFinder private pathFinder;
     TokenAddresses private tokenAddresses;
@@ -47,7 +51,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         uint16 toUser;       // % to user
         uint16 toOperations; // % to treasury (in BUSD)
         uint16 toBuyGlobal;  // % to keeper as user (in Global)
-        uint16 toBuyBNB;     // % to keeper as vault (in BNB)
+        uint16 toBuyBNB;     // % to distributor (in BNB)
         uint16 toMintGlobal; // % to mint global multiplier (relation to toBuyGlobal)
     }
 
@@ -73,16 +77,23 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         address _tokenAddresses,
         address _router,
         address _pathFinder,
-        address _keeper
+        address _vaultDistribution,
+        address _vaultVested
     ) public {
         pid = 0;
+        tokenAddresses = TokenAddresses(_tokenAddresses);
         cake = IBEP20(_cake);
         global = IBEP20(_global);
-        cakeMasterChef = ICakeMasterChef(_cakeMasterChef);
+        wbnb = IBEP20(tokenAddresses.findByName(tokenAddresses.BNB()));
+        busd = IBEP20(tokenAddresses.findByName(tokenAddresses.BUSD()));
+        cakeMasterChef = IGlobalMasterChef(_cakeMasterChef);
         treasury = _treasury;
-        keeper = _keeper;
+        vaultVested = _vaultVested;
+        vaultDistribution = VaultDistribution(_vaultDistribution);
 
         cake.safeApprove(_cakeMasterChef, uint(~0));
+        wbnb.safeApprove(_vaultDistribution, uint(0));
+        wbnb.safeApprove(_vaultDistribution, uint(~0));
 
         __PausableUpgradeable_init();
         __WhitelistUpgradeable_init();
@@ -90,7 +101,6 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         setDefaultWithdrawalFees();
         setDefaultRewardFees();
 
-        tokenAddresses = TokenAddresses(_tokenAddresses);
         router = IRouterV2(_router);
         pathFinder = IPathFinder(_pathFinder);
     }
@@ -282,15 +292,8 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         uint amountToTeam = _amount.mul(withdrawalFees.team).div(10000);
         uint amountToUser = _amount.sub(amountToTeam).sub(amountToBurn);
 
-        address[] memory pathToGlobal = pathFinder.findPath(
-            tokenAddresses.findByName(tokenAddresses.CAKE()),
-            tokenAddresses.findByName(tokenAddresses.GLOBAL())
-        );
-
-        address[] memory pathToBusd = pathFinder.findPath(
-            tokenAddresses.findByName(tokenAddresses.CAKE()),
-            tokenAddresses.findByName(tokenAddresses.BUSD())
-        );
+        address[] memory pathToGlobal = pathFinder.findPath(address(cake), address(global));
+        address[] memory pathToBusd = pathFinder.findPath(address(cake), address(busd));
 
         if (amountToBurn < DUST) {
             amountToUser = amountToUser.add(amountToBurn);
@@ -319,20 +322,9 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         uint amountToBuyGlobal = _amount.mul(rewards.toBuyGlobal).div(10000);
         uint amountToBuyBNB = _amount.mul(rewards.toBuyBNB).div(10000);
 
-        address[] memory pathToGlobal = pathFinder.findPath(
-            tokenAddresses.findByName(tokenAddresses.CAKE()),
-            tokenAddresses.findByName(tokenAddresses.GLOBAL())
-        );
-
-        address[] memory pathToBusd = pathFinder.findPath(
-            tokenAddresses.findByName(tokenAddresses.CAKE()),
-            tokenAddresses.findByName(tokenAddresses.BUSD())
-        );
-
-        address[] memory pathToBnb = pathFinder.findPath(
-            tokenAddresses.findByName(tokenAddresses.CAKE()),
-            tokenAddresses.findByName(tokenAddresses.BNB())
-        );
+        address[] memory pathToGlobal = pathFinder.findPath(address(cake), address(global));
+        address[] memory pathToBusd = pathFinder.findPath(address(cake), address(busd));
+        address[] memory pathToBnb = pathFinder.findPath(address(cake), address(wbnb));
 
         if (amountToOperations < DUST) {
             amountToUser = amountToUser.add(amountToOperations);
@@ -343,7 +335,10 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         if (amountToBuyBNB < DUST) {
             amountToUser = amountToUser.add(amountToBuyBNB);
         } else {
-            router.swapExactTokensForTokens(amountToBuyBNB, 0, pathToBnb, keeper, deadline);
+            uint beforeBnbSwap = wbnb.balanceOf(address(this));
+            router.swapExactTokensForTokens(amountToBuyBNB, 0, pathToBnb, address(this), deadline);
+            uint amountBnbBought = wbnb.balanceOf(address(this)).sub(beforeBnbSwap);
+            vaultDistribution.deposit(amountBnbBought);
         }
 
         if (amountToBuyGlobal < DUST) {
@@ -353,13 +348,16 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             router.swapExactTokensForTokens(amountToBuyGlobal, 0, pathToGlobal, address(this), deadline);
             uint amountGlobalBought = global.balanceOf(address(this)).sub(beforeSwap);
 
-            global.safeTransfer(keeper, amountGlobalBought); // To keeper as cake vault
+            // TODO: to lockedVault instead distributor
+            global.safeTransfer(vaultVested, amountGlobalBought); // To keeper as cake vault
 
             uint amountToMintGlobal = amountGlobalBought.mul(rewards.toMintGlobal).div(10000);
             uint beforeMint = global.balanceOf(address(this));
             minter.mintNativeTokens(amountToMintGlobal);
             uint amountGlobalMinted = global.balanceOf(address(this)).sub(beforeMint);
-            global.safeTransfer(keeper, amountGlobalMinted); // TODO to keeper as user and not as cake vault
+
+            // TODO: to lockedVault instead distributor
+            global.safeTransfer(vaultVested, amountGlobalMinted); // TODO to keeper as user and not as cake vault
         }
 
         cake.safeTransfer(msg.sender, amountToUser);

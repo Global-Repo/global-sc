@@ -1,31 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
 
-import "hardhat/console.sol";
-
 import "./SafeBEP20.sol";
-import "./Math.sol";
 import './DevPower.sol';
 
 contract VaultDistribution is DevPower {
     using SafeBEP20 for IBEP20;
-    using SafeMath for uint16;
-    using SafeMath for uint256;
-
-    struct Beneficiary {
-        address id;
-        uint16 percentage;
-    }
+    using SafeMath for uint;
 
     IBEP20 public distributionToken;
-    Beneficiary[] public beneficiaries;
+    IBEP20 public beneficiaryToken;
+    address[] public beneficiaries;
     mapping (address => bool) depositories;
-    uint16 public totalDistributionPercentage;
-    uint16 public maxDistributionPercentage;
-    uint256 public minTokenAmountToDistribute;
+    uint public minTokenAmountToDistribute;
 
-    event Deposit(address depository, uint256 amount);
-    event Distributed(uint256 distributedAmount, uint256 numberOfBeneficiaries);
+    event Deposited(address depository, uint amount);
+    event Distributed(uint distributedAmount, uint numberOfBeneficiaries);
 
     modifier onlyDepositories() {
         require(depositories[msg.sender] == true, "Only depositories can perform this action");
@@ -33,36 +23,18 @@ contract VaultDistribution is DevPower {
     }
 
     modifier distributeTokens() {
-        uint currentTokenAmount = distributionToken.balanceOf(address(this));
-
-        if (currentTokenAmount >= minTokenAmountToDistribute) {
-            for (uint8 i = 0; i < beneficiaries.length; i++) {
-                uint256 amount = currentTokenAmount.mul(beneficiaries[i].percentage).div(10000);
-                distributionToken.safeTransfer(beneficiaries[i].id, amount);
-            }
-        }
-
-        emit Distributed(currentTokenAmount, beneficiaries.length);
         _;
+        _distribute();
     }
 
-    constructor(address _distributionToken, address _devPower) public {
+    constructor(address _distributionToken, address _beneficiaryToken, address _devPower) public {
         distributionToken = IBEP20(_distributionToken);
-
-        totalDistributionPercentage = 0;
-        maxDistributionPercentage = 10000; // 100%
-        minTokenAmountToDistribute = 1e18; // 1 Token
-
+        beneficiaryToken = IBEP20(_beneficiaryToken);
+        minTokenAmountToDistribute = 1e18; // 1 BEP20 Token
         transferDevPower(_devPower);
     }
 
-    function setMaxDistributionPercentage(uint16 _newPercentage) external onlyDevPower {
-        require(_newPercentage <= 10000, "Max distribution percentage must not be greater than 100%");
-        require(_newPercentage > 0, "Max distribution percentage must not be smaller than 0%");
-        maxDistributionPercentage = _newPercentage;
-    }
-
-    function setMinTokenAmountToDistribute(uint256 _newAmount) external onlyDevPower {
+    function setMinTokenAmountToDistribute(uint _newAmount) external onlyDevPower {
         require(_newAmount >= 0, "Min token amount to distribute must be greater than 0");
         minTokenAmountToDistribute = _newAmount;
     }
@@ -70,41 +42,68 @@ contract VaultDistribution is DevPower {
     function setDepositary(address _depository, bool _canDeposit) external onlyDevPower {
         if (_canDeposit) {
             depositories[_depository] = _canDeposit;
-            distributionToken.safeApprove(_depository, 0);
+            distributionToken.safeApprove(_depository, 0); // TODO: it needs to approve manually?
+            // TODO el safe approve shauria de fer desde el cakevault, etc contra aquest distrib. vault
+            distributionToken.safeApprove(_depository, uint(~0));
         } else {
             delete depositories[_depository];
         }
     }
 
-    function setBeneficiary(address _beneficiary, uint16 _distributionPercentage) external onlyDevPower {
+    function addBeneficiary(address _beneficiary) external onlyDevPower {
         for (uint8 i = 0; i < beneficiaries.length; i++) {
-            // Beneficiary already exists. Update percentage.
-            if (beneficiaries[i].id == _beneficiary) {
-                require(
-                    totalDistributionPercentage - beneficiaries[i].percentage + _distributionPercentage <= maxDistributionPercentage,
-                    "Maximum total distribution percentage achieved"
-                );
-
-                beneficiaries[i].percentage = _distributionPercentage;
+            if (beneficiaries[i] == _beneficiary) {
+                // Beneficiary exists already.
+                return;
             }
         }
 
-        require(
-            totalDistributionPercentage + _distributionPercentage <= maxDistributionPercentage,
-            "Maximum total distribution percentage achieved"
-        );
+        beneficiaries.push(_beneficiary);
+    }
 
-        Beneficiary memory beneficiary;
-        beneficiary.id = _beneficiary;
-        beneficiary.percentage = _distributionPercentage;
-        beneficiaries.push(beneficiary);
+    function removeBeneficiary(address _beneficiary) external onlyDevPower {
+        for (uint8 i = 0; i < beneficiaries.length; i++) {
+            if (beneficiaries[i] == _beneficiary) {
+                delete beneficiaries[i];
+            }
+        }
+    }
 
-        totalDistributionPercentage = totalDistributionPercentage + _distributionPercentage;
+    function isBeneficiary(address _beneficiary) external view returns (bool) {
+        for (uint8 i = 0; i < beneficiaries.length; i++) {
+            if (beneficiaries[i] == _beneficiary) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     function deposit(uint _amount) public onlyDepositories distributeTokens {
-        distributionToken.safeTransferFrom(msg.sender, address(this), _amount);
+        distributionToken.transferFrom(msg.sender, address(this), _amount);
 
-        emit Deposit(msg.sender, _amount);
+        emit Deposited(msg.sender, _amount);
+    }
+
+    function _distribute() private {
+        uint currentDistributionTokenAmount = distributionToken.balanceOf(address(this));
+
+        if (currentDistributionTokenAmount < minTokenAmountToDistribute) {
+            // Nothing to distribute.
+            return;
+        }
+
+        uint totalBeneficiaryTokens = 0;
+        for (uint8 i = 0; i < beneficiaries.length; i++) {
+            totalBeneficiaryTokens = totalBeneficiaryTokens + beneficiaryToken.balanceOf(beneficiaries[i]);
+        }
+
+        for (uint8 i = 0; i < beneficiaries.length; i++) {
+            uint beneficiaryDistributionPercentage = beneficiaryToken.balanceOf(beneficiaries[i]).mul(100).div(totalBeneficiaryTokens);
+            uint amountForBeneficiary = currentDistributionTokenAmount.mul(beneficiaryDistributionPercentage).div(100);
+            distributionToken.safeTransfer(beneficiaries[i], amountForBeneficiary);
+        }
+
+        emit Distributed(currentDistributionTokenAmount, beneficiaries.length);
     }
 }
