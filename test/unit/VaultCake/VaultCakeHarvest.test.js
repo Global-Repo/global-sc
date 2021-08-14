@@ -1,6 +1,5 @@
 const { expect } = require("chai");
-const { BigNumber } = require("@ethersproject/bignumber");
-const { BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER } = require("../../helpers/constants.js");
+const { bep20Amount } = require("../../helpers/utils.js");
 const {
   deploy,
   getCakeToken,
@@ -10,8 +9,8 @@ const {
   getVaultCake,
 } = require("../../helpers/vaultCakeDeploy.js");
 
-const OWNER_INITIAL_CAKES = BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
-const CAKE_MASTER_CHEF_REWARD_PER_DEPOSIT = BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+const OWNER_INITIAL_CAKES = bep20Amount(100);
+const CAKE_MASTER_CHEF_REWARD_PER_DEPOSIT = bep20Amount(1);
 
 beforeEach(async function () {
   await deploy();
@@ -33,7 +32,7 @@ describe("VaultCake: Harvest", function () {
   });
 
   it("Harvest stakes to the cake's master chef the owner's rewards", async function () {
-    const depositAmount = BigNumber.from(5).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+    const depositAmount = bep20Amount(5);
     const expectedOwnerBalance = depositAmount.add(CAKE_MASTER_CHEF_REWARD_PER_DEPOSIT);
 
     await getCakeToken().approve(getVaultCake().address, OWNER_INITIAL_CAKES);
@@ -47,7 +46,7 @@ describe("VaultCake: Harvest", function () {
   });
 
   it("Earned tokens checks", async function () {
-    const depositAmount = BigNumber.from(5).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+    const depositAmount = bep20Amount(5);
 
     await getCakeToken().approve(getVaultCake().address, OWNER_INITIAL_CAKES);
     await getVaultCake().deposit(depositAmount);

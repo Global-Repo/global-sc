@@ -1,6 +1,5 @@
 const { expect } = require("chai");
-const { BigNumber } = require("@ethersproject/bignumber");
-const { BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER } = require("../../helpers/constants.js");
+const { bep20Amount } = require("../../helpers/utils.js");
 const {
   deploy,
   getCakeToken,
@@ -14,8 +13,8 @@ const {
   getBusd,
 } = require("../../helpers/vaultCakeDeploy.js");
 
-const OWNER_INITIAL_CAKES = BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
-const ROUTER_INITIAL_TOKENS = BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+const OWNER_INITIAL_CAKES = bep20Amount(100);
+const ROUTER_INITIAL_TOKENS = bep20Amount(100);
 
 beforeEach(async function () {
   await deploy();
@@ -40,7 +39,7 @@ beforeEach(async function () {
 
 describe("VaultCake: Rewards", function () {
   it("100 % of the reward to the user", async function () {
-    const depositedAmount = BigNumber.from(5).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+    const depositedAmount = bep20Amount(5);
 
     await getVaultCake().setWithdrawalFees(0, 0, 0);
     await getVaultCake().setRewards(10000, 0, 0, 0, 0);
@@ -65,7 +64,7 @@ describe("VaultCake: Rewards", function () {
   });
 
   it("Default rewards distribution", async function () {
-    const depositedAmount = BigNumber.from(5).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+    const depositedAmount = bep20Amount(5);
 
     await getVaultCake().setWithdrawalFees(0, 0, 0);
     await getVaultCake().setRewards(7500, 400, 600, 1500, 25000);

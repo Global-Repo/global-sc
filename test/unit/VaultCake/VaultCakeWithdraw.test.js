@@ -1,6 +1,5 @@
 const { expect } = require("chai");
-const { BigNumber } = require("@ethersproject/bignumber");
-const { BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER, TIMESTAMP_3_DAYS } = require("../../helpers/constants.js");
+const { timestampNDays, bep20Amount } = require("../../helpers/utils.js");
 const {
   deploy,
   getCakeToken,
@@ -10,7 +9,7 @@ const {
   getVaultCake,
 } = require("../../helpers/vaultCakeDeploy.js");
 
-const OWNER_INITIAL_CAKES = BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+const OWNER_INITIAL_CAKES = bep20Amount(100);
 
 beforeEach(async function () {
   await deploy();
@@ -29,13 +28,13 @@ describe("PathFinder", function () {
   it("Cannot withdraw without previous deposit", async function () {
     expect(await getVaultCake().withdrawableBalanceOf(owner.address)).to.equal(0);
     await expect(
-        getVaultCake().connect(user3).withdraw(BigNumber.from(0).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER))
+        getVaultCake().connect(user3).withdraw(bep20Amount(0))
     ).to.be.revertedWith("Whitelist: caller is not on the whitelist");
   });
 
   it("Withdraw without fees", async function () {
-    const depositAmount = BigNumber.from(5).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
-    const withdrawAmount = BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+    const depositAmount = bep20Amount(5);
+    const withdrawAmount = bep20Amount(1);
     const expectedWithdraw = OWNER_INITIAL_CAKES.sub(depositAmount).add(withdrawAmount);
 
     // Needed to execute withdraw method.
@@ -54,14 +53,14 @@ describe("PathFinder", function () {
   });
 
   it("Withdraw with fees but in whitelist do not pay withdraw fees", async function () {
-    const depositAmount = BigNumber.from(5).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
-    const withdrawAmount = BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+    const depositAmount = bep20Amount(5);
+    const withdrawAmount = bep20Amount(1);
     const expectedWithdraw = OWNER_INITIAL_CAKES.sub(depositAmount).add(withdrawAmount);
 
     // Needed to execute withdraw method.
     await getVaultCake().setWhitelist(owner.address, true);
 
-    await getVaultCake().setWithdrawalFees(60, 40, TIMESTAMP_3_DAYS); // 0.6% and 0.4% = 1% in total
+    await getVaultCake().setWithdrawalFees(60, 40, timestampNDays(3)); // 0.6% and 0.4% = 1% in total
     await getCakeToken().approve(getVaultCake().address, OWNER_INITIAL_CAKES);
     await getVaultCake().deposit(depositAmount);
 
