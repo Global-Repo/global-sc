@@ -172,7 +172,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
-    event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
+    event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount, uint256 finalAmount);
     event EmissionRateUpdated(address indexed caller, uint256 previousAmount, uint256 newAmount);
     event RewardLockedUp(address indexed user, uint256 indexed pid, uint256 amountLockedUp);
 
@@ -628,63 +628,47 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         emit Deposit(msg.sender, _pid, _amount);
     }
 
-    function getLPFees(uint256 _pid, uint256 _amount, bool _lpFee) private{
+    function getLPFees(uint256 _pid, uint256 _amount) private{
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
 
-        if (_amount > 0) {
+        // L'usuari rebrà els seus LPs menys els que li hem tret com a fees.
+        uint256 finalAmount = _amount.sub(_amount.mul(pool.withDrawalFeeOfLpsBurn.add(pool.withDrawalFeeOfLpsTeam)).div(10000));
 
-            // Quantitat que se li retornarà al usuari, que pot modificar-se depenen de si li cobrem fees o no
-            uint256 finalAmount = _amount;
-
-            // Arribem al cas que hem de cobrar LP fees
-            if (_lpFee){
-
-                // L'usuari rebrà els seus LPs menys els que li hem tret com a fees.
-                finalAmount = _amount.sub(_amount.mul(pool.withDrawalFeeOfLpsBurn.add(pool.withDrawalFeeOfLpsTeam)).div(10000));
-
-                // Fins aquí hem acabat la gestió de l'user. Ara gestionem la comissió. Tenim un LP. El volem desfer i enviar-lo a BURN i a OPERATIONS
-                // Això s'ha de testejar bé perque és molt fàcil que hi hagin errors
-                // Si el router no té permís perque address(this) es gasti els tokens, li donem permís
-                if (IBEP20(pool.lpToken).allowance(address(this), address(routerGlobal)) == 0) {
-                    IBEP20(pool.lpToken).safeApprove(address(routerGlobal), uint(- 1));
-                }
-
-                // Burns del LP perque farem removeliquidity
-                if (IPair(address(pool.lpToken)).balanceOf(address(pool.lpToken)) > 0) {
-                    IPair(address(pool.lpToken)).burn(address(routerGlobal));
-                }
-
-                // Fem remove liquidity del LP i rebrem els dos tokens
-                (uint amountToken0, uint amountToken1) = routerGlobal.removeLiquidity(IPair(address(pool.lpToken)).token0(), IPair(address(pool.lpToken)).token1(), _amount.mul(pool.withDrawalFeeOfLpsBurn.add(pool.withDrawalFeeOfLpsTeam)).div(10000), 0, 0, address(this), block.timestamp);
-
-                // Ens assegurem que podem gastar els dos tokens i així els passem a BNB/Global i fem burn/team
-                if (IBEP20(IPair(address(pool.lpToken)).token0()).allowance(address(this), address(routerGlobal)) == 0) {
-                    IBEP20(IPair(address(pool.lpToken)).token0()).safeApprove(address(routerGlobal), uint(- 1));
-                }
-                if (IBEP20(IPair(address(pool.lpToken)).token1()).allowance(address(this), address(routerGlobal)) == 0) {
-                    IBEP20(IPair(address(pool.lpToken)).token1()).safeApprove(address(routerGlobal), uint(- 1));
-                }
-
-                // Agafem el que cremem i el que enviem al equip per cada token rebut després de cremar LPs
-                uint256 lpsToBuyNativeTokenAndBurn0 = amountToken0.mul(pool.withDrawalFeeOfLpsBurn).div(10000);
-                uint256 lpsToBuyNativeTokenAndBurn1 = amountToken1.mul(pool.withDrawalFeeOfLpsBurn).div(10000);
-                uint256 lpsToBuyBNBAndTransferForOperations0 = amountToken0.mul(pool.withDrawalFeeOfLpsTeam).div(10000);
-                uint256 lpsToBuyBNBAndTransferForOperations1 = amountToken1.mul(pool.withDrawalFeeOfLpsTeam).div(10000);
-
-                // Cremem i enviem els tokens a l'equip
-                manageTokens(IPair(address(pool.lpToken)).token0(), lpsToBuyNativeTokenAndBurn0, lpsToBuyBNBAndTransferForOperations0);
-                manageTokens(IPair(address(pool.lpToken)).token1(), lpsToBuyNativeTokenAndBurn1, lpsToBuyBNBAndTransferForOperations1);
-
-                // Possibles fallos que pot donar per aquí: usar IBEP20 enlloc de IPair o IPancakeERC20. swapAndLiquifyEnabled. Approves.
-            }
-
-            // L'usuari deixa de tenir els tokens que ha demanat treure, pel que s'actualitza els LPs que li queden. Quan li enviem els LPs, li enviarem ["_amount demanat" - les fees cobrades] (si n'hi han).
-            user.amount = user.amount.sub(_amount);
-
-            // Al usuari li enviem els tokens LP demanats menys els LPs trets de fees, si fos el cas
-            pool.lpToken.safeTransfer(address(msg.sender), finalAmount);
+        // Fins aquí hem acabat la gestió de l'user. Ara gestionem la comissió. Tenim un LP. El volem desfer i enviar-lo a BURN i a OPERATIONS
+        // Això s'ha de testejar bé perque és molt fàcil que hi hagin errors
+        // Si el router no té permís perque address(this) es gasti els tokens, li donem permís
+        if (IBEP20(pool.lpToken).allowance(address(this), address(routerGlobal)) == 0) {
+            IBEP20(pool.lpToken).safeApprove(address(routerGlobal), uint(- 1));
         }
+
+        // Burns del LP perque farem removeliquidity
+        if (IPair(address(pool.lpToken)).balanceOf(address(pool.lpToken)) > 0) {
+            IPair(address(pool.lpToken)).burn(address(routerGlobal));
+        }
+
+        // Fem remove liquidity del LP i rebrem els dos tokens
+        (uint amountToken0, uint amountToken1) = routerGlobal.removeLiquidity(IPair(address(pool.lpToken)).token0(), IPair(address(pool.lpToken)).token1(), _amount.mul(pool.withDrawalFeeOfLpsBurn.add(pool.withDrawalFeeOfLpsTeam)).div(10000), 0, 0, address(this), block.timestamp);
+
+        // Ens assegurem que podem gastar els dos tokens i així els passem a BNB/Global i fem burn/team
+        if (IBEP20(IPair(address(pool.lpToken)).token0()).allowance(address(this), address(routerGlobal)) == 0) {
+            IBEP20(IPair(address(pool.lpToken)).token0()).safeApprove(address(routerGlobal), uint(- 1));
+        }
+        if (IBEP20(IPair(address(pool.lpToken)).token1()).allowance(address(this), address(routerGlobal)) == 0) {
+            IBEP20(IPair(address(pool.lpToken)).token1()).safeApprove(address(routerGlobal), uint(- 1));
+        }
+
+        // Agafem el que cremem i el que enviem al equip per cada token rebut després de cremar LPs
+        uint256 lpsToBuyNativeTokenAndBurn0 = amountToken0.mul(pool.withDrawalFeeOfLpsBurn).div(10000);
+        uint256 lpsToBuyNativeTokenAndBurn1 = amountToken1.mul(pool.withDrawalFeeOfLpsBurn).div(10000);
+        uint256 lpsToBuyBNBAndTransferForOperations0 = amountToken0.mul(pool.withDrawalFeeOfLpsTeam).div(10000);
+        uint256 lpsToBuyBNBAndTransferForOperations1 = amountToken1.mul(pool.withDrawalFeeOfLpsTeam).div(10000);
+
+        // Cremem i enviem els tokens a l'equip
+        manageTokens(IPair(address(pool.lpToken)).token0(), lpsToBuyNativeTokenAndBurn0, lpsToBuyBNBAndTransferForOperations0);
+        manageTokens(IPair(address(pool.lpToken)).token1(), lpsToBuyNativeTokenAndBurn1, lpsToBuyBNBAndTransferForOperations1);
+
+        return finalAmount;
     }
 
     // Withdraw LP tokens from MasterChef.
@@ -695,6 +679,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "[f] Withdraw: you are trying to withdraw more tokens than you have. Cheeky boy. Try again.");
 
+        uint256 finalAmount = _amount;
         // Actualitzem # rewards per tokens LP i paguem rewards al contracte
         updatePool(_pid);
 
@@ -702,8 +687,19 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         // Aquí s'actualitza el accNativeTokenPerShare
         bool performancefeeTaken = payOrLockupPendingNativeToken(_pid);
 
+        if(_amount > 0){
         // TESTEJAR AQUESTA FUNCIÓ MOLT PERÒ MOLT A FONS!!! ÉS NOVA I ÉS ON LA PODEM LIAR. Aquí s'actualitza el user.amount.
-        getLPFees(_pid, _amount, !performancefeeTaken);
+            if (!performancefeeTaken){
+                finalAmount = getLPFees(_pid, _amount);
+            }
+
+            // Possibles fallos que pot donar per aquí: usar IBEP20 enlloc de IPair o IPancakeERC20. swapAndLiquifyEnabled. Approves.
+            // L'usuari deixa de tenir els tokens que ha demanat treure, pel que s'actualitza els LPs que li queden. Quan li enviem els LPs, li enviarem ["_amount demanat" - les fees cobrades] (si n'hi han).
+            user.amount = user.amount.sub(_amount);
+
+            // Al usuari li enviem els tokens LP demanats menys els LPs trets de fees, si fos el cas
+            pool.lpToken.safeTransfer(address(msg.sender), finalAmount);
+        }
 
         // Revisar això a fons (és nou). En principi, guardem els LPs actuals i la quantitat que ha cobrat per ells (total). El que li haguem restat després perque ens ho hem cobrat per fees, no hauria d'afectar, ja que és a posteriori i no de cara al usuari.
         // User ha rebut menys tokens si s'0han cobrat fees però a la info del user li és igual, només li interessa saber el total que se li ha gestionat per cobrar. El que se li desviï després, no hauria d'afectar
@@ -801,15 +797,17 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     // Withdraw of all tokens. Rewards are lost.
     function emergencyWithdraw(uint256 _pid) public nonReentrant {
         UserInfo storage user = userInfo[_pid][msg.sender];
+
         if (user.amount == 0){
             return;
         }
 
+        uint256 finalAmount = user.amount;
         PoolInfo storage pool = poolInfo[_pid];
 
         // Si l'usuari vol sortir fent emergencyWithdraw és OK, però li hem de cobrar les fees si toca. En cas contrari, se les podria estalviar per la cara.
         if (safu && !withdrawalOrPerformanceFee(_pid, msg.sender)){
-            getLPFees(_pid, user.amount, true);
+            finalAmount = getLPFees(_pid, user.amount);
         }
 
         uint256 amount = user.amount;
@@ -818,8 +816,8 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         user.rewardLockedUp = 0;
         user.nextHarvestUntil = 0;
         user.withdrawalOrPerformanceFees = 0;
-        pool.lpToken.safeTransfer(address(msg.sender), amount);
-        emit EmergencyWithdraw(msg.sender, _pid, amount);
+        pool.lpToken.safeTransfer(address(msg.sender), finalAmount);
+        emit EmergencyWithdraw(msg.sender, _pid, amount, finalAmount);
     }
 
     // View function to see what kind of fee will be charged
