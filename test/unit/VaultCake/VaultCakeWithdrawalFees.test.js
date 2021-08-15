@@ -1,6 +1,5 @@
 const { expect } = require("chai");
-const { BigNumber } = require("@ethersproject/bignumber");
-const { BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER, TIMESTAMP_4_DAYS } = require("../../helpers/constants.js");
+const { timestampNDays, bep20Amount } = require("../../helpers/utils.js");
 const {
   deploy,
   getCakeToken,
@@ -13,8 +12,8 @@ const {
   getBusd,
 } = require("../../helpers/vaultCakeDeploy.js");
 
-const OWNER_INITIAL_CAKES = BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
-const ROUTER_INITIAL_TOKENS = BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+const OWNER_INITIAL_CAKES = bep20Amount(100);
+const ROUTER_INITIAL_TOKENS = bep20Amount(100);
 
 beforeEach(async function () {
   await deploy();
@@ -38,7 +37,7 @@ beforeEach(async function () {
 
 describe("VaultCake: Withdrawal fees", function () {
   it("No withdrawal fees on withdrawal all", async function () {
-    const depositedAmount = BigNumber.from(5).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+    const depositedAmount = bep20Amount(5);
 
     await getVaultCake().setWithdrawalFees(0, 0, 0);
     await getVaultCake().setRewards(10000, 0, 0, 0, 0);
@@ -63,9 +62,9 @@ describe("VaultCake: Withdrawal fees", function () {
   });
 
   it("Withdrawal fees applied over principal deposit when user withdraws before defined interval days", async function () {
-    const depositedAmount = BigNumber.from(5).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+    const depositedAmount = bep20Amount(5);
 
-    await getVaultCake().setWithdrawalFees(60, 10, TIMESTAMP_4_DAYS);
+    await getVaultCake().setWithdrawalFees(60, 10, timestampNDays(4));
     await getVaultCake().setRewards(10000, 0, 0, 0, 0);
     await getCakeToken().connect(owner).transfer(user1.address, depositedAmount);
     await getCakeToken().connect(owner).transfer(user2.address, depositedAmount);
@@ -89,10 +88,10 @@ describe("VaultCake: Withdrawal fees", function () {
   });
 
   it("Withdrawal fees applied when withdrawUnderlying and rewards not paid", async function () {
-    const depositedAmount = BigNumber.from(5).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
-    const withdrawalAmount = BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+    const depositedAmount = bep20Amount(5);
+    const withdrawalAmount = bep20Amount(2);
 
-    await getVaultCake().setWithdrawalFees(60, 10, TIMESTAMP_4_DAYS);
+    await getVaultCake().setWithdrawalFees(60, 10, timestampNDays(4));
     await getVaultCake().setRewards(10000, 0, 0, 0, 0);
     await getCakeToken().connect(owner).transfer(user1.address, depositedAmount);
     await getCakeToken().connect(owner).transfer(user2.address, depositedAmount);

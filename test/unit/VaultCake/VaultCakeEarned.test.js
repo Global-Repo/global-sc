@@ -1,6 +1,5 @@
 const { expect } = require("chai");
-const { BigNumber } = require("@ethersproject/bignumber");
-const { BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER } = require("../../helpers/constants.js");
+const { bep20Amount } = require("../../helpers/utils.js");
 const {
   deploy,
   getCakeToken,
@@ -10,7 +9,7 @@ const {
   getVaultCake,
 } = require("../../helpers/vaultCakeDeploy.js");
 
-const OWNER_INITIAL_CAKES = BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+const OWNER_INITIAL_CAKES = bep20Amount(100);
 
 beforeEach(async function () {
   await deploy();
@@ -27,7 +26,7 @@ beforeEach(async function () {
 
 describe("VaultCake: Earned", function () {
   it("Earned after staking in vault and auto-compounding profits in the pool", async function () {
-    const depositedAmount = BigNumber.from(5).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+    const depositedAmount = bep20Amount(5);
 
     await getVaultCake().setWithdrawalFees(0, 0, 0);
     await getCakeToken().connect(owner).transfer(user3.address, depositedAmount);

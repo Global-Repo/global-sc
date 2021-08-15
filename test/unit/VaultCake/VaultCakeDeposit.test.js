@@ -1,6 +1,5 @@
 const { expect } = require("chai");
-const { BigNumber } = require("@ethersproject/bignumber");
-const { BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER } = require("../../helpers/constants.js");
+const { bep20Amount } = require("../../helpers/utils.js");
 const {
   deploy,
   getCakeToken,
@@ -10,7 +9,7 @@ const {
   getVaultCake,
 } = require("../../helpers/vaultCakeDeploy.js");
 
-const OWNER_INITIAL_CAKES = BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+const OWNER_INITIAL_CAKES = bep20Amount(100);
 
 beforeEach(async function () {
   await deploy();
@@ -27,7 +26,7 @@ beforeEach(async function () {
 
 describe("VaultCake: Deposit", function () {
   it("Deposit zero", async function () {
-    const depositAmount = BigNumber.from(0).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+    const depositAmount = bep20Amount(0);
 
     await expect(getVaultCake().deposit(depositAmount))
         .to.emit(getVaultCake(), 'Deposited')
@@ -37,7 +36,7 @@ describe("VaultCake: Deposit", function () {
   });
 
   it("Deposit an amount", async function () {
-    const depositAmount = BigNumber.from(5).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+    const depositAmount = bep20Amount(5);
 
     await getCakeToken().approve(getVaultCake().address, OWNER_INITIAL_CAKES);
     await expect(getVaultCake().deposit(depositAmount))
@@ -54,9 +53,9 @@ describe("VaultCake: Deposit", function () {
   });
 
   it("Many deposits from same user", async function () {
-    const firstDeposit = BigNumber.from(5).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
-    const secondDeposit = BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
-    const thirdDeposit = BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+    const firstDeposit = bep20Amount(5);
+    const secondDeposit = bep20Amount(10);
+    const thirdDeposit = bep20Amount(2);
     const totalDepositedAmount = firstDeposit.add(secondDeposit).add(thirdDeposit);
 
     await getCakeToken().approve(getVaultCake().address, OWNER_INITIAL_CAKES);
@@ -74,14 +73,14 @@ describe("VaultCake: Deposit", function () {
   });
 
   it("Many deposits from different users", async function () {
-    const firstDeposit = BigNumber.from(5).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
-    const secondDeposit = BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
-    const thirdDeposit = BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+    const firstDeposit = bep20Amount(5);
+    const secondDeposit = bep20Amount(10);
+    const thirdDeposit = bep20Amount(2);
     const ownerDepositedAmount = firstDeposit;
     const addr3DepositedAmount = secondDeposit.add(thirdDeposit);
     const totalDepositedAmount = ownerDepositedAmount.add(addr3DepositedAmount);
 
-    await getCakeToken().transfer(user3.address, BigNumber.from(50).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+    await getCakeToken().transfer(user3.address, bep20Amount(50));
     await getCakeToken().approve(getVaultCake().address, OWNER_INITIAL_CAKES);
     await getCakeToken().connect(user3).approve(getVaultCake().address, OWNER_INITIAL_CAKES);
     await getVaultCake().deposit(firstDeposit);

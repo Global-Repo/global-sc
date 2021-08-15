@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { BigNumber } = require("@ethersproject/bignumber");
-const { TIMESTAMP_3_DAYS, TIMESTAMP_4_DAYS } = require("../../helpers/constants");
+const { timestampNDays } = require("../../helpers/utils");
 const {
   deploy,
   getNativeToken,
@@ -27,20 +27,20 @@ describe("VaultCake: Fees", function () {
 
     expect(burn).to.equal(DEFAULT_WITHDRAWAL_FEES_BURN);
     expect(team).to.equal(DEFAULT_WITHDRAWAL_FEES_TEAM);
-    expect(interval.toHexString()).to.equal(BigNumber.from(TIMESTAMP_4_DAYS));
+    expect(interval.toHexString()).to.equal(BigNumber.from(timestampNDays(4)));
   });
 
   it("Change withdrawal fees", async function () {
     const withdrawalFeesBurn = 70;
     const withdrawalFeesTeam = 20;
 
-    await getVaultCake().setWithdrawalFees(withdrawalFeesBurn, withdrawalFeesTeam, TIMESTAMP_3_DAYS);
+    await getVaultCake().setWithdrawalFees(withdrawalFeesBurn, withdrawalFeesTeam, timestampNDays(3));
 
     const {0: burn, 1: team, 2: interval} = await getVaultCake().withdrawalFees();
 
     expect(burn).to.equal(withdrawalFeesBurn);
     expect(team).to.equal(withdrawalFeesTeam);
-    expect(interval.toHexString()).to.equal(BigNumber.from(TIMESTAMP_3_DAYS));
+    expect(interval.toHexString()).to.equal(BigNumber.from(timestampNDays(3)));
   });
 
   it("Withdrawal fees cannot to be higher than maximum withdrawal fees", async function () {
@@ -48,7 +48,7 @@ describe("VaultCake: Fees", function () {
     const withdrawalFeesTeam = 40;
 
     await expect(
-        getVaultCake().setWithdrawalFees(withdrawalFeesBurn, withdrawalFeesTeam, TIMESTAMP_3_DAYS)
+        getVaultCake().setWithdrawalFees(withdrawalFeesBurn, withdrawalFeesTeam, timestampNDays(3))
     ).to.be.revertedWith("Withdrawal fees too high");
   });
 
@@ -57,7 +57,7 @@ describe("VaultCake: Fees", function () {
     const withdrawalFeesTeam = 20;
 
     await expect(
-        getVaultCake().connect(user3).setWithdrawalFees(withdrawalFeesBurn, withdrawalFeesTeam, TIMESTAMP_3_DAYS)
+        getVaultCake().connect(user3).setWithdrawalFees(withdrawalFeesBurn, withdrawalFeesTeam, timestampNDays(3))
     ).to.be.revertedWith("Ownable: caller is not the owner");
   });
 
