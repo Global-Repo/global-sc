@@ -16,7 +16,6 @@ import './IPair.sol';
 import './IRouterV2.sol';
 import './ReentrancyGuard.sol';
 import "./IMinter.sol";
-import "./IMinter.sol";
 import "./TokenAddresses.sol";
 import "./IPathFinder.sol";
 import "hardhat/console.sol";
@@ -230,7 +229,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         pathFinder.removeRouteInfo(_token);
     }
 
-    function setLockedVaultAddress(address _newLockedVault) external onlyDevPower{
+    function setLockedVaultAddress(address _newLockedVault) external onlyOwner{
         require(_newLockedVault != address(0), "(f) SetLockedVaultAddress: you can't set the locked vault address to 0.");
         nativeTokenLockedVaultAddr = _newLockedVault;
     }
