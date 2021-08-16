@@ -24,7 +24,7 @@ beforeEach(async function () {
   await getCakeToken().transferOwnership(getCakeMasterChefMock().address);
 });
 
-describe("PathFinder", function () {
+describe("VaultCake: Withdraw", function () {
   it("Cannot withdraw without previous deposit", async function () {
     expect(await getVaultCake().withdrawableBalanceOf(owner.address)).to.equal(0);
     await expect(

@@ -11,6 +11,7 @@ const {
   getVaultDistribution,
   getVaultCake,
   getBusd,
+  getVaultVested,
 } = require("../../helpers/vaultCakeDeploy.js");
 
 const OWNER_INITIAL_CAKES = bep20Amount(100);
@@ -32,6 +33,9 @@ beforeEach(async function () {
 
   // Mint 100 cake tokens to owner
   await getCakeToken().mint(OWNER_INITIAL_CAKES);
+
+  // Add vault vested to the MC whitelisting
+  await getMinter().addAddressToWhitelist(getVaultVested().address);
 
   // Cake's owner now is cake MC
   await getCakeToken().transferOwnership(getCakeMasterChefMock().address);
@@ -94,7 +98,7 @@ describe("VaultCake: Rewards", function () {
 
     // Vested vault must have 6% of rewards (1.5 cakes) in Global (price relation in test 1 to 1) from the user (90000000000000000)
     // Vested vault must have 250% of previous 6% in Global from the CakeVault (225000000000000000)
-    expect(await getNativeToken().balanceOf(vaultVested.address)).to.equal("315000000000000000");
+    expect(await getVaultVested().balance()).to.equal("315000000000000000");
 
     // Distribution vault must have 15% of rewards (1.5 cakes) in BNB (price relation in test 1 to 1)
     expect(await getBnb().balanceOf(getVaultDistribution().address)).to.equal("225000000000000000");

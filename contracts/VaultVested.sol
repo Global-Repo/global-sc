@@ -42,13 +42,9 @@ contract VaultVested is PausableUpgradeable, WhitelistUpgradeable {
         uint256 interval; // Meanwhile, penalty fees will be apply (timestamp)
     }
 
-    struct DistributeBNB {
-        uint16 percentage; // % to distribute BNB among users
-        uint256 minAmount; // amount to start distributing BNB among users
-    }
-
     PenaltyFees public penaltyFees;
-    DistributeBNB public distributeBNB;
+
+    uint public minTokenAmountToDistribute;
 
     event Deposited(address indexed user, uint amount);
     event Withdrawn(address indexed user, uint amount, uint withdrawalFee);
@@ -56,25 +52,12 @@ contract VaultVested is PausableUpgradeable, WhitelistUpgradeable {
     event Harvested(uint profit);
     event Recovered(address token, uint amount);
     event Distributed(uint distributedAmount, uint numberOfUsers);
-/*
-    modifier distributeRewards() {
-        uint currentBNBAmount = bnb.balanceOf(address(this));
 
-        if (currentBNBAmount >= distributeBNB.minAmount) {
-            uint bnbToDistribute = currentBNBAmount.div(distributeBNB.percentage).div(10000);
-
-            for (uint i; i < _shares.length - 1; i++) {
-                uint userSharesPercent = _shares[i].div(totalShares);
-                uint bnbToUser = bnbToDistribute.mul(userSharesPercent);
-
-                _bnbEarned[i] = _bnbEarned[i].add(bnbToUser);
-            }
-
-            emit Distributed(bnbToDistribute, _shares.length);
-        }
+    modifier distributeTokens() {
         _;
+        _distribute();
     }
-*/
+
     constructor(
         address _global,
         address _bnb,
@@ -92,6 +75,7 @@ contract VaultVested is PausableUpgradeable, WhitelistUpgradeable {
         treasury = _treasury;
         vaultLocked = _vaultLocked;
 
+        global.safeApprove(_globalMasterChef, uint(0));
         global.safeApprove(_globalMasterChef, uint(~0));
 
         __PausableUpgradeable_init();
@@ -101,9 +85,7 @@ contract VaultVested is PausableUpgradeable, WhitelistUpgradeable {
         router = IRouterV2(_router);
         pathFinder = IPathFinder(_pathFinder);
 
-        // TODO: to setters
-        distributeBNB.percentage = 2000; // 20%
-        distributeBNB.minAmount  = 1e18; // 1 BNB
+        minTokenAmountToDistribute = 1e18; // 1 BEP20 Token
     }
 
     // init minter
@@ -170,7 +152,7 @@ contract VaultVested is PausableUpgradeable, WhitelistUpgradeable {
     }
 
     // TODO: from variable perque sigui del user i no del vault X que els envia
-    function depositFrom(uint _amount, address _account) public {
+    function deposit(uint _amount, address _account) public {
         _deposit(_amount, _account);
 
         if (isWhitelist(msg.sender) == false) {
@@ -180,10 +162,10 @@ contract VaultVested is PausableUpgradeable, WhitelistUpgradeable {
     }
 
     function depositAll(address _account) external {
-        depositFrom(global.balanceOf(_account), _account);
+        deposit(global.balanceOf(_account), _account);
     }
 
-    function withdrawAll() external {
+    function withdrawAll() external distributeTokens {
         uint amount = balanceOf(msg.sender);
         uint principal = principalOf(msg.sender);
         uint profit = amount > principal ? amount.sub(principal) : 0;
@@ -207,7 +189,7 @@ contract VaultVested is PausableUpgradeable, WhitelistUpgradeable {
         _harvest(globalHarvested);
     }
 
-    function withdrawShares(uint shares) external onlyWhitelisted {
+    function withdrawShares(uint shares) external distributeTokens onlyWhitelisted {
         uint amount = balance().mul(shares).div(totalShares);
 
         uint globalHarvested = _withdrawStakingToken(amount);
@@ -218,7 +200,7 @@ contract VaultVested is PausableUpgradeable, WhitelistUpgradeable {
         _harvest(globalHarvested);
     }
 
-    function withdrawUnderlying(uint _amount) external {
+    function withdrawUnderlying(uint _amount) external distributeTokens {
         uint amount = Math.min(_amount, _principal[msg.sender]);
         uint shares = Math.min(amount.mul(totalShares).div(balance()), _shares[msg.sender]);
 
@@ -245,10 +227,11 @@ contract VaultVested is PausableUpgradeable, WhitelistUpgradeable {
         if (amountToVaultLocked < DUST) {
             amountToUser = amountToUser.add(amountToVaultLocked);
         } else {
-            bnb.safeTransfer(vaultLocked, amountToVaultLocked);
+            global.safeTransfer(vaultLocked, amountToVaultLocked);
         }
 
         global.safeTransfer(msg.sender, amountToUser);
+
         emit Withdrawn(msg.sender, amountToUser, 0);
     }
 
@@ -259,6 +242,7 @@ contract VaultVested is PausableUpgradeable, WhitelistUpgradeable {
 
         // TODO que es fan amb els rewards del pool de GLOBAL?
         bnb.safeTransfer(msg.sender, _bnbEarned[msg.sender]);
+
         emit ProfitPaid(msg.sender, _bnbEarned[msg.sender]);
     }
 
@@ -313,6 +297,25 @@ contract VaultVested is PausableUpgradeable, WhitelistUpgradeable {
             totalShares = totalShares.sub(shares);
             delete _shares[msg.sender];
         }
+    }
+
+    function _distribute() private {
+        uint currentBNBAmount = bnb.balanceOf(address(this));
+
+        if (currentBNBAmount < minTokenAmountToDistribute) {
+            // Nothing to distribute.
+            return;
+        }
+        /*
+        for (uint i; i < _shares.length - 1; i++) {
+            uint userSharesPercent = _shares[i].div(totalShares);
+            uint bnbToUser = currentBNBAmount.mul(userSharesPercent);
+
+            _bnbEarned[i] = _bnbEarned[i].add(bnbToUser);
+        }
+
+        emit Distributed(currentBNBAmount, _shares.length);
+        */
     }
 
     // SALVAGE PURPOSE ONLY

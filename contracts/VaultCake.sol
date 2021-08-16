@@ -26,8 +26,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     ICakeMasterChef private cakeMasterChef;
     IMinter private minter;
     address private treasury;
-    //VaultVested private vaultVested;
-    address private vaultVested;
+    VaultVested private vaultVested;
     VaultDistribution private vaultDistribution;
     IRouterV2 private router;
     IPathFinder private pathFinder;
@@ -90,8 +89,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         busd = IBEP20(tokenAddresses.findByName(tokenAddresses.BUSD()));
         cakeMasterChef = ICakeMasterChef(_cakeMasterChef);
         treasury = _treasury;
-        //vaultVested = VaultVested(_vaultVested);
-        vaultVested = _vaultVested;
+        vaultVested = VaultVested(_vaultVested);
         vaultDistribution = VaultDistribution(_vaultDistribution);
 
         _allowance(cake, _cakeMasterChef);
@@ -351,7 +349,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             uint amountGlobalBought = global.balanceOf(address(this)).sub(beforeSwap);
 
             // Deposits to vault vested the minted global tokens as cake vault.
-            //vaultVested.deposit(amountGlobalBought, address(this));
+            vaultVested.deposit(amountGlobalBought, address(this));
 
             uint amountToMintGlobal = amountGlobalBought.mul(rewards.toMintGlobal).div(10000);
             uint beforeMint = global.balanceOf(address(this));
@@ -359,7 +357,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             uint amountGlobalMinted = global.balanceOf(address(this)).sub(beforeMint);
 
             // Deposits to vault vested the minted global tokens as user.
-            //vaultVested.deposit(amountGlobalMinted, msg.sender);
+            vaultVested.deposit(amountGlobalMinted, msg.sender);
         }
 
         cake.safeTransfer(msg.sender, amountToUser);
