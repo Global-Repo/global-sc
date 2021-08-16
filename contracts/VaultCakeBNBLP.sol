@@ -19,7 +19,7 @@ contract VaultCakeBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable 
 
     IBEP20 private lpToken;
     IBEP20 private global;
-    IGlobalMasterChef private cakeMasterChef;
+    ICakeMasterChef private cakeMasterChef;
     IMinter private minter;
     address private treasury;
     address private keeper;
@@ -79,7 +79,7 @@ contract VaultCakeBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable 
         pid = _pid;
         lpToken = IBEP20(_lpToken);
         global = IBEP20(_global);
-        cakeMasterChef = IGlobalMasterChef(_cakeMasterChef);
+        cakeMasterChef = ICakeMasterChef(_cakeMasterChef);
         treasury = _treasury;
         keeper = _keeper;
 

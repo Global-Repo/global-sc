@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
 
-interface IGlobalMasterChef {
+interface ICakeMasterChef {
     function userInfo(uint _pid, address _account) view external returns(uint amount, uint rewardDebt);
 
     // Staking into CAKE pools (pid = 0)

@@ -12,7 +12,7 @@ import "./IRouterV2.sol";
 import "./TokenAddresses.sol";
 import './IPathFinder.sol';
 
-contract VaultVested is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
+contract VaultVested is PausableUpgradeable, WhitelistUpgradeable {
     using SafeBEP20 for IBEP20;
     using SafeMath for uint;
     using SafeMath for uint16;
@@ -50,6 +50,11 @@ contract VaultVested is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     PenaltyFees public penaltyFees;
     DistributeBNB public distributeBNB;
 
+    event Deposited(address indexed user, uint amount);
+    event Withdrawn(address indexed user, uint amount, uint withdrawalFee);
+    event ProfitPaid(address indexed user, uint amount);
+    event Harvested(uint profit);
+    event Recovered(address token, uint amount);
     event Distributed(uint distributedAmount, uint numberOfUsers);
 /*
     modifier distributeRewards() {
@@ -118,32 +123,32 @@ contract VaultVested is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         return address(minter) != address(0) && minter.isMinter(address(this));
     }
 
-    function totalSupply() external view override returns (uint) {
+    function totalSupply() external view returns (uint) {
         return totalShares;
     }
 
-    function balance() public view override returns (uint amount) {
+    function balance() public view returns (uint amount) {
         (amount,) = globalMasterChef.userInfo(pid, address(this));
     }
 
-    function balanceOf(address account) public view override returns(uint) {
+    function balanceOf(address account) public view returns(uint) {
         if (totalShares == 0) return 0;
         return balance().mul(sharesOf(account)).div(totalShares);
     }
 
-    function withdrawableBalanceOf(address account) public view override returns (uint) {
+    function withdrawableBalanceOf(address account) public view returns (uint) {
         return balanceOf(account);
     }
 
-    function sharesOf(address account) public view override returns (uint) {
+    function sharesOf(address account) public view returns (uint) {
         return _shares[account];
     }
 
-    function principalOf(address account) public view override returns (uint) {
+    function principalOf(address account) public view returns (uint) {
         return _principal[account];
     }
 
-    function earned(address account) public view override returns (uint) {
+    function earned(address account) public view returns (uint) {
         if (balanceOf(account) >= principalOf(account) + DUST) {
             return balanceOf(account).sub(principalOf(account));
         } else {
@@ -151,22 +156,22 @@ contract VaultVested is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         }
     }
 
-    function priceShare() external view override returns(uint) {
+    function priceShare() external view returns(uint) {
         if (totalShares == 0) return 1e18;
         return balance().mul(1e18).div(totalShares);
     }
 
-    function depositedAt(address account) external view override returns (uint) {
+    function depositedAt(address account) external view returns (uint) {
         return _depositedAt[account];
     }
 
-    function rewardsToken() external view override returns (address) {
+    function rewardsToken() external view returns (address) {
         return address(global);
     }
 
     // TODO: from variable perque sigui del user i no del vault X que els envia
-    function deposit(uint _amount) public override {
-        _deposit(_amount, msg.sender);
+    function depositFrom(uint _amount, address _account) public {
+        _deposit(_amount, _account);
 
         if (isWhitelist(msg.sender) == false) {
             _principal[msg.sender] = _principal[msg.sender].add(_amount);
@@ -174,11 +179,11 @@ contract VaultVested is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         }
     }
 
-    function depositAll() external override {
-        deposit(global.balanceOf(msg.sender));
+    function depositAll(address _account) external {
+        depositFrom(global.balanceOf(_account), _account);
     }
 
-    function withdrawAll() external override {
+    function withdrawAll() external {
         uint amount = balanceOf(msg.sender);
         uint principal = principalOf(msg.sender);
         uint profit = amount > principal ? amount.sub(principal) : 0;
@@ -197,12 +202,12 @@ contract VaultVested is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         _harvest(globalHarvested);
     }
 
-    function harvest() external override {
+    function harvest() external {
         uint globalHarvested = _withdrawStakingToken(0);
         _harvest(globalHarvested);
     }
 
-    function withdraw(uint shares) external override onlyWhitelisted {
+    function withdrawShares(uint shares) external onlyWhitelisted {
         uint amount = balance().mul(shares).div(totalShares);
 
         uint globalHarvested = _withdrawStakingToken(amount);
@@ -213,7 +218,7 @@ contract VaultVested is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         _harvest(globalHarvested);
     }
 
-    function withdrawUnderlying(uint _amount) external override {
+    function withdrawUnderlying(uint _amount) external {
         uint amount = Math.min(_amount, _principal[msg.sender]);
         uint shares = Math.min(amount.mul(totalShares).div(balance()), _shares[msg.sender]);
 
@@ -257,7 +262,7 @@ contract VaultVested is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         emit ProfitPaid(msg.sender, _bnbEarned[msg.sender]);
     }
 
-    function getReward() external override {
+    function getReward() external {
         uint amount = earned(msg.sender);
         uint shares = Math.min(amount.mul(totalShares).div(balance()), _shares[msg.sender]);
 

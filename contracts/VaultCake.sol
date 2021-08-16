@@ -11,6 +11,7 @@ import "./IMinter.sol";
 import "./IRouterV2.sol";
 import "./TokenAddresses.sol";
 import './IPathFinder.sol';
+import './VaultVested.sol';
 import './VaultDistribution.sol';
 
 contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
@@ -22,9 +23,10 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     IBEP20 private global;
     IBEP20 private wbnb;
     IBEP20 private busd;
-    IGlobalMasterChef private cakeMasterChef;
+    ICakeMasterChef private cakeMasterChef;
     IMinter private minter;
     address private treasury;
+    //VaultVested private vaultVested;
     address private vaultVested;
     VaultDistribution private vaultDistribution;
     IRouterV2 private router;
@@ -86,14 +88,15 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         global = IBEP20(_global);
         wbnb = IBEP20(tokenAddresses.findByName(tokenAddresses.BNB()));
         busd = IBEP20(tokenAddresses.findByName(tokenAddresses.BUSD()));
-        cakeMasterChef = IGlobalMasterChef(_cakeMasterChef);
+        cakeMasterChef = ICakeMasterChef(_cakeMasterChef);
         treasury = _treasury;
+        //vaultVested = VaultVested(_vaultVested);
         vaultVested = _vaultVested;
         vaultDistribution = VaultDistribution(_vaultDistribution);
 
-        cake.safeApprove(_cakeMasterChef, uint(~0));
-        wbnb.safeApprove(_vaultDistribution, uint(0));
-        wbnb.safeApprove(_vaultDistribution, uint(~0));
+        _allowance(cake, _cakeMasterChef);
+        _allowance(wbnb, _vaultDistribution);
+        _allowance(global, _vaultVested);
 
         __PausableUpgradeable_init();
         __WhitelistUpgradeable_init();
@@ -108,9 +111,8 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     // init minter
     function setMinter(address _minter) external {
         require(IMinter(_minter).isMinter(address(this)) == true, "This vault must be a minter in minter's contract");
-        cake.safeApprove(_minter, 0);
-        cake.safeApprove(_minter, uint(~0));
         minter = IMinter(_minter);
+        _allowance(cake, _minter);
     }
 
     function setWithdrawalFees(uint16 burn, uint16 team, uint256 interval) public onlyOwner {
@@ -348,16 +350,16 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             router.swapExactTokensForTokens(amountToBuyGlobal, 0, pathToGlobal, address(this), deadline);
             uint amountGlobalBought = global.balanceOf(address(this)).sub(beforeSwap);
 
-            // TODO: to lockedVault instead distributor
-            global.safeTransfer(vaultVested, amountGlobalBought); // To keeper as cake vault
+            // Deposits to vault vested the minted global tokens as cake vault.
+            //vaultVested.deposit(amountGlobalBought, address(this));
 
             uint amountToMintGlobal = amountGlobalBought.mul(rewards.toMintGlobal).div(10000);
             uint beforeMint = global.balanceOf(address(this));
             minter.mintNativeTokens(amountToMintGlobal);
             uint amountGlobalMinted = global.balanceOf(address(this)).sub(beforeMint);
 
-            // TODO: to lockedVault instead distributor
-            global.safeTransfer(vaultVested, amountGlobalMinted); // TODO to keeper as user and not as cake vault
+            // Deposits to vault vested the minted global tokens as user.
+            //vaultVested.deposit(amountGlobalMinted, msg.sender);
         }
 
         cake.safeTransfer(msg.sender, amountToUser);
@@ -402,6 +404,11 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             totalShares = totalShares.sub(shares);
             delete _shares[msg.sender];
         }
+    }
+
+    function _allowance(IBEP20 _token, address _account) private {
+        _token.safeApprove(_account, uint(0));
+        _token.safeApprove(_account, uint(~0));
     }
 
     // SALVAGE PURPOSE ONLY
