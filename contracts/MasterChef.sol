@@ -34,19 +34,16 @@ import "hardhat/console.sol";
 // transaction frontrun pay miners??? sushiswap
 // Falta poder fer update dels routers i tot això...
 // és possible fer lockdown i transferir el ownership de pools i vaults individualment, o ja fem servir el migrator per aixop??
-// LINK!!! com oraculo!!!
+
 // idea: mesura antiwhale en una pool. si un vault té més de 1m$ de toksn, no es pot fer un dipòsit de més del 20% del vault.
 //aixi evitem els flash loans attacks també, perque ningú es pot quedar amb el 99% del vault degut a flash loans
 // Per revisar: que no ens deixem cap funció de pancake/panther, private-public-internal-external, transfer i safetransfer, onlydevpower i onlyowner.
-// Lockswap
-// ASSEGURARNOS QUEPODEM DEIXAR DE DONAR REWARDS ALS VAULTS.
-// UPDATE PROTOCOL LIKE SUSHI!!!
-// comprovar els loans si estàn actius
-// S'ha de fer un pause ALL MINT FUNCTIONS i retornar FALSE perque facin rollback si les funcions fallen!!! vs un atac, PARME ELS MINS AMB DEVPOWER.
-// SHA DE FER UN PAUSE ALL DEPOSITS!!!!! I ROLLBACK!!!
-// I no fer el càlcul manual, q sino la liariem pardíssima
-// Lock the swap
-// S'ha de testejar be el manageTokens
+
+
+
+
+
+
 
 
 // We hope code is bug-free. For everyone's life savings.
@@ -242,7 +239,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         safu = _safu;
     }
 
-    function getIfSAFU() public returns(bool){
+    function getIfSAFU() public view returns(bool){
         return safu;
     }
 
@@ -627,9 +624,8 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         emit Deposit(msg.sender, _pid, _amount);
     }
 
-    function getLPFees(uint256 _pid, uint256 _amount) private{
+    function getLPFees(uint256 _pid, uint256 _amount) private returns(uint256){
         PoolInfo storage pool = poolInfo[_pid];
-        UserInfo storage user = userInfo[_pid][msg.sender];
 
         // L'usuari rebrà els seus LPs menys els que li hem tret com a fees.
         uint256 finalAmount = _amount.sub(_amount.mul(pool.withDrawalFeeOfLpsBurn.add(pool.withDrawalFeeOfLpsTeam)).div(10000));
@@ -755,7 +751,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     }
 
     // Stake CAKE tokens to MasterChef
-    function enterStaking(uint256 _amount) public onlyHumanOrWhitelisted {
+    function enterStaking(uint256 _amount) public onlyHumanOrWhitelisted nonReentrant{
         PoolInfo storage pool = poolInfo[0];
         UserInfo storage user = userInfo[0][msg.sender];
         updatePool(0);
@@ -775,7 +771,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     }
 
     // Withdraw CAKE tokens from STAKING.
-    function leaveStaking(uint256 _amount) public onlyHumanOrWhitelisted {
+    function leaveStaking(uint256 _amount) public onlyHumanOrWhitelisted nonReentrant{
         PoolInfo storage pool = poolInfo[0];
         UserInfo storage user = userInfo[0][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
