@@ -5,8 +5,9 @@ import "./SafeBEP20.sol";
 import "./Math.sol";
 import "./IGlobalMasterChef.sol";
 import './DepositoryRestriction.sol';
+import "./IDistributable.sol";
 
-contract VaultVested is DepositoryRestriction {
+contract VaultVested is DepositoryRestriction, IDistributable {
     using SafeBEP20 for IBEP20;
     using SafeMath for uint;
     using SafeMath for uint16;
@@ -37,12 +38,11 @@ contract VaultVested is DepositoryRestriction {
     event Withdrawn(address indexed user, uint amount, uint withdrawalFee);
     event ProfitPaid(address indexed user, uint amount);
     event Recovered(address token, uint amount);
-    event Distributed(uint distributedAmount, uint numberOfUsers);
 
-    modifier distributeTokens() {
+    /*modifier distributeTokens() {
         _;
         _distribute();
-    }
+    }*/
 
     constructor(
         address _global,
@@ -56,9 +56,13 @@ contract VaultVested is DepositoryRestriction {
         globalMasterChef = IGlobalMasterChef(_globalMasterChef);
         vaultLocked = _vaultLocked;
 
-        _allowance(global, _globalMasterChef);
-
         minTokenAmountToDistribute = 1e18; // 1 BEP20 Token
+
+        _allowance(global, _globalMasterChef);
+    }
+
+    function triggerDistribute() external override {
+        _distribute();
     }
 
     function totalSupply() external view returns (uint) {
@@ -120,7 +124,7 @@ contract VaultVested is DepositoryRestriction {
         emit Deposited(msg.sender, _amount);
     }
 
-    function withdrawAll() external distributeTokens {
+    function withdrawAll() external {
         uint amount = balanceOf(msg.sender);
         uint principal = principalOf(msg.sender);
         uint profit = amount > principal ? amount.sub(principal) : 0;
@@ -137,7 +141,7 @@ contract VaultVested is DepositoryRestriction {
         delete _bnbEarned[msg.sender];
     }
 
-    function withdrawUnderlying(uint _amount) external distributeTokens {
+    function withdrawUnderlying(uint _amount) external {
         uint amount = Math.min(_amount, _principal[msg.sender]);
         uint shares = Math.min(amount.mul(totalShares).div(balance()), _shares[msg.sender]);
 
@@ -148,7 +152,7 @@ contract VaultVested is DepositoryRestriction {
         _principal[msg.sender] = _principal[msg.sender].sub(amount);
     }
 
-    function getReward() external distributeTokens {
+    function getReward() external {
         uint amount = earned(msg.sender);
         uint shares = Math.min(amount.mul(totalShares).div(balance()), _shares[msg.sender]);
 
@@ -231,8 +235,7 @@ contract VaultVested is DepositoryRestriction {
 
             _bnbEarned[i] = _bnbEarned[i].add(bnbToUser);
         }
-
-        emit Distributed(currentBNBAmount, _shares.length);
         */
+        emit Distributed(currentBNBAmount);
     }
 }

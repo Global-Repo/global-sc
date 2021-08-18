@@ -3,24 +3,20 @@ pragma solidity ^0.6.12;
 
 import "./SafeBEP20.sol";
 import './DevPower.sol';
+import './DepositoryRestriction.sol';
+import './IDistributable.sol';
 
-contract VaultDistribution is DevPower {
+contract VaultDistribution is DevPower, DepositoryRestriction {
     using SafeBEP20 for IBEP20;
     using SafeMath for uint;
 
     IBEP20 public distributionToken;
     IBEP20 public beneficiaryToken;
     address[] public beneficiaries;
-    mapping (address => bool) depositories;
     uint public minTokenAmountToDistribute;
 
     event Deposited(address depository, uint amount);
     event Distributed(uint distributedAmount, uint numberOfBeneficiaries);
-
-    modifier onlyDepositories() {
-        require(depositories[msg.sender] == true, "Only depositories can perform this action");
-        _;
-    }
 
     modifier distributeTokens() {
         _;
@@ -39,17 +35,6 @@ contract VaultDistribution is DevPower {
         minTokenAmountToDistribute = _newAmount;
     }
 
-    function setDepositary(address _depository, bool _canDeposit) external onlyDevPower {
-        if (_canDeposit) {
-            depositories[_depository] = _canDeposit;
-            distributionToken.safeApprove(_depository, 0); // TODO: it needs to approve manually?
-            // TODO el safe approve shauria de fer desde el cakevault, etc contra aquest distrib. vault
-            distributionToken.safeApprove(_depository, uint(~0));
-        } else {
-            delete depositories[_depository];
-        }
-    }
-
     function addBeneficiary(address _beneficiary) external onlyDevPower {
         for (uint8 i = 0; i < beneficiaries.length; i++) {
             if (beneficiaries[i] == _beneficiary) {
@@ -58,6 +43,8 @@ contract VaultDistribution is DevPower {
             }
         }
 
+        // It checks beneficiary has triggerDistribute method before to add it.
+        IDistributable(_beneficiary).triggerDistribute();
         beneficiaries.push(_beneficiary);
     }
 
@@ -102,6 +89,7 @@ contract VaultDistribution is DevPower {
             uint beneficiaryDistributionPercentage = beneficiaryToken.balanceOf(beneficiaries[i]).mul(100).div(totalBeneficiaryTokens);
             uint amountForBeneficiary = currentDistributionTokenAmount.mul(beneficiaryDistributionPercentage).div(100);
             distributionToken.safeTransfer(beneficiaries[i], amountForBeneficiary);
+            IDistributable(beneficiaries[i]).triggerDistribute();
         }
 
         emit Distributed(currentDistributionTokenAmount, beneficiaries.length);
