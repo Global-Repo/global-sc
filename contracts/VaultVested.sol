@@ -5,8 +5,10 @@ import "./SafeBEP20.sol";
 import "./Math.sol";
 import "./IGlobalMasterChef.sol";
 import './DepositoryRestriction.sol';
+import "./IDistributable.sol";
+import "./VaultLocked.sol";
 
-contract VaultVested is DepositoryRestriction {
+contract VaultVested is DepositoryRestriction, IDistributable {
     using SafeBEP20 for IBEP20;
     using SafeMath for uint;
     using SafeMath for uint16;
@@ -14,7 +16,7 @@ contract VaultVested is DepositoryRestriction {
     IBEP20 private global;
     IBEP20 private bnb;
     IGlobalMasterChef private globalMasterChef;
-    address private vaultLocked;
+    VaultLocked private vaultLocked;
 
     uint private constant DUST = 1000;
 
@@ -37,12 +39,6 @@ contract VaultVested is DepositoryRestriction {
     event Withdrawn(address indexed user, uint amount, uint withdrawalFee);
     event ProfitPaid(address indexed user, uint amount);
     event Recovered(address token, uint amount);
-    event Distributed(uint distributedAmount, uint numberOfUsers);
-
-    modifier distributeTokens() {
-        _;
-        _distribute();
-    }
 
     constructor(
         address _global,
@@ -54,11 +50,15 @@ contract VaultVested is DepositoryRestriction {
         global = IBEP20(_global);
         bnb = IBEP20(_bnb);
         globalMasterChef = IGlobalMasterChef(_globalMasterChef);
-        vaultLocked = _vaultLocked;
-
-        _allowance(global, _globalMasterChef);
+        vaultLocked = VaultLocked(_vaultLocked);
 
         minTokenAmountToDistribute = 1e18; // 1 BEP20 Token
+
+        _allowance(global, _globalMasterChef);
+    }
+
+    function triggerDistribute() external override {
+        _distribute();
     }
 
     function totalSupply() external view returns (uint) {
@@ -107,28 +107,32 @@ contract VaultVested is DepositoryRestriction {
         return address(bnb);
     }
 
+    // Deposit globals.
+    // Depository will deposit globals but the account tracking is for the user.
+    // TODO: can be de trigger to distribute BNB instead IDistributable
     function deposit(uint _amount, address _account) public onlyDepositories {
         global.safeTransferFrom(msg.sender, address(this), _amount);
 
         uint shares = totalShares == 0 ? _amount : (_amount.mul(totalShares)).div(balance());
         totalShares = totalShares.add(shares);
         _shares[_account] = _shares[_account].add(shares);
-        _principal[msg.sender] = _principal[msg.sender].add(_amount);
-        _depositedAt[msg.sender] = block.timestamp;
+        _principal[_account] = _principal[_account].add(_amount);
+        _depositedAt[_account] = block.timestamp;
 
-        uint globalHarvested = _depositStakingToken(_amount);
-        emit Deposited(msg.sender, _amount);
+        globalMasterChef.enterStaking(_amount);
+
+        emit Deposited(_account, _amount);
     }
 
-    function withdrawAll() external distributeTokens {
+    function withdraw() external {
         uint amount = balanceOf(msg.sender);
         uint principal = principalOf(msg.sender);
-        uint profit = amount > principal ? amount.sub(principal) : 0;
+        // TODO shares and principal the same here?
 
-        uint globalHarvested = _withdrawStakingToken(amount);
+        globalMasterChef.leaveStaking(amount);
 
         handlePenaltyFees(amount);
-        //handleRewards();
+        handleRewards(_bnbEarned[msg.sender]);
 
         totalShares = totalShares.sub(_shares[msg.sender]);
         delete _shares[msg.sender];
@@ -137,18 +141,7 @@ contract VaultVested is DepositoryRestriction {
         delete _bnbEarned[msg.sender];
     }
 
-    function withdrawUnderlying(uint _amount) external distributeTokens {
-        uint amount = Math.min(_amount, _principal[msg.sender]);
-        uint shares = Math.min(amount.mul(totalShares).div(balance()), _shares[msg.sender]);
-
-        uint globalHarvested = _withdrawStakingToken(amount);
-
-        totalShares = totalShares.sub(shares);
-        _shares[msg.sender] = _shares[msg.sender].sub(shares);
-        _principal[msg.sender] = _principal[msg.sender].sub(amount);
-    }
-
-    function getReward() external distributeTokens {
+    function getReward() external {
         uint amount = earned(msg.sender);
         uint shares = Math.min(amount.mul(totalShares).div(balance()), _shares[msg.sender]);
 
@@ -173,7 +166,8 @@ contract VaultVested is DepositoryRestriction {
         if (amountToVaultLocked < DUST) {
             amountToUser = amountToUser.add(amountToVaultLocked);
         } else {
-            global.safeTransfer(vaultLocked, amountToVaultLocked);
+            // TODO: not transfer, instead call deposit method and send tokens as user not as vested vault
+            global.safeTransfer(address(vaultLocked), amountToVaultLocked);
         }
 
         global.safeTransfer(msg.sender, amountToUser);
@@ -186,7 +180,6 @@ contract VaultVested is DepositoryRestriction {
             return; // No rewards
         }
 
-        // TODO que es fan amb els rewards del pool de GLOBAL?
         bnb.safeTransfer(msg.sender, _bnbEarned[msg.sender]);
 
         emit ProfitPaid(msg.sender, _bnbEarned[msg.sender]);
@@ -231,8 +224,7 @@ contract VaultVested is DepositoryRestriction {
 
             _bnbEarned[i] = _bnbEarned[i].add(bnbToUser);
         }
-
-        emit Distributed(currentBNBAmount, _shares.length);
         */
+        emit Distributed(currentBNBAmount);
     }
 }

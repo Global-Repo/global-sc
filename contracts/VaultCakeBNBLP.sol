@@ -282,7 +282,7 @@ contract VaultCakeBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable 
             return;
         }
 
-        uint deadline = block.timestamp.add(2 hours);
+        uint deadline = block.timestamp;
         uint amountToBurn = _amount.mul(withdrawalFees.burn).div(10000);
         uint amountToTeam = _amount.mul(withdrawalFees.team).div(10000);
         uint amountToUser = _amount.sub(amountToTeam).sub(amountToBurn);

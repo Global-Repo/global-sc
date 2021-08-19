@@ -1,3 +1,4 @@
+const ethers = require("hardhat").ethers;
 const { expect } = require("chai");
 const { bep20Amount } = require("../../helpers/utils.js");
 const {
@@ -9,11 +10,25 @@ const {
 
 const MIN_BNB_AMOUNT_TO_DISTRIBUTE = bep20Amount(6);
 
+let beneficiaryMock1;
+let beneficiaryMock2;
+let beneficiaryMock3;
+
 beforeEach(async function () {
   await deploy();
   const INITIAL_SUPPLY = bep20Amount(100);
   await getBnb().mint(INITIAL_SUPPLY);
   await getNativeToken().mint(INITIAL_SUPPLY);
+
+  const BeneficiaryMock1 = await ethers.getContractFactory("BeneficiaryMock");
+  beneficiaryMock1 = await BeneficiaryMock1.deploy();
+  await beneficiaryMock1.deployed();
+  const BeneficiaryMock2 = await ethers.getContractFactory("BeneficiaryMock");
+  beneficiaryMock2 = await BeneficiaryMock2.deploy();
+  await beneficiaryMock2.deployed();
+  const BeneficiaryMock3 = await ethers.getContractFactory("BeneficiaryMock");
+  beneficiaryMock3 = await BeneficiaryMock3.deploy();
+  await beneficiaryMock3.deployed();
 });
 
 describe("VaultDistribution: Distribute", function () {
@@ -26,9 +41,9 @@ describe("VaultDistribution: Distribute", function () {
     // Set up globals and bnb between depositories and beneficiaries.
     await getBnb().connect(owner).transfer(depositary1.address, bnbAmountPerDepositary);
     await getBnb().connect(owner).transfer(depositary2.address, bnbAmountPerDepositary);
-    await getNativeToken().connect(owner).transfer(beneficiary1.address, globalAmountBeneficiary1);
-    await getNativeToken().connect(owner).transfer(beneficiary2.address, globalAmountBeneficiary2);
-    await getNativeToken().connect(owner).transfer(beneficiary3.address, globalAmountBeneficiary3);
+    await getNativeToken().connect(owner).transfer(beneficiaryMock1.address, globalAmountBeneficiary1);
+    await getNativeToken().connect(owner).transfer(beneficiaryMock2.address, globalAmountBeneficiary2);
+    await getNativeToken().connect(owner).transfer(beneficiaryMock3.address, globalAmountBeneficiary3);
 
     // Set up vault preferences
     await getVaultDistribution().connect(devPower).setMinTokenAmountToDistribute(MIN_BNB_AMOUNT_TO_DISTRIBUTE);
@@ -36,18 +51,18 @@ describe("VaultDistribution: Distribute", function () {
     await getBnb().connect(depositary2).approve(getVaultDistribution().address, bnbAmountPerDepositary);
     await getVaultDistribution().connect(devPower).setDepositary(depositary1.address, true);
     await getVaultDistribution().connect(devPower).setDepositary(depositary2.address, true);
-    await getVaultDistribution().connect(devPower).addBeneficiary(beneficiary1.address);
-    await getVaultDistribution().connect(devPower).addBeneficiary(beneficiary2.address);
-    await getVaultDistribution().connect(devPower).addBeneficiary(beneficiary3.address);
+    await getVaultDistribution().connect(devPower).addBeneficiary(beneficiaryMock1.address);
+    await getVaultDistribution().connect(devPower).addBeneficiary(beneficiaryMock2.address);
+    await getVaultDistribution().connect(devPower).addBeneficiary(beneficiaryMock3.address);
     expect(await getBnb().balanceOf(getVaultDistribution().address)).equal(0);
 
     // Starting test.
     // First deposit of 5bnb does not trigger distribution process because of the minimum configured is 6bnb
     await getVaultDistribution().connect(depositary1).deposit(bnbAmountPerDepositary);
     expect(await getBnb().balanceOf(getVaultDistribution().address)).equal(bnbAmountPerDepositary);
-    expect(await getBnb().balanceOf(beneficiary1.address)).equal(0);
-    expect(await getBnb().balanceOf(beneficiary2.address)).equal(0);
-    expect(await getBnb().balanceOf(beneficiary3.address)).equal(0);
+    expect(await getBnb().balanceOf(beneficiaryMock1.address)).equal(0);
+    expect(await getBnb().balanceOf(beneficiaryMock2.address)).equal(0);
+    expect(await getBnb().balanceOf(beneficiaryMock3.address)).equal(0);
 
     // Second deposit of 5bnb make vault to have 10bnb so it runs the distribution process between 3 beneficiaries.
     await expect(getVaultDistribution().connect(depositary2).deposit(bnbAmountPerDepositary))
@@ -59,9 +74,9 @@ describe("VaultDistribution: Distribute", function () {
     const expectedBnbAmountForBeneficiary2 = globalAmountBeneficiary2;
     const expectedBnbAmountForBeneficiary3 = globalAmountBeneficiary3;
 
-    expect(await getBnb().balanceOf(beneficiary1.address)).equal(expectedBnbAmountForBeneficiary1);
-    expect(await getBnb().balanceOf(beneficiary2.address)).equal(expectedBnbAmountForBeneficiary2);
-    expect(await getBnb().balanceOf(beneficiary3.address)).equal(expectedBnbAmountForBeneficiary3);
+    expect(await getBnb().balanceOf(beneficiaryMock1.address)).equal(expectedBnbAmountForBeneficiary1);
+    expect(await getBnb().balanceOf(beneficiaryMock2.address)).equal(expectedBnbAmountForBeneficiary2);
+    expect(await getBnb().balanceOf(beneficiaryMock3.address)).equal(expectedBnbAmountForBeneficiary3);
     expect(await getBnb().balanceOf(getVaultDistribution().address)).equal(0);
   });
 });

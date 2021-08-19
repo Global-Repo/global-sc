@@ -236,7 +236,7 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
 
         // TODO: ensure reward of pool is in WBNB and not BUNNY
         uint before = bunny.balanceOf(address(this));
-        uint deadline = block.timestamp.add(2 hours);
+        uint deadline = block.timestamp;
 
         address[] memory pathToBunny = pathFinder.findPath(
             tokenAddresses.findByName(tokenAddresses.BNB()),
