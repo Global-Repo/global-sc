@@ -9,6 +9,7 @@ import "./PausableUpgradeable.sol";
 import "./WhitelistUpgradeable.sol";
 import "./IMinter.sol";
 import "./IRouterV2.sol";
+import "./IPair.sol";
 import './IPathFinder.sol';
 import "./TokenAddresses.sol";
 
@@ -20,10 +21,11 @@ contract VaultCakeBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable 
     IBEP20 private lpToken;
     IBEP20 private global;
     ICakeMasterChef private cakeMasterChef;
+    IRouterV2 private cakeRouter;
     IMinter private minter;
     address private treasury;
     address private keeper;
-    IRouterV2 private router;
+    IRouterV2 private globalRouter;
     IPathFinder private pathFinder;
     TokenAddresses private tokenAddresses;
 
@@ -70,6 +72,7 @@ contract VaultCakeBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable 
         address _lpToken,
         address _global,
         address _cakeMasterChef,
+        address _cakeRouter,
         address _treasury,
         address _tokenAddresses,
         address _router,
@@ -80,6 +83,7 @@ contract VaultCakeBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable 
         lpToken = IBEP20(_lpToken);
         global = IBEP20(_global);
         cakeMasterChef = ICakeMasterChef(_cakeMasterChef);
+        cakeRouter = IRouterV2(_cakeRouter);
         treasury = _treasury;
         keeper = _keeper;
 
@@ -92,7 +96,7 @@ contract VaultCakeBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable 
         setDefaultRewardFees();
 
         tokenAddresses = TokenAddresses(_tokenAddresses);
-        router = IRouterV2(_router);
+        globalRouter = IRouterV2(_router);
         pathFinder = IPathFinder(_pathFinder);
     }
 
@@ -296,13 +300,13 @@ contract VaultCakeBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable 
         if (amountToBurn < DUST) {
             amountToUser = amountToUser.add(amountToBurn);
         } else {
-            router.swapExactTokensForTokens(amountToBurn, 0, pathToGlobal, GLOBAL_BURN_ADDRESS, deadline);
+            globalRouter.swapExactTokensForTokens(amountToBurn, 0, pathToGlobal, GLOBAL_BURN_ADDRESS, deadline);
         }
 
         if (amountToTeam < DUST) {
             amountToUser = amountToUser.add(amountToTeam);
         } else {
-            router.swapExactTokensForTokens(amountToTeam, 0, pathToBusd, treasury, deadline);
+            globalRouter.swapExactTokensForTokens(amountToTeam, 0, pathToBusd, treasury, deadline);
         }
 
         lpToken.safeTransfer(msg.sender, amountToUser);
@@ -314,44 +318,66 @@ contract VaultCakeBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable 
             return; // No rewards
         }
 
-        uint deadline = block.timestamp.add(2 hours);
-        uint amountToUser = _amount.mul(rewards.toUser).div(10000);
-        uint amountToOperations = _amount.mul(rewards.toOperations).div(10000);
-        uint amountToBuyGlobal = _amount.mul(rewards.toBuyGlobal).div(10000);
-        uint amountToBuyBNB = _amount.mul(rewards.toBuyBNB).div(10000);
+        IPair pair = IPair(tokenAddresses.findByName(tokenAddresses.CAKE_BNB_LP()));
+        address token0 = pair.token0();
+        address token1 = pair.token1();
+        address WBNB = tokenAddresses.findByName(tokenAddresses.BNB());
+        address CAKE = tokenAddresses.findByName(tokenAddresses.CAKE());
+
+        uint amountA;
+        uint amountBNB;
+        uint amountFinal;
+
+        if (IBEP20(address(pair)).allowance(address(this), address(cakeRouter)) == 0) {
+            IBEP20(address(pair)).safeApprove(address(cakeRouter), uint(- 1));
+        }
+        if (IBEP20(CAKE).allowance(address(this), address(globalRouter)) == 0) {
+            IBEP20(CAKE).safeApprove(address(globalRouter), uint(- 1));
+        }
+
+        (amountA, amountBNB) = cakeRouter.removeLiquidityETH(token0 != WBNB ? token0 : token1, _amount, 0, 0, address(this), block.timestamp);
+        uint256[] memory bnbsSwaped = globalRouter.swapExactETHForTokens(amountBNB, pathFinder.findPath(WBNB, token0 != WBNB ? token0 : token1), address(this), block.timestamp);
+        amountFinal = amountA.add(bnbsSwaped[bnbsSwaped.length-1]);
+
+        uint deadline = block.timestamp;
+        uint amountToUser = amountFinal.mul(rewards.toUser).div(10000);
+        uint amountToOperations = amountFinal.mul(rewards.toOperations).div(10000);
+        uint amountToBuyGlobal = amountFinal.mul(rewards.toBuyGlobal).div(10000);
+        uint amountToBuyBNB = amountFinal.mul(rewards.toBuyBNB).div(10000);
+
 
         address[] memory pathToGlobal = pathFinder.findPath(
-            tokenAddresses.findByName(tokenAddresses.CAKE_BNB_LP()),
+            tokenAddresses.findByName(tokenAddresses.CAKE()),
             tokenAddresses.findByName(tokenAddresses.GLOBAL())
         );
 
         address[] memory pathToBusd = pathFinder.findPath(
-            tokenAddresses.findByName(tokenAddresses.CAKE_BNB_LP()),
+            tokenAddresses.findByName(tokenAddresses.CAKE()),
             tokenAddresses.findByName(tokenAddresses.BUSD())
         );
 
         address[] memory pathToBnb = pathFinder.findPath(
-            tokenAddresses.findByName(tokenAddresses.CAKE_BNB_LP()),
+            tokenAddresses.findByName(tokenAddresses.CAKE()),
             tokenAddresses.findByName(tokenAddresses.BNB())
         );
 
         if (amountToOperations < DUST) {
             amountToUser = amountToUser.add(amountToOperations);
         } else {
-            router.swapExactTokensForTokens(amountToOperations, 0, pathToBusd, treasury, deadline);
+            globalRouter.swapExactTokensForTokens(amountToOperations, 0, pathToBusd, treasury, deadline);
         }
 
         if (amountToBuyBNB < DUST) {
             amountToUser = amountToUser.add(amountToBuyBNB);
         } else {
-            router.swapExactTokensForTokens(amountToBuyBNB, 0, pathToBnb, keeper, deadline);
+            globalRouter.swapExactTokensForTokens(amountToBuyBNB, 0, pathToBnb, keeper, deadline);
         }
 
         if (amountToBuyGlobal < DUST) {
             amountToUser = amountToUser.add(amountToBuyGlobal);
         } else {
             uint beforeSwap = global.balanceOf(address(this));
-            router.swapExactTokensForTokens(amountToBuyGlobal, 0, pathToGlobal, address(this), deadline);
+            globalRouter.swapExactTokensForTokens(amountToBuyGlobal, 0, pathToGlobal, address(this), deadline);
             uint amountGlobalBought = global.balanceOf(address(this)).sub(beforeSwap);
 
             global.safeTransfer(keeper, amountGlobalBought); // To keeper as cake vault
