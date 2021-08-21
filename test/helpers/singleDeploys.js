@@ -1,3 +1,4 @@
+const ethers = require("hardhat").ethers;
 const { NATIVE_TOKEN_PER_BLOCK } = require("./constants.js");
 
 let deployedGlobalAddress;

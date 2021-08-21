@@ -20,7 +20,7 @@ let vaultVested;
 let vaultLocked;
 
 let deploy = async function () {
-    [owner, treasury, user1, user2, user3, user4, ...addrs] = await ethers.getSigners();
+    [owner, user1, user2, depositary1, depositary2, ...addrs] = await ethers.getSigners();
     nativeToken = await deployGlobal();
     weth = await deployBnb();
     tokenAddresses = await deployTokenAddresses();

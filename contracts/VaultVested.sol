@@ -70,10 +70,6 @@ contract VaultVested is DepositoryRestriction, IDistributable {
         return principalOf(_account);
     }
 
-    function withdrawableBalanceOf(address _account) public view returns (uint) {
-        return balanceOf(_account);
-    }
-
     function principalOf(address _account) public view returns (uint) {
         return principal[_account];
     }
