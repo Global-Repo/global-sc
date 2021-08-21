@@ -102,26 +102,25 @@ let deployVaultDistribution = async function (bnb, global, devAddress) {
     return vaultDistribution;
 };
 
+let deployVaultLocked = async function (global, bnb) {
+    const VaultLocked = await ethers.getContractFactory("VaultLocked");
+    const vaultLocked = await VaultLocked.deploy(global, bnb);
+    await vaultLocked.deployed();
+    return vaultLocked;
+};
+
 let deployVaultVested = async function (
     global,
     bnb,
     globalMasterChef,
-    treasury,
     vaultLocked,
-    tokenAddresses,
-    router,
-    pathFinder,
 ) {
     const VaultVested = await ethers.getContractFactory("VaultVested");
     const vaultVested = await VaultVested.deploy(
         global,
         bnb,
         globalMasterChef,
-        treasury,
         vaultLocked,
-        tokenAddresses,
-        router,
-        pathFinder,
     );
     await vaultVested.deployed();
     return vaultVested;
@@ -169,4 +168,5 @@ module.exports = {
     deployVaultDistribution,
     deployVaultCake,
     deployVaultVested,
+    deployVaultLocked,
 };

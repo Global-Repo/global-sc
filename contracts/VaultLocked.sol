@@ -17,22 +17,24 @@ contract VaultLocked is IDistributable {
 
     event Deposited(address indexed _account, uint _amount);
 
-    function triggerDistribute() external override {
-        //_distribute();
+    constructor(address _global, address _bnb) public {
+        global = IBEP20(_global);
+        bnb = IBEP20(_bnb);
     }
 
-    // TODO: Only depositories?
+    function triggerDistribute() external override {
+        _distribute();
+    }
+
+    // Deposit globals
+    // Users can deposit globals here
     function deposit(uint _amount, address _account) public {
         global.safeTransferFrom(msg.sender, address(this), _amount);
 
-        /*
-        uint shares = totalShares == 0 ? _amount : (_amount.mul(totalShares)).div(balance());
-        totalShares = totalShares.add(shares);
-        _shares[_account] = _shares[_account].add(shares);
-        _principal[_account] = _principal[_account].add(_amount);
-        _depositedAt[_account] = block.timestamp;
-        */
-
         emit Deposited(_account, _amount);
+    }
+
+    function _distribute() private {
+        // TODO
     }
 }

@@ -21,12 +21,12 @@ contract VaultVested is DepositoryRestriction, IDistributable {
     uint private constant DUST = 1000;
 
     uint256 public pid;
-    uint public totalShares;
     uint public minTokenAmountToDistribute;
-    mapping (address => uint) private _shares;
-    mapping (address => uint) private _principal;
-    mapping (address => uint) private _depositedAt;
-    mapping (address => uint) private _bnbEarned;
+    address[] public users;
+    mapping (address => uint) private principal;
+    mapping (address => uint) private depositedAt;
+    mapping (address => uint) private bnbEarned;
+    uint public totalSupply;
 
     struct PenaltyFees {
         uint16 fee;       // % to locked vault (in Global)
@@ -35,10 +35,9 @@ contract VaultVested is DepositoryRestriction, IDistributable {
 
     PenaltyFees public penaltyFees;
 
-    event Deposited(address indexed user, uint amount);
-    event Withdrawn(address indexed user, uint amount, uint withdrawalFee);
-    event ProfitPaid(address indexed user, uint amount);
-    event Recovered(address token, uint amount);
+    event Deposited(address indexed _user, uint _amount);
+    event Withdrawn(address indexed _user, uint _amount, uint _penaltyFees);
+    event RewardPaid(address indexed _user, uint _amount);
 
     constructor(
         address _global,
@@ -55,52 +54,36 @@ contract VaultVested is DepositoryRestriction, IDistributable {
         minTokenAmountToDistribute = 1e18; // 1 BEP20 Token
 
         _allowance(global, _globalMasterChef);
+        _allowance(global, _vaultLocked);
     }
 
     function triggerDistribute() external override {
         _distribute();
     }
 
-    function totalSupply() external view returns (uint) {
-        return totalShares;
-    }
-
     function balance() public view returns (uint amount) {
         (amount,) = globalMasterChef.userInfo(pid, address(this));
     }
 
-    function balanceOf(address account) public view returns(uint) {
-        if (totalShares == 0) return 0;
-        return balance().mul(sharesOf(account)).div(totalShares);
+    function balanceOf(address _account) public view returns(uint) {
+        if (totalSupply == 0) return 0;
+        return principalOf(_account);
     }
 
-    function withdrawableBalanceOf(address account) public view returns (uint) {
-        return balanceOf(account);
+    function withdrawableBalanceOf(address _account) public view returns (uint) {
+        return balanceOf(_account);
     }
 
-    function sharesOf(address account) public view returns (uint) {
-        return _shares[account];
+    function principalOf(address _account) public view returns (uint) {
+        return principal[_account];
     }
 
-    function principalOf(address account) public view returns (uint) {
-        return _principal[account];
-    }
-
-    function earned(address account) public view returns (uint) {
-        if (balanceOf(account) >= principalOf(account) + DUST) {
-            return balanceOf(account).sub(principalOf(account));
+    function earned(address _account) public view returns (uint) {
+        if (principalOf(_account) > 0) {
+            return bnbEarned[_account];
         } else {
             return 0;
         }
-    }
-
-    function priceShare() external view returns(uint) {
-        if (totalShares == 0) return 1e18;
-        return balance().mul(1e18).div(totalShares);
-    }
-
-    function depositedAt(address account) external view returns (uint) {
-        return _depositedAt[account];
     }
 
     function rewardsToken() external view returns (address) {
@@ -109,51 +92,53 @@ contract VaultVested is DepositoryRestriction, IDistributable {
 
     // Deposit globals.
     // Depository will deposit globals but the account tracking is for the user.
-    // TODO: can be de trigger to distribute BNB instead IDistributable
     function deposit(uint _amount, address _account) public onlyDepositories {
         global.safeTransferFrom(msg.sender, address(this), _amount);
 
-        uint shares = totalShares == 0 ? _amount : (_amount.mul(totalShares)).div(balance());
-        totalShares = totalShares.add(shares);
-        _shares[_account] = _shares[_account].add(shares);
-        _principal[_account] = _principal[_account].add(_amount);
-        _depositedAt[_account] = block.timestamp;
-
         globalMasterChef.enterStaking(_amount);
+
+        if (depositedAt[_account] == 0) {
+            users.push(_account);
+        }
+
+        depositedAt[_account] = block.timestamp;
+        totalSupply = totalSupply.add(_amount);
+        principal[_account] = principal[_account].add(_amount);
+
+        if (earned(_account) == 0) {
+            bnbEarned[_account] = 0;
+        }
 
         emit Deposited(_account, _amount);
     }
 
+    // Withdraw all only
     function withdraw() external {
         uint amount = balanceOf(msg.sender);
-        uint principal = principalOf(msg.sender);
-        // TODO shares and principal the same here?
+        uint earned = earned(msg.sender);
 
         globalMasterChef.leaveStaking(amount);
 
         handlePenaltyFees(amount);
-        handleRewards(_bnbEarned[msg.sender]);
+        handleRewards(earned);
 
-        totalShares = totalShares.sub(_shares[msg.sender]);
-        delete _shares[msg.sender];
-        delete _principal[msg.sender];
-        delete _depositedAt[msg.sender];
-        delete _bnbEarned[msg.sender];
+        totalSupply = totalSupply.sub(amount);
+        delete depositedAt[msg.sender];
+        _deleteUser(msg.sender);
+        delete principal[msg.sender];
+        delete bnbEarned[msg.sender];
     }
 
     function getReward() external {
-        uint amount = earned(msg.sender);
-        uint shares = Math.min(amount.mul(totalShares).div(balance()), _shares[msg.sender]);
+        uint earned = earned(msg.sender);
 
-        uint globalHarvested = _withdrawStakingToken(amount);
+        handleRewards(earned);
 
-        totalShares = totalShares.sub(shares);
-        _shares[msg.sender] = _shares[msg.sender].sub(shares);
-        _cleanupIfDustShares();
+        delete bnbEarned[msg.sender];
     }
 
     function handlePenaltyFees(uint _amount) private {
-        if (_depositedAt[msg.sender].add(penaltyFees.interval) < block.timestamp) {
+        if (depositedAt[msg.sender].add(penaltyFees.interval) < block.timestamp) {
             // No penalty fees
             global.safeTransfer(msg.sender, _amount);
             emit Withdrawn(msg.sender, _amount, 0);
@@ -166,48 +151,35 @@ contract VaultVested is DepositoryRestriction, IDistributable {
         if (amountToVaultLocked < DUST) {
             amountToUser = amountToUser.add(amountToVaultLocked);
         } else {
-            // TODO: not transfer, instead call deposit method and send tokens as user not as vested vault
-            global.safeTransfer(address(vaultLocked), amountToVaultLocked);
+            vaultLocked.deposit(amountToVaultLocked, msg.sender);
         }
 
         global.safeTransfer(msg.sender, amountToUser);
 
-        emit Withdrawn(msg.sender, amountToUser, 0);
+        emit Withdrawn(msg.sender, amountToUser, amountToVaultLocked);
     }
 
-    function handleRewards(uint _amount) private {
-        if (_amount < DUST) {
+    function handleRewards(uint _earned) private {
+        if (_earned < DUST) {
             return; // No rewards
         }
 
-        bnb.safeTransfer(msg.sender, _bnbEarned[msg.sender]);
+        bnb.safeTransfer(msg.sender, _earned);
 
-        emit ProfitPaid(msg.sender, _bnbEarned[msg.sender]);
-    }
-
-    function _depositStakingToken(uint amount) private returns(uint globalHarvested) {
-        uint before = global.balanceOf(address(this));
-        globalMasterChef.enterStaking(amount);
-        globalHarvested = global.balanceOf(address(this)).add(amount).sub(before);
-    }
-
-    function _withdrawStakingToken(uint amount) private returns(uint globalHarvested) {
-        uint before = global.balanceOf(address(this));
-        globalMasterChef.leaveStaking(amount);
-        globalHarvested = global.balanceOf(address(this)).sub(amount).sub(before);
-    }
-
-    function _cleanupIfDustShares() private {
-        uint shares = _shares[msg.sender];
-        if (shares > 0 && shares < DUST) {
-            totalShares = totalShares.sub(shares);
-            delete _shares[msg.sender];
-        }
+        emit RewardPaid(msg.sender, _earned);
     }
 
     function _allowance(IBEP20 _token, address _account) private {
         _token.safeApprove(_account, uint(0));
         _token.safeApprove(_account, uint(~0));
+    }
+
+    function _deleteUser(address _account) private {
+        for (uint8 i = 0; i < users.length; i++) {
+            if (users[i] == _account) {
+                delete users[i];
+            }
+        }
     }
 
     function _distribute() private {
@@ -217,14 +189,14 @@ contract VaultVested is DepositoryRestriction, IDistributable {
             // Nothing to distribute.
             return;
         }
-        /*
-        for (uint i; i < _shares.length - 1; i++) {
-            uint userSharesPercent = _shares[i].div(totalShares);
-            uint bnbToUser = currentBNBAmount.mul(userSharesPercent);
 
-            _bnbEarned[i] = _bnbEarned[i].add(bnbToUser);
+        for (uint i=0; i < users.length; i++) {
+            uint userPercentage = principalOf(users[i]).mul(100).div(totalSupply);
+            uint bnbToUser = currentBNBAmount.mul(userPercentage).div(100);
+
+            bnbEarned[users[i]] = bnbEarned[users[i]].add(bnbToUser);
         }
-        */
+
         emit Distributed(currentBNBAmount);
     }
 }

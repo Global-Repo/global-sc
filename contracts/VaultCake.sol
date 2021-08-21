@@ -348,7 +348,6 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             router.swapExactTokensForTokens(amountToBuyGlobal, 0, pathToGlobal, address(this), deadline);
             uint amountGlobalBought = global.balanceOf(address(this)).sub(beforeSwap);
 
-            // Deposits to vault vested the minted global tokens as cake vault.
             vaultVested.deposit(amountGlobalBought, address(this));
 
             uint amountToMintGlobal = amountGlobalBought.mul(rewards.toMintGlobal).div(10000);
@@ -356,7 +355,6 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             minter.mintNativeTokens(amountToMintGlobal);
             uint amountGlobalMinted = global.balanceOf(address(this)).sub(beforeMint);
 
-            // Deposits to vault vested the minted global tokens as user.
             vaultVested.deposit(amountGlobalMinted, msg.sender);
         }
 

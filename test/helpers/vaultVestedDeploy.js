@@ -7,6 +7,7 @@ const {
     deployMasterChef,
     deployRouterMock,
     deployVaultVested,
+    deployVaultLocked,
 } = require("./singleDeploys.js");
 
 let nativeToken;
@@ -16,9 +17,10 @@ let tokenAddresses;
 let routerMock;
 let pathFinderMock;
 let vaultVested;
+let vaultLocked;
 
 let deploy = async function () {
-    [owner, treasury, vaultLocked, user1, user2, user3, user4, ...addrs] = await ethers.getSigners();
+    [owner, treasury, user1, user2, user3, user4, ...addrs] = await ethers.getSigners();
     nativeToken = await deployGlobal();
     weth = await deployBnb();
     tokenAddresses = await deployTokenAddresses();
@@ -27,6 +29,8 @@ let deploy = async function () {
 
     await tokenAddresses.addToken(tokenAddresses.BNB(), weth.address);
     await tokenAddresses.addToken(tokenAddresses.GLOBAL(), nativeToken.address);
+
+    vaultLocked = await deployVaultLocked(nativeToken.address, weth.address);
 
     minter = await deployMasterChef(
         nativeToken.address,
@@ -40,11 +44,7 @@ let deploy = async function () {
         nativeToken.address,
         weth.address,
         minter.address,
-        treasury.address,
-        vaultLocked.address,
-        tokenAddresses.address,
-        routerMock.address,
-        pathFinderMock.address,
+        vaultLocked.address
     );
 };
 
@@ -52,8 +52,8 @@ let getNativeToken = function () { return nativeToken }
 let getBnb = function () { return weth }
 let getMinter = function () { return minter }
 let getRouterMock = function () { return routerMock }
-let getVaultDistribution = function () { return vaultDistribution }
 let getVaultVested = function () { return vaultVested }
+let getVaultLocked = function () { return vaultLocked }
 
 module.exports = {
     deploy,
@@ -61,6 +61,6 @@ module.exports = {
     getBnb,
     getMinter,
     getRouterMock,
-    getVaultDistribution,
     getVaultVested,
+    getVaultLocked,
 };

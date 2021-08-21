@@ -3,10 +3,8 @@ const {
   deploy,
   getNativeToken,
   getBnb,
-  getMinter,
-  getRouterMock,
-  getVaultDistribution,
   getVaultVested,
+  getMinter,
 } = require("../../helpers/vaultVestedDeploy.js");
 
 beforeEach(async function () {
