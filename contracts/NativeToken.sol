@@ -22,7 +22,7 @@ contract NativeToken is BEP20{
     mapping(address => bool) private _antiWhaleWhiteList;
 
     // DS: 2% del supply és el màxim que es pot transferir inicialment (es podrà modificar després). En diferent base per evitar decimals.
-    uint16 public antiWhalePercent = 200;
+    uint16 public antiWhalePercent = MAX_ANTIWHALE;
 
     // DS: El dev és el únic que pot modificar les variables propies del token.
     address private _mainDevWallet;
@@ -86,7 +86,7 @@ contract NativeToken is BEP20{
     }
 
     /// @notice Creates `_amount` token to `_to`. Must only be called by the owner (MasterChef).
-    // TODO: mint to mints because of duplciated name with mint BEP20
+    // TODO: mint to mints because of duplicated name with mint BEP20
     function mints(address _to, uint256 _amount) public onlyOwner {
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
