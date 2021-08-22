@@ -147,7 +147,7 @@ contract VaultVested is DepositoryRestriction, IDistributable {
         if (amountToVaultLocked < DUST) {
             amountToUser = amountToUser.add(amountToVaultLocked);
         } else {
-            vaultLocked.deposit(amountToVaultLocked, msg.sender);
+            vaultLocked.deposit(amountToVaultLocked);
         }
 
         global.safeTransfer(msg.sender, amountToUser);

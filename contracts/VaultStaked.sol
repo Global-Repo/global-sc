@@ -5,7 +5,6 @@ import "./SafeBEP20.sol";
 import "./Math.sol";
 import "./IGlobalMasterChef.sol";
 import "./IDistributable.sol";
-import "./VaultLocked.sol";
 
 
 contract VaultStaked is IDistributable {
@@ -16,7 +15,6 @@ contract VaultStaked is IDistributable {
     IBEP20 private global;
     IBEP20 private bnb;
     IGlobalMasterChef private globalMasterChef;
-    VaultLocked private vaultLocked;
 
     uint private constant DUST = 1000;
 
@@ -24,7 +22,6 @@ contract VaultStaked is IDistributable {
     uint public minTokenAmountToDistribute;
     address[] public users;
     mapping (address => uint) private principal;
-    mapping (address => uint) private depositedAt;
     mapping (address => uint) private bnbEarned;
     uint public totalSupply;
 
@@ -87,15 +84,23 @@ contract VaultStaked is IDistributable {
 
     // Deposit globals.
     function deposit(uint _amount) public {
+        bool userExists = false;
         global.safeTransferFrom(msg.sender, address(this), _amount);
 
         globalMasterChef.enterStaking(_amount);
 
-        if (depositedAt[msg.sender] == 0) {
+
+        for (uint j = 0; j < users.length; j++) {
+            if (users[j] == msg.sender)
+            {
+                userExists = true;
+                break;
+            }
+        }
+        if (!userExists){
             users.push(msg.sender);
         }
 
-        depositedAt[msg.sender] = block.timestamp;
         totalSupply = totalSupply.add(_amount);
         principal[msg.sender] = principal[msg.sender].add(_amount);
 
@@ -114,7 +119,6 @@ contract VaultStaked is IDistributable {
         globalMasterChef.leaveStaking(amount);
         handleRewards(earnedU);
         totalSupply = totalSupply.sub(amount);
-        delete depositedAt[msg.sender];
         _deleteUser(msg.sender);
         delete principal[msg.sender];
         delete bnbEarned[msg.sender];
