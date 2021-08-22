@@ -4,11 +4,10 @@ pragma solidity ^0.6.12;
 import "./SafeBEP20.sol";
 import "./Math.sol";
 import "./IGlobalMasterChef.sol";
-import './DepositoryRestriction.sol';
 import "./IDistributable.sol";
-import "./VaultLocked.sol";
 
-contract VaultVested is DepositoryRestriction, IDistributable {
+
+contract VaultStaked is IDistributable {
     using SafeBEP20 for IBEP20;
     using SafeMath for uint;
     using SafeMath for uint16;
@@ -16,7 +15,6 @@ contract VaultVested is DepositoryRestriction, IDistributable {
     IBEP20 private global;
     IBEP20 private bnb;
     IGlobalMasterChef private globalMasterChef;
-    VaultLocked private vaultLocked;
 
     uint private constant DUST = 1000;
 
@@ -24,37 +22,35 @@ contract VaultVested is DepositoryRestriction, IDistributable {
     uint public minTokenAmountToDistribute;
     address[] public users;
     mapping (address => uint) private principal;
-    mapping (address => uint) private depositedAt;
     mapping (address => uint) private bnbEarned;
     uint public totalSupply;
 
-    struct PenaltyFees {
-        uint16 fee;       // % to locked vault (in Global)
-        uint256 interval; // Meanwhile, penalty fees will be apply (timestamp)
-    }
-
-    PenaltyFees public penaltyFees;
-
     event Deposited(address indexed _user, uint _amount);
-    event Withdrawn(address indexed _user, uint _amount, uint _penaltyFees);
+    event Withdrawn(address indexed _user, uint _amount);
     event RewardPaid(address indexed _user, uint _amount);
 
     constructor(
         address _global,
         address _bnb,
-        address _globalMasterChef,
-        address _vaultLocked
+        address _globalMasterChef
     ) public {
-        pid = 0;
-        global = IBEP20(_global);
-        bnb = IBEP20(_bnb);
-        globalMasterChef = IGlobalMasterChef(_globalMasterChef);
-        vaultLocked = VaultLocked(_vaultLocked);
+        // Pid del vault.
+        pid = 1;
 
+        // Li passem el address de global
+        global = IBEP20(_global);
+
+        // Li passem el address de bnb
+        bnb = IBEP20(_bnb);
+
+        // Li passem el address del masterchef a on es depositaràn els GLOBALs
+        globalMasterChef = IGlobalMasterChef(_globalMasterChef);
+
+        // Es repartirà 1bnb com a mínim. En cas contrari, no repartirem.
         minTokenAmountToDistribute = 1e18; // 1 BEP20 Token
 
+        //
         _allowance(global, _globalMasterChef);
-        _allowance(global, _vaultLocked);
     }
 
     function triggerDistribute() external override {
@@ -87,72 +83,51 @@ contract VaultVested is DepositoryRestriction, IDistributable {
     }
 
     // Deposit globals.
-    // Depository will deposit globals but the account tracking is for the user.
-    function deposit(uint _amount, address _account) public onlyDepositories {
+    function deposit(uint _amount) public {
+        bool userExists = false;
         global.safeTransferFrom(msg.sender, address(this), _amount);
 
         globalMasterChef.enterStaking(_amount);
 
-        if (depositedAt[_account] == 0) {
-            users.push(_account);
+
+        for (uint j = 0; j < users.length; j++) {
+            if (users[j] == msg.sender)
+            {
+                userExists = true;
+                break;
+            }
+        }
+        if (!userExists){
+            users.push(msg.sender);
         }
 
-        depositedAt[_account] = block.timestamp;
         totalSupply = totalSupply.add(_amount);
-        principal[_account] = principal[_account].add(_amount);
+        principal[msg.sender] = principal[msg.sender].add(_amount);
 
-        if (earned(_account) == 0) {
-            bnbEarned[_account] = 0;
+        if (earned(msg.sender) == 0) {
+            bnbEarned[msg.sender] = 0;
         }
 
-        emit Deposited(_account, _amount);
+        emit Deposited(msg.sender, _amount);
     }
 
     // Withdraw all only
     function withdraw() external {
         uint amount = balanceOf(msg.sender);
-        uint earned = earned(msg.sender);
+        uint earnedU = earned(msg.sender);
 
         globalMasterChef.leaveStaking(amount);
-
-        handlePenaltyFees(amount);
-        handleRewards(earned);
-
+        handleRewards(earnedU);
         totalSupply = totalSupply.sub(amount);
-        delete depositedAt[msg.sender];
         _deleteUser(msg.sender);
         delete principal[msg.sender];
         delete bnbEarned[msg.sender];
     }
 
     function getReward() external {
-        uint earned = earned(msg.sender);
-
-        handleRewards(earned);
-
+        uint earnedU = earned(msg.sender);
+        handleRewards(earnedU);
         delete bnbEarned[msg.sender];
-    }
-
-    function handlePenaltyFees(uint _amount) private {
-        if (depositedAt[msg.sender].add(penaltyFees.interval) < block.timestamp) {
-            // No penalty fees
-            global.safeTransfer(msg.sender, _amount);
-            emit Withdrawn(msg.sender, _amount, 0);
-            return;
-        }
-
-        uint amountToVaultLocked = _amount.mul(penaltyFees.fee).div(10000);
-        uint amountToUser = _amount.sub(amountToVaultLocked);
-
-        if (amountToVaultLocked < DUST) {
-            amountToUser = amountToUser.add(amountToVaultLocked);
-        } else {
-            vaultLocked.deposit(amountToVaultLocked);
-        }
-
-        global.safeTransfer(msg.sender, amountToUser);
-
-        emit Withdrawn(msg.sender, amountToUser, amountToVaultLocked);
     }
 
     function handleRewards(uint _earned) private {
