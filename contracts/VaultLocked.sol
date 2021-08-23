@@ -5,41 +5,54 @@ import "./SafeBEP20.sol";
 import "./Math.sol";
 import "./IGlobalMasterChef.sol";
 import "./IDistributable.sol";
-
+import './Ownable.sol';
 
 // Hem d'afegir un harvest lockup obligatori a cada dipòsit del temps definit a la variable indicada (crear-la).
 // Hem de fer que es distribueixin els tokens GLOBAL que el contracte JA TÉ (fer aquesta part).
 
-contract VaultLocked is IDistributable {
+contract VaultLocked is IDistributable, Ownable {
     using SafeBEP20 for IBEP20;
     using SafeMath for uint;
     using SafeMath for uint16;
 
+    struct DepositInfo {
+        uint amount;
+        uint256 nextHarvest;
+    }
+
+    mapping (address=>DepositInfo[]) private depositInfo;
 
     IBEP20 private global;
     IBEP20 private bnb;
     IGlobalMasterChef private globalMasterChef;
 
-    uint private constant DUST = 1000;
+    uint public constant DUST = 1000;
+    uint256 public constant LOCKUP = 2592000;
 
     uint256 public pid;
     uint public minTokenAmountToDistribute;
+    uint public minGlobalAmountToDistribute;
     address[] public users;
     mapping (address => uint) private principal;
     mapping (address => uint) private bnbEarned;
+    mapping (address => uint) private globalEarned;
     uint public totalSupply;
+    uint256 public lastRewardEvent;
+    uint256 public rewardInterval;
 
     event Deposited(address indexed _user, uint _amount);
     event Withdrawn(address indexed _user, uint _amount);
-    event RewardPaid(address indexed _user, uint _amount);
+    event RewardPaid(address indexed _user, uint _amount, uint _amount2);
+    event DistributedGLOBAL(uint GLOBALAmount);
 
     constructor(
         address _global,
         address _bnb,
-        address _globalMasterChef
+        address _globalMasterChef,
+        uint256 _rewardInterval
     ) public {
         // Pid del vault.
-        pid = 1;
+        pid = 3;
 
         // Li passem el address de global
         global = IBEP20(_global);
@@ -52,13 +65,28 @@ contract VaultLocked is IDistributable {
 
         // Es repartirà 1bnb com a mínim. En cas contrari, no repartirem.
         minTokenAmountToDistribute = 1e18; // 1 BEP20 Token
+        minGlobalAmountToDistribute = 100e18; // 1 BEP20 Token
 
         // ????????? Cal?????
         _allowance(global, _globalMasterChef);
+
+        rewardInterval = _rewardInterval;
+
+        lastRewardEvent = block.timestamp;
+    }
+
+    function setRewardInterval(uint256 _rewardInterval) external onlyOwner {
+        rewardInterval = _rewardInterval;
+    }
+
+    function setMinGlobalAmountToDistribute(uint _minGlobalAmountToDistribute) external onlyOwner {
+        minGlobalAmountToDistribute = _minGlobalAmountToDistribute;
     }
 
     function triggerDistribute() external override {
-        _distribute();
+        _distributeBNB();
+        _distributeGLOBAL();
+
     }
 
     function balance() public view returns (uint amount) {
@@ -74,9 +102,17 @@ contract VaultLocked is IDistributable {
         return principal[_account];
     }
 
-    function earned(address _account) public view returns (uint) {
+    function bnbToEarn(address _account) public view returns (uint) {
         if (principalOf(_account) > 0) {
             return bnbEarned[_account];
+        } else {
+            return 0;
+        }
+    }
+
+    function globalToEarn(address _account) public view returns (uint) {
+        if (principalOf(_account) > 0) {
+            return globalEarned[_account];
         } else {
             return 0;
         }
@@ -91,6 +127,10 @@ contract VaultLocked is IDistributable {
         bool userExists = false;
         global.safeTransferFrom(msg.sender, address(this), _amount);
 
+        depositInfo[msg.sender].push(DepositInfo({
+        amount: _amount,
+        nextHarvest: block.timestamp.add(LOCKUP)
+        }));
         globalMasterChef.enterStaking(_amount);
 
 
@@ -108,20 +148,38 @@ contract VaultLocked is IDistributable {
         totalSupply = totalSupply.add(_amount);
         principal[msg.sender] = principal[msg.sender].add(_amount);
 
-        if (earned(msg.sender) == 0) {
+        if (bnbToEarn(msg.sender) == 0) {
             bnbEarned[msg.sender] = 0;
+        }
+
+        if (globalToEarn(msg.sender) == 0) {
+            globalEarned[msg.sender] = 0;
         }
 
         emit Deposited(msg.sender, _amount);
     }
 
+    function withdrawAvailable(uint256 _time, address _user) public view returns (uint totalAmount)
+    {
+        DepositInfo[] memory myDeposits =  depositInfo[_user];
+        for(uint i=0; i< myDeposits.length; i++)
+        {
+            if(myDeposits[i].nextHarvest<_time)
+            {
+                totalAmount=totalAmount.add(myDeposits[i].amount);
+            }
+        }
+    }
+
     // Withdraw all only
     function withdraw() external {
-        uint amount = balanceOf(msg.sender);
-        uint earnedU = earned(msg.sender);
+        uint amount = withdrawAvailable(block.timestamp,msg.sender);
+        require(amount > 0, "VaultLocked: you have no tokens to withdraw!");
+        uint earnedBNB = bnbToEarn(msg.sender);
+        uint earnedGLOBAL = globalToEarn(msg.sender);
 
         globalMasterChef.leaveStaking(amount);
-        handleRewards(earnedU);
+        handleRewards(earnedBNB,earnedGLOBAL);
         totalSupply = totalSupply.sub(amount);
         _deleteUser(msg.sender);
         delete principal[msg.sender];
@@ -129,19 +187,24 @@ contract VaultLocked is IDistributable {
     }
 
     function getReward() external {
-        uint earnedU = earned(msg.sender);
-        handleRewards(earnedU);
+        uint earnedBNB = bnbToEarn(msg.sender);
+        uint earnedGLOBAL = globalToEarn(msg.sender);
+        handleRewards(earnedBNB,earnedGLOBAL);
         delete bnbEarned[msg.sender];
+        delete globalEarned[msg.sender];
     }
 
-    function handleRewards(uint _earned) private {
-        if (_earned < DUST) {
+    function handleRewards(uint _earnedBNB, uint _earnedGLOBAL) private {
+        if (_earnedBNB > DUST) {
+            bnb.safeTransfer(msg.sender, _earnedBNB);
+            return; // No rewards
+        }
+        if (_earnedGLOBAL > DUST) {
+            global.safeTransfer(msg.sender, _earnedGLOBAL);
             return; // No rewards
         }
 
-        bnb.safeTransfer(msg.sender, _earned);
-
-        emit RewardPaid(msg.sender, _earned);
+        emit RewardPaid(msg.sender, _earnedBNB, _earnedGLOBAL);
     }
 
     function _allowance(IBEP20 _token, address _account) private {
@@ -157,7 +220,7 @@ contract VaultLocked is IDistributable {
         }
     }
 
-    function _distribute() private {
+    function _distributeBNB() private {
         uint currentBNBAmount = bnb.balanceOf(address(this));
 
         if (currentBNBAmount < minTokenAmountToDistribute) {
@@ -173,5 +236,20 @@ contract VaultLocked is IDistributable {
         }
 
         emit Distributed(currentBNBAmount);
+    }
+
+    function _distributeGLOBAL() private {
+        uint currentGLOBALAmount = global.balanceOf(address(this));
+        if(lastRewardEvent.add(rewardInterval)>=block.timestamp && currentGLOBALAmount >= minGlobalAmountToDistribute)
+        {
+            lastRewardEvent = block.timestamp;
+            for (uint i=0; i < users.length; i++) {
+                uint userPercentage = principalOf(users[i]).mul(100).div(totalSupply);
+                uint globalToUser = currentGLOBALAmount.mul(userPercentage).div(100).div(20);
+
+                globalEarned[users[i]] = globalEarned[users[i]].add(globalToUser);
+            }
+            emit DistributedGLOBAL(currentGLOBALAmount);
+        }
     }
 }
