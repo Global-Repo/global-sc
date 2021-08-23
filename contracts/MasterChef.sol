@@ -241,7 +241,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         safu = _safu;
     }
 
-    function getIfSAFU() public view returns(bool){
+    function isSAFU() public view returns(bool){
         return safu;
     }
 
@@ -379,10 +379,10 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         uint16 _performanceFeesOfNativeTokensBurn,
         uint16 _performanceFeesOfNativeTokensToLockedVault
     ) public onlyOwner {
-        require(_harvestInterval <= MAX_INTERVAL, "[f] Add: invalid harvest interval");
-        require(_maxWithdrawalInterval <= MAX_INTERVAL, "[f] Add: invalid withdrawal interval. Owner, there is a limit! Check your numbers.");
-        require(_withDrawalFeeOfLpsTeam.add(_withDrawalFeeOfLpsBurn) <= MAX_FEE_LPS, "[f] Add: invalid withdrawal fees. Owner, you are trying to charge way too much! Check your numbers.");
-        require(_performanceFeesOfNativeTokensBurn.add(_performanceFeesOfNativeTokensToLockedVault) <= MAX_FEE_PERFORMANCE, "[f] Add: invalid performance fees. Owner, you are trying to charge way too much! Check your numbers.");
+        require(_harvestInterval <= MAX_INTERVAL, "[f] Set: invalid harvest interval");
+        require(_maxWithdrawalInterval <= MAX_INTERVAL, "[f] Set: invalid withdrawal interval. Owner, there is a limit! Check your numbers.");
+        require(_withDrawalFeeOfLpsTeam.add(_withDrawalFeeOfLpsBurn) <= MAX_FEE_LPS, "[f] Set: invalid withdrawal fees. Owner, you are trying to charge way too much! Check your numbers.");
+        require(_performanceFeesOfNativeTokensBurn.add(_performanceFeesOfNativeTokensToLockedVault) <= MAX_FEE_PERFORMANCE, "[f] Set: invalid performance fees. Owner, you are trying to charge way too much! Check your numbers.");
 
         if (_withUpdate) {
             massUpdatePools();
@@ -401,6 +401,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
 
     }
 
+    /*
     // Set the migrator contract. Can only be called by the owner.
     function setMigrator(IMigratorChef _migrator) public onlyOwner {
         migrator = _migrator;
@@ -416,7 +417,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         IBEP20 newLpToken = migrator.migrate(lpToken);
         require(bal == newLpToken.balanceOf(address(this)), "[f] Migrate: this is fucked up.");
         pool.lpToken = newLpToken;
-    }
+    }*/
 
     // Return reward multiplier over the given _from to _to block.
     function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
