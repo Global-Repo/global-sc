@@ -97,9 +97,9 @@ beforeEach(async function () {
 });
 
 describe("MasterChef: Pools", function () {
-  xit("Should to add a new liquidity provider (LP) pool", async function () {
+  it("Should to add a new liquidity provider (LP) pool", async function () {
     let date = new Date();
-    const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+    const deadline = date.setTime(date.getTime() + 2 * 3600); // +2 hours
 
     await router.addLiquidity(
         tokenA.address,
@@ -129,7 +129,7 @@ describe("MasterChef: Pools", function () {
     const poolInfo = await masterChef.poolInfo(1);
 
     expect(await masterChef.poolLength()).to.equal(2);
-    expect(poolInfo.allocPoint).to.equal(NATIVE_TOKEN_PER_BLOCK);
+    expect(poolInfo.allocPoint).to.equal(100);
     expect(poolInfo.lpToken).to.equal(pairAddress);
     expect(poolInfo.harvestInterval).to.equal(259200);
     expect(poolInfo.maxWithdrawalInterval).to.equal(259200);
@@ -139,14 +139,189 @@ describe("MasterChef: Pools", function () {
     expect(poolInfo.performanceFeesOfNativeTokensToLockedVault).to.equal(100);
   });
 
-  xit("Should to update pool info properly", async function () {
+  xit("Should to update pool info properly (setpool)", async function () {
     // Test set method
   });
-});
 
-describe("MasterChef: Multiplier", function () {
   xit("Should to return an expected multiplier for given blocks range", async function () {
     // Test getMultiplier
+  });
+
+  it("Should be able to add a pool (check requires)", async function () {
+
+    let date = new Date();
+    const deadline = date.setTime(date.getTime() + 2 * 3600); // +2 hours
+
+    // Test addPool
+    const result = await router.connect(addr1).addLiquidity(
+        tokenA.address,
+        weth.address,
+        BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        addr1.address,
+        deadline
+    );
+
+    const pairAddress = await factory.getPair(tokenA.address, weth.address);
+    const pairContract = await ethers.getContractFactory("Pair");
+    const pair = await pairContract.attach(pairAddress);
+
+    //original
+    //await expect(masterChef.addPool(100, pairAddress, 0, true, DAY_IN_SECONDS * 3,
+    //    0, 0, 0, 0
+    //)).to.be.revertedWith("[f] Add: invalid harvest interval");
+
+    //  require(_harvestInterval <= MAX_INTERVAL, "[f] Add: invalid harvest interval");
+    await expect(masterChef.addPool(100, pairAddress, (await masterChef.MAX_INTERVAL())+1, true, DAY_IN_SECONDS * 3,
+        0, 0, 0, 0
+    )).to.be.revertedWith("[f] Add: invalid harvest interval");
+
+    //require(_maxWithdrawalInterval <= MAX_INTERVAL, "[f] Add: invalid withdrawal interval. Owner, there is a limit! Check your numbers.");
+    await expect(masterChef.addPool(100, pairAddress, 0, true, (await masterChef.MAX_INTERVAL())+1,
+        0, 0, 0, 0
+    )).to.be.revertedWith("[f] Add: invalid withdrawal interval. Owner, there is a limit! Check your numbers.");
+
+    //require(_withDrawalFeeOfLpsTeam.add(_withDrawalFeeOfLpsBurn) <= MAX_FEE_LPS, "[f] Add: invalid withdrawal fees. Owner, you are trying to charge way too much! Check your numbers.");
+    await expect(masterChef.addPool(100, pairAddress, 0, true, DAY_IN_SECONDS * 3,
+        (await masterChef.MAX_FEE_LPS())/2, (await masterChef.MAX_FEE_LPS())/2+1, 0, 0
+    )).to.be.revertedWith("[f] Add: invalid withdrawal fees. Owner, you are trying to charge way too much! Check your numbers.");
+
+    //require(_performanceFeesOfNativeTokensBurn.add(_performanceFeesOfNativeTokensToLockedVault) <= MAX_FEE_PERFORMANCE, "[f] Add: invalid performance fees. Owner, you are trying to charge way too much! Check your numbers.");
+    await expect(masterChef.addPool(100, pairAddress, 0, true, DAY_IN_SECONDS * 3,
+        0, 0, (await masterChef.MAX_FEE_PERFORMANCE())/2, (await masterChef.MAX_FEE_PERFORMANCE())/2+1
+    )).to.be.revertedWith("[f] Add: invalid performance fees. Owner, you are trying to charge way too much! Check your numbers.");
+
+    const INITIAL_SUPPLY_ADDR1 = BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+    const INITIAL_SUPPLY_OWNER = BigNumber.from(999900).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+
+    nativeToken.transfer(addr1.address,INITIAL_SUPPLY_ADDR1);
+    nativeToken.approve(router.address, INITIAL_SUPPLY_OWNER.toHexString());
+    nativeToken.connect(addr1).approve(router.address, INITIAL_SUPPLY_ADDR1.toHexString());
+
+    await router.addLiquidity(
+        tokenA.address,
+        nativeToken.address,
+        BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        owner.address,
+        deadline
+    );
+    const pairAddress2 = await factory.getPair(tokenA.address, nativeToken.address);
+
+    //require(CheckTokensRoutes(_lpToken), "[f] Add: token/s not connected to WBNB");
+    await expect(masterChef.addPool(100, pairAddress2, 0, true, DAY_IN_SECONDS * 3,
+        0, 0, 0, 0
+    )).to.be.revertedWith("[f] Add: token/s not connected to WBNB");
+
+  });
+
+  it("Should be able to edit a pool (check requires)", async function () {
+
+    let date = new Date();
+    const deadline = date.setTime(date.getTime() + 2 * 3600); // +2 hours
+
+    // Test addPool
+    const result = await router.connect(addr1).addLiquidity(
+        tokenA.address,
+        weth.address,
+        BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        addr1.address,
+        deadline
+    );
+
+    const pairAddress = await factory.getPair(tokenA.address, weth.address);
+    const pairContract = await ethers.getContractFactory("Pair");
+    const pair = await pairContract.attach(pairAddress);
+    await masterChef.addPool(
+        100,
+        pairAddress,
+        0,
+        true,
+        DAY_IN_SECONDS * 3,
+        0,
+        0,
+        0,
+        0
+    );
+
+    //require(_harvestInterval <= MAX_INTERVAL, "[f] Set: invalid harvest interval");
+    await expect(masterChef.setPool(1, 100, (await masterChef.MAX_INTERVAL())+1, true, DAY_IN_SECONDS * 3,
+        0, 0, 0, 0
+    )).to.be.revertedWith("[f] Set: invalid harvest interval");
+
+    //require(_maxWithdrawalInterval <= MAX_INTERVAL, "[f] Set: invalid withdrawal interval. Owner, there is a limit! Check your numbers.");
+    await expect(masterChef.setPool(1, 100, 0, true, (await masterChef.MAX_INTERVAL())+1,
+        0, 0, 0, 0
+    )).to.be.revertedWith("[f] Set: invalid withdrawal interval. Owner, there is a limit! Check your numbers.");
+
+    //require(_withDrawalFeeOfLpsTeam.add(_withDrawalFeeOfLpsBurn) <= MAX_FEE_LPS, "[f] Set: invalid withdrawal fees. Owner, you are trying to charge way too much! Check your numbers.");
+    await expect(masterChef.setPool(1, 100, 0, true, DAY_IN_SECONDS * 3,
+        (await masterChef.MAX_FEE_LPS())/2, (await masterChef.MAX_FEE_LPS())/2+1, 0, 0
+    )).to.be.revertedWith("[f] Set: invalid withdrawal fees. Owner, you are trying to charge way too much! Check your numbers.");
+
+    //require(_performanceFeesOfNativeTokensBurn.add(_performanceFeesOfNativeTokensToLockedVault) <= MAX_FEE_PERFORMANCE, "[f] Set: invalid performance fees. Owner, you are trying to charge way too much! Check your numbers.");
+    await expect(masterChef.setPool(1, 100, 0, true, DAY_IN_SECONDS * 3,
+        0, 0, (await masterChef.MAX_FEE_PERFORMANCE())/2, (await masterChef.MAX_FEE_PERFORMANCE())/2+1
+    )).to.be.revertedWith("[f] Set: invalid performance fees. Owner, you are trying to charge way too much! Check your numbers.");
+  });
+
+  it("Various tests", async function () {
+
+    let date = new Date();
+    const deadline = date.setTime(date.getTime() + 2 * 3600); // +2 hours
+
+    // Test addPool
+    const result = await router.connect(addr1).addLiquidity(
+        tokenA.address,
+        weth.address,
+        BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        addr1.address,
+        deadline
+    );
+
+    const pairAddress = await factory.getPair(tokenA.address, weth.address);
+    const pairContract = await ethers.getContractFactory("Pair");
+    const pair = await pairContract.attach(pairAddress);
+    //que només el owner pugui afegir pools
+    await expect(masterChef.connect(addr1).addPool(
+        100,
+        pairAddress,
+        0,
+        true,
+        DAY_IN_SECONDS * 3,
+        0,
+        0,
+        0,
+        0
+    )).to.be.revertedWith("Ownable: caller is not the owner");
+
+    //QUI ÉS EL DEVPOWER?
+    expect (await masterChef.transferDevPower(addr1.address));
+    expect(await masterChef.GetDevPowerAddress()).to.equal(addr1.address);
+    //console.log((await masterChef.GetDevPowerAddress()).toString());
+
+    expect (await masterChef.connect(addr1).isSAFU()).to.equal(true);
+    //Que la variable safu es pot modificar pel devpower.
+    expect (await masterChef.connect(addr1).setSAFU(false));
+    expect (await masterChef.connect(addr1).isSAFU()).to.equal(false);
+    //comprovar que el nou devpower té poders i el que hi havia abans NO.
+    await expect(masterChef.setSAFU(true)).to.be.revertedWith("DevPower: caller is not the dev with powers");;
+    expect (await masterChef.connect(addr1).isSAFU()).to.equal(false);
+
+
+
+    //Que la variable safu es pot modificar pel devpower.
+
   });
 });
 
