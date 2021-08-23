@@ -6,11 +6,12 @@ import "./Math.sol";
 import "./IGlobalMasterChef.sol";
 import "./IDistributable.sol";
 import './Ownable.sol';
+import "./DepositoryRestriction.sol";
 
 // Hem d'afegir un harvest lockup obligatori a cada dipòsit del temps definit a la variable indicada (crear-la).
 // Hem de fer que es distribueixin els tokens GLOBAL que el contracte JA TÉ (fer aquesta part).
 
-contract VaultLocked is IDistributable, Ownable {
+contract VaultLocked is IDistributable, Ownable, DepositoryRestriction {
     using SafeBEP20 for IBEP20;
     using SafeMath for uint;
     using SafeMath for uint16;
@@ -120,6 +121,7 @@ contract VaultLocked is IDistributable, Ownable {
     function rewardsToken() external view returns (address) {
         return address(bnb);
     }
+
     // TODO: set vested vault as depository
     function depositRewards(uint _amount) public onlyDepositories {
         global.safeTransferFrom(msg.sender, address(this), _amount);
@@ -127,6 +129,7 @@ contract VaultLocked is IDistributable, Ownable {
         _distributeGLOBAL();
 
         emit RewardsDeposited(msg.sender, _amount);
+    }
 
     // Deposit globals.
     function deposit(uint _amount) public {
