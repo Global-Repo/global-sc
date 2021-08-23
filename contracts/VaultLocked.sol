@@ -40,6 +40,7 @@ contract VaultLocked is IDistributable, Ownable {
     uint256 public lastRewardEvent;
     uint256 public rewardInterval;
 
+    event RewardsDeposited(address indexed _account, uint _amount);
     event Deposited(address indexed _user, uint _amount);
     event Withdrawn(address indexed _user, uint _amount);
     event RewardPaid(address indexed _user, uint _amount, uint _amount2);
@@ -85,8 +86,6 @@ contract VaultLocked is IDistributable, Ownable {
 
     function triggerDistribute() external override {
         _distributeBNB();
-        _distributeGLOBAL();
-
     }
 
     function balance() public view returns (uint amount) {
@@ -121,6 +120,13 @@ contract VaultLocked is IDistributable, Ownable {
     function rewardsToken() external view returns (address) {
         return address(bnb);
     }
+    // TODO: set vested vault as depository
+    function depositRewards(uint _amount) public onlyDepositories {
+        global.safeTransferFrom(msg.sender, address(this), _amount);
+
+        _distributeGLOBAL();
+
+        emit RewardsDeposited(msg.sender, _amount);
 
     // Deposit globals.
     function deposit(uint _amount) public {
