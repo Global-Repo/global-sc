@@ -10,10 +10,11 @@ contract VaultDistribution is DevPower, DepositoryRestriction {
     using SafeBEP20 for IBEP20;
     using SafeMath for uint;
 
-    IBEP20 public distributionToken;
-    IBEP20 public beneficiaryToken;
+    IBEP20 public distributionToken; // BNB
+    IBEP20 public beneficiaryToken;  // Global
     address[] public beneficiaries;
     uint public minTokenAmountToDistribute;
+    uint public distributionPercentage;
 
     event Deposited(address depository, uint amount);
     event Distributed(uint distributedAmount, uint numberOfBeneficiaries);
@@ -27,12 +28,19 @@ contract VaultDistribution is DevPower, DepositoryRestriction {
         distributionToken = IBEP20(_distributionToken);
         beneficiaryToken = IBEP20(_beneficiaryToken);
         minTokenAmountToDistribute = 1e18; // 1 BEP20 Token
+        distributionPercentage = 10000;    // 100%
         transferDevPower(_devPower);
     }
 
     function setMinTokenAmountToDistribute(uint _newAmount) external onlyDevPower {
         require(_newAmount >= 0, "Min token amount to distribute must be greater than 0");
         minTokenAmountToDistribute = _newAmount;
+    }
+
+    function setDistributionPercentage(uint16 _newPercentage) external onlyDevPower {
+        require(_newPercentage <= 10000, "Distribution percentage must not be greater than 100%");
+        require(_newPercentage > 0, "Distribution percentage must not be smaller than 0%");
+        distributionPercentage = _newPercentage;
     }
 
     function addBeneficiary(address _beneficiary) external onlyDevPower {
@@ -80,6 +88,8 @@ contract VaultDistribution is DevPower, DepositoryRestriction {
             return;
         }
 
+        uint totalDistributionTokenAmountToDistribute = currentDistributionTokenAmount.mul(distributionPercentage).div(10000);
+
         uint totalBeneficiaryTokens = 0;
         for (uint8 i = 0; i < beneficiaries.length; i++) {
             totalBeneficiaryTokens = totalBeneficiaryTokens + beneficiaryToken.balanceOf(beneficiaries[i]);
@@ -87,11 +97,11 @@ contract VaultDistribution is DevPower, DepositoryRestriction {
 
         for (uint8 i = 0; i < beneficiaries.length; i++) {
             uint beneficiaryDistributionPercentage = beneficiaryToken.balanceOf(beneficiaries[i]).mul(100).div(totalBeneficiaryTokens);
-            uint amountForBeneficiary = currentDistributionTokenAmount.mul(beneficiaryDistributionPercentage).div(100);
+            uint amountForBeneficiary = totalDistributionTokenAmountToDistribute.mul(beneficiaryDistributionPercentage).div(100);
             distributionToken.safeTransfer(beneficiaries[i], amountForBeneficiary);
             IDistributable(beneficiaries[i]).triggerDistribute();
         }
 
-        emit Distributed(currentDistributionTokenAmount, beneficiaries.length);
+        emit Distributed(totalDistributionTokenAmountToDistribute, beneficiaries.length);
     }
 }

@@ -19,9 +19,12 @@ contract VaultVested is DepositoryRestriction, IDistributable {
     VaultLocked private vaultLocked;
 
     uint private constant DUST = 1000;
-
     uint256 public pid;
+
     uint public minTokenAmountToDistribute;
+    uint256 public lastDistributedEvent;
+    uint256 public distributionInterval;
+
     address[] public users;
     mapping (address => uint) private principal;
     mapping (address => uint) private depositedAt;
@@ -52,6 +55,8 @@ contract VaultVested is DepositoryRestriction, IDistributable {
         vaultLocked = VaultLocked(_vaultLocked);
 
         minTokenAmountToDistribute = 1e18; // 1 BEP20 Token
+        distributionInterval = 12 hours;
+        lastDistributedEvent = block.timestamp;
 
         _allowance(global, _globalMasterChef);
         _allowance(global, _vaultLocked);
@@ -59,6 +64,10 @@ contract VaultVested is DepositoryRestriction, IDistributable {
 
     function triggerDistribute() external override {
         _distribute();
+    }
+
+    function setDistributionInterval(uint _distributionInterval) external onlyDevPower {
+        distributionInterval = _distributionInterval;
     }
 
     function balance() public view returns (uint amount) {
@@ -181,6 +190,11 @@ contract VaultVested is DepositoryRestriction, IDistributable {
     function _distribute() private {
         uint currentBNBAmount = bnb.balanceOf(address(this));
 
+        if (lastDistributedEvent.add(distributionInterval) < block.timestamp) {
+            // Nothing to distribute.
+            return;
+        }
+
         if (currentBNBAmount < minTokenAmountToDistribute) {
             // Nothing to distribute.
             return;
@@ -192,6 +206,8 @@ contract VaultVested is DepositoryRestriction, IDistributable {
 
             bnbEarned[users[i]] = bnbEarned[users[i]].add(bnbToUser);
         }
+
+        lastDistributedEvent = block.timestamp;
 
         emit Distributed(currentBNBAmount);
     }
