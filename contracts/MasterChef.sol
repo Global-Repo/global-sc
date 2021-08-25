@@ -178,7 +178,6 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         NativeToken _nativeToken,
         uint256 _nativeTokenPerBlock,
         uint256 _startBlock,
-        address _nativeTokenLockedVaultAddr,
         address _routerGlobal,
         address _tokenAddresses,
         address _pathFinder
@@ -187,7 +186,6 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         nativeTokenPerBlock = _nativeTokenPerBlock;
         startBlock = _startBlock;
         devAddr = msg.sender;
-        nativeTokenLockedVaultAddr = _nativeTokenLockedVaultAddr;
         routerGlobal = IRouterV2(_routerGlobal);
         tokenAddresses = TokenAddresses(_tokenAddresses);
         pathFinder = IPathFinder(_pathFinder);

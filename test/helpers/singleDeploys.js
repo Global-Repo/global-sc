@@ -60,7 +60,7 @@ let deployPathFinderMock = async function () {
     return pathFinderMock;
 };
 
-let deployMasterChef = async function (global, vaultLocked, router, tokenAddresses, pathFinder) {
+let deployMasterChef = async function (global, router, tokenAddresses, pathFinder) {
     const CURRENT_BLOCK = await ethers.provider.getBlockNumber();
     const startBlock = CURRENT_BLOCK + 1;
 
@@ -73,7 +73,6 @@ let deployMasterChef = async function (global, vaultLocked, router, tokenAddress
         global,
         NATIVE_TOKEN_PER_BLOCK,
         startBlock,
-        vaultLocked,
         router,
         tokenAddresses,
         pathFinder
@@ -103,9 +102,9 @@ let deployVaultDistribution = async function (bnb, global, devAddress) {
     return vaultDistribution;
 };
 
-let deployVaultLocked = async function (global, bnb) {
+let deployVaultLocked = async function (global, bnb, globalMasterChef, rewardInterval) {
     const VaultLocked = await ethers.getContractFactory("VaultLocked");
-    const vaultLocked = await VaultLocked.deploy(global, bnb);
+    const vaultLocked = await VaultLocked.deploy(global, bnb, globalMasterChef, rewardInterval);
     await vaultLocked.deployed();
     return vaultLocked;
 };

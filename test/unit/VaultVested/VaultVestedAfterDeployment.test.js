@@ -4,14 +4,14 @@ const {
   getNativeToken,
   getBnb,
   getVaultVested,
-  getMinter,
+  getGlobalMasterChef,
 } = require("../../helpers/vaultVestedDeploy.js");
 
 beforeEach(async function () {
   await deploy();
 
   // Set up scenarios
-  await getNativeToken().transferOwnership(getMinter().address);
+  await getNativeToken().transferOwnership(getGlobalMasterChef().address);
 });
 
 describe("VaultVested: After deployment", function () {

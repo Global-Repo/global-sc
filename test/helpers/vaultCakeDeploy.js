@@ -47,7 +47,6 @@ let deploy = async function () {
 
     minter = await deployMasterChef(
         nativeToken.address,
-        vaultLocked.address,
         router.address,
         tokenAddresses.address,
         pathFinderMock.address

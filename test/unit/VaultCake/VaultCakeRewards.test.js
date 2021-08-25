@@ -30,6 +30,7 @@ beforeEach(async function () {
   await getMinter().setMinter(getVaultCake().address, true);
   await getVaultCake().setMinter(getMinter().address);
   await getVaultDistribution().setDepositary(getVaultCake().address, true);
+  await getVaultVested().setDepositary(getVaultCake().address, true);
 
   // Mint 100 cake tokens to owner
   await getCakeToken().mint(OWNER_INITIAL_CAKES);

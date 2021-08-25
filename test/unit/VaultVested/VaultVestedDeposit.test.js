@@ -5,7 +5,7 @@ const {
   getNativeToken,
   getBnb,
   getVaultVested,
-  getMinter,
+  getGlobalMasterChef,
 } = require("../../helpers/vaultVestedDeploy.js");
 const INITIAL_SUPPLY = bep20Amount(100);
 
@@ -16,8 +16,8 @@ beforeEach(async function () {
   await getBnb().mint(INITIAL_SUPPLY);
 
   await getNativeToken().mint(INITIAL_SUPPLY);
-  await getMinter().addAddressToWhitelist(getVaultVested().address);
-  await getNativeToken().transferOwnership(getMinter().address);
+  await getGlobalMasterChef().addAddressToWhitelist(getVaultVested().address);
+  await getNativeToken().transferOwnership(getGlobalMasterChef().address);
 });
 
 describe("VaultVested: Deposit", function () {

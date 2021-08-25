@@ -1,4 +1,5 @@
 const ethers = require("hardhat").ethers;
+const { timestampNDays } = require("./utils.js");
 const {
     deployGlobal,
     deployBnb,
@@ -12,7 +13,7 @@ const {
 
 let nativeToken;
 let weth;
-let minter;
+let globalMasterChef;
 let tokenAddresses;
 let routerMock;
 let pathFinderMock;
@@ -30,27 +31,31 @@ let deploy = async function () {
     await tokenAddresses.addToken(tokenAddresses.BNB(), weth.address);
     await tokenAddresses.addToken(tokenAddresses.GLOBAL(), nativeToken.address);
 
-    vaultLocked = await deployVaultLocked(nativeToken.address, weth.address);
-
-    minter = await deployMasterChef(
+    globalMasterChef = await deployMasterChef(
         nativeToken.address,
-        vaultLocked.address,
         routerMock.address,
         tokenAddresses.address,
         pathFinderMock.address
     );
 
+    vaultLocked = await deployVaultLocked(
+        nativeToken.address,
+        weth.address,
+        globalMasterChef.address,
+        timestampNDays(0)
+    );
+
     vaultVested = await deployVaultVested(
         nativeToken.address,
         weth.address,
-        minter.address,
+        globalMasterChef.address,
         vaultLocked.address
     );
 };
 
 let getNativeToken = function () { return nativeToken }
 let getBnb = function () { return weth }
-let getMinter = function () { return minter }
+let getGlobalMasterChef = function () { return globalMasterChef }
 let getRouterMock = function () { return routerMock }
 let getVaultVested = function () { return vaultVested }
 let getVaultLocked = function () { return vaultLocked }
@@ -59,7 +64,7 @@ module.exports = {
     deploy,
     getNativeToken,
     getBnb,
-    getMinter,
+    getGlobalMasterChef,
     getRouterMock,
     getVaultVested,
     getVaultLocked,
