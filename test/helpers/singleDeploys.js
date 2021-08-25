@@ -81,6 +81,13 @@ let deployMasterChef = async function (global, router, tokenAddresses, pathFinde
     return mc;
 };
 
+let deployGlobalMasterChefMock = async function (global) {
+    const GlobalMasterChefMock = await ethers.getContractFactory("GlobalMasterChefMock");
+    const globalMasterChefMock = await GlobalMasterChefMock.deploy(global);
+    await globalMasterChefMock.deployed();
+    return globalMasterChefMock;
+};
+
 let deployCakeMasterChefMock = async function (cake) {
     const CakeMasterChefMock = await ethers.getContractFactory("CakeMasterChefMock");
     const cakeMasterChefMock = await CakeMasterChefMock.deploy(cake);
@@ -164,6 +171,7 @@ module.exports = {
     deployPathFinderMock,
     deployMasterChef,
     deployCakeMasterChefMock,
+    deployGlobalMasterChefMock,
     deployRouterMock,
     deployVaultDistribution,
     deployVaultCake,

@@ -249,6 +249,7 @@ contract VaultLocked is IDistributable, Ownable, DepositoryRestriction {
 
     function _distributeGLOBAL() private {
         uint currentGLOBALAmount = global.balanceOf(address(this));
+        // TODO: revisar lastRewardEvent.add(rewardInterval)>=block.timestamp ha de ser <
         if(lastRewardEvent.add(rewardInterval)>=block.timestamp && currentGLOBALAmount >= minGlobalAmountToDistribute)
         {
             lastRewardEvent = block.timestamp;

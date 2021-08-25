@@ -28,9 +28,9 @@ describe("VaultVested: Deposit", function () {
     await getNativeToken().connect(depositary1).approve(getVaultVested().address, depositAmount);
     await getVaultVested().connect(owner).setDepositary(depositary1.address, true);
 
-    // As depository1 deposits globals for depository2.
-    await getVaultVested().connect(depositary1).deposit(depositAmount, depositary2.address);
-    expect(await getVaultVested().balanceOf(depositary2.address)).to.equal(depositAmount);
+    // As depository1 deposits globals for user1.
+    await getVaultVested().connect(depositary1).deposit(depositAmount, user1.address);
+    expect(await getVaultVested().balanceOf(user1.address)).to.equal(depositAmount);
     expect(await getVaultVested().balanceOf(depositary1.address)).to.equal(0);
   });
 });

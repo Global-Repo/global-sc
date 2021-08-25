@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
 
+import "hardhat/console.sol";
 import "./SafeBEP20.sol";
 import "./Math.sol";
 import "./IGlobalMasterChef.sol";
@@ -190,17 +191,22 @@ contract VaultVested is DepositoryRestriction, IDistributable {
     function _distribute() private {
         uint currentBNBAmount = bnb.balanceOf(address(this));
 
-        if (lastDistributedEvent.add(distributionInterval) < block.timestamp) {
-            // Nothing to distribute.
+        // Nothing to distribute.
+        if (lastDistributedEvent.add(distributionInterval) >= block.timestamp) {
             return;
         }
 
+        // Nothing to distribute.
         if (currentBNBAmount < minTokenAmountToDistribute) {
-            // Nothing to distribute.
             return;
         }
 
-        for (uint i=0; i < users.length; i++) {
+        // No users to distribute BNBs.
+        if (users.length == 0) {
+            return;
+        }
+
+        for (uint i = 0; i < users.length; i++) {
             uint userPercentage = principalOf(users[i]).mul(100).div(totalSupply);
             uint bnbToUser = currentBNBAmount.mul(userPercentage).div(100);
 

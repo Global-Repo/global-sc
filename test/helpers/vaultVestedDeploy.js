@@ -6,6 +6,7 @@ const {
     deployTokenAddresses,
     deployPathFinderMock,
     deployMasterChef,
+    deployGlobalMasterChefMock,
     deployRouterMock,
     deployVaultVested,
     deployVaultLocked,
@@ -14,6 +15,7 @@ const {
 let nativeToken;
 let weth;
 let globalMasterChef;
+let globalMasterChefMock;
 let tokenAddresses;
 let routerMock;
 let pathFinderMock;
@@ -21,7 +23,7 @@ let vaultVested;
 let vaultLocked;
 
 let deploy = async function () {
-    [owner, user1, user2, depositary1, depositary2, ...addrs] = await ethers.getSigners();
+    [owner, user1, user2, user3, depositary1, depositary2, ...addrs] = await ethers.getSigners();
     nativeToken = await deployGlobal();
     weth = await deployBnb();
     tokenAddresses = await deployTokenAddresses();
@@ -38,17 +40,19 @@ let deploy = async function () {
         pathFinderMock.address
     );
 
+    globalMasterChefMock = await deployGlobalMasterChefMock(nativeToken.address);
+
     vaultLocked = await deployVaultLocked(
         nativeToken.address,
         weth.address,
-        globalMasterChef.address,
+        globalMasterChefMock.address,
         timestampNDays(0)
     );
 
     vaultVested = await deployVaultVested(
         nativeToken.address,
         weth.address,
-        globalMasterChef.address,
+        globalMasterChefMock.address,
         vaultLocked.address
     );
 };
@@ -56,6 +60,7 @@ let deploy = async function () {
 let getNativeToken = function () { return nativeToken }
 let getBnb = function () { return weth }
 let getGlobalMasterChef = function () { return globalMasterChef }
+let getGlobalMasterChefMock = function () { return globalMasterChefMock }
 let getRouterMock = function () { return routerMock }
 let getVaultVested = function () { return vaultVested }
 let getVaultLocked = function () { return vaultLocked }
@@ -65,6 +70,7 @@ module.exports = {
     getNativeToken,
     getBnb,
     getGlobalMasterChef,
+    getGlobalMasterChefMock,
     getRouterMock,
     getVaultVested,
     getVaultLocked,
