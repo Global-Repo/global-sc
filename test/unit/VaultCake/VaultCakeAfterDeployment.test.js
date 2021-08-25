@@ -2,13 +2,13 @@ const { expect } = require("chai");
 const {
   deploy,
   getNativeToken,
-  getMinter,
+  getGlobalMasterChef,
   getVaultCake,
 } = require("../../helpers/vaultCakeDeploy.js");
 
 beforeEach(async function () {
   await deploy();
-  await getNativeToken().transferOwnership(getMinter().address);
+  await getNativeToken().transferOwnership(getGlobalMasterChef().address);
 });
 
 describe("VaultCake: After deployment", function () {
@@ -19,8 +19,8 @@ describe("VaultCake: After deployment", function () {
   it("Vault is configured as minter", async function () {
     expect(await getVaultCake().isVaultMintable()).to.false;
 
-    await getMinter().setMinter(getVaultCake().address, true);
-    await getVaultCake().setMinter(getMinter().address);
+    await getGlobalMasterChef().setMinter(getVaultCake().address, true);
+    await getVaultCake().setMinter(getGlobalMasterChef().address);
 
     expect(await getVaultCake().isVaultMintable()).to.true;
   });

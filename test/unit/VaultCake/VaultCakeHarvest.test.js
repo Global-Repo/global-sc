@@ -4,7 +4,7 @@ const {
   deploy,
   getCakeToken,
   getNativeToken,
-  getMinter,
+  getGlobalMasterChef,
   getCakeMasterChefMock,
   getVaultCake,
 } = require("../../helpers/vaultCakeDeploy.js");
@@ -14,9 +14,9 @@ const CAKE_MASTER_CHEF_REWARD_PER_DEPOSIT = bep20Amount(1);
 
 beforeEach(async function () {
   await deploy();
-  await getNativeToken().transferOwnership(getMinter().address);
-  await getMinter().setMinter(getVaultCake().address, true);
-  await getVaultCake().setMinter(getMinter().address);
+  await getNativeToken().transferOwnership(getGlobalMasterChef().address);
+  await getGlobalMasterChef().setMinter(getVaultCake().address, true);
+  await getVaultCake().setMinter(getGlobalMasterChef().address);
 
   // Mint 100 cake tokens to owner
   await getCakeToken().mint(OWNER_INITIAL_CAKES);

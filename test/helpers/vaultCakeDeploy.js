@@ -21,7 +21,7 @@ let nativeToken;
 let factory;
 let weth;
 let router;
-let minter;
+let globalMasterChef;
 let cakeMasterChefMock;
 let tokenAddresses;
 let routerMock;
@@ -45,7 +45,7 @@ let deploy = async function () {
     routerMock = await deployRouterMock();
     vaultDistribution = await deployVaultDistribution(weth.address, nativeToken.address, owner.address);
 
-    minter = await deployMasterChef(
+    globalMasterChef = await deployMasterChef(
         nativeToken.address,
         router.address,
         tokenAddresses.address,
@@ -55,7 +55,7 @@ let deploy = async function () {
     vaultVested = await deployVaultVested(
         nativeToken.address,
         weth.address,
-        minter.address,
+        globalMasterChef.address,
         treasury.address,
         vaultLocked.address,
         tokenAddresses.address,
@@ -84,7 +84,7 @@ let deploy = async function () {
 let getNativeToken = function () { return nativeToken }
 let getCakeToken = function () { return cakeToken }
 let getBnb = function () { return weth }
-let getMinter = function () { return minter }
+let getGlobalMasterChef = function () { return globalMasterChef }
 let getCakeMasterChefMock = function () { return cakeMasterChefMock }
 let getRouterMock = function () { return routerMock }
 let getVaultDistribution = function () { return vaultDistribution }
@@ -97,7 +97,7 @@ module.exports = {
     getCakeToken,
     getNativeToken,
     getBnb,
-    getMinter,
+    getGlobalMasterChef,
     getCakeMasterChefMock,
     getRouterMock,
     getVaultDistribution,

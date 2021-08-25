@@ -4,7 +4,7 @@ const { timestampNDays } = require("../../helpers/utils");
 const {
   deploy,
   getNativeToken,
-  getMinter,
+  getGlobalMasterChef,
   getVaultCake,
 } = require("../../helpers/vaultCakeDeploy.js");
 
@@ -18,7 +18,7 @@ const DEFAULT_REWARDS_FEES_TO_MINT_GLOBAL = 25000;
 
 beforeEach(async function () {
   await deploy();
-  await getNativeToken().transferOwnership(getMinter().address);
+  await getNativeToken().transferOwnership(getGlobalMasterChef().address);
 });
 
 describe("VaultCake: Fees", function () {

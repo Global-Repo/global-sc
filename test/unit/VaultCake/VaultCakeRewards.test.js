@@ -5,7 +5,7 @@ const {
   getCakeToken,
   getNativeToken,
   getBnb,
-  getMinter,
+  getGlobalMasterChef,
   getCakeMasterChefMock,
   getRouterMock,
   getVaultDistribution,
@@ -25,10 +25,10 @@ beforeEach(async function () {
   await getNativeToken().transfer(getRouterMock().address, ROUTER_INITIAL_TOKENS);
   await getBusd().transfer(getRouterMock().address, ROUTER_INITIAL_TOKENS);
   await getBnb().transfer(getRouterMock().address, ROUTER_INITIAL_TOKENS);
-  await getNativeToken().transferOwnership(getMinter().address);
+  await getNativeToken().transferOwnership(getGlobalMasterChef().address);
 
-  await getMinter().setMinter(getVaultCake().address, true);
-  await getVaultCake().setMinter(getMinter().address);
+  await getGlobalMasterChef().setMinter(getVaultCake().address, true);
+  await getVaultCake().setMinter(getGlobalMasterChef().address);
   await getVaultDistribution().setDepositary(getVaultCake().address, true);
   await getVaultVested().setDepositary(getVaultCake().address, true);
 
@@ -36,7 +36,7 @@ beforeEach(async function () {
   await getCakeToken().mint(OWNER_INITIAL_CAKES);
 
   // Add vault vested to the MC whitelisting
-  await getMinter().addAddressToWhitelist(getVaultVested().address);
+  await getGlobalMasterChef().addAddressToWhitelist(getVaultVested().address);
 
   // Cake's owner now is cake MC
   await getCakeToken().transferOwnership(getCakeMasterChefMock().address);

@@ -5,7 +5,7 @@ const {
   getCakeToken,
   getNativeToken,
   getBnb,
-  getMinter,
+  getGlobalMasterChef,
   getCakeMasterChefMock,
   getRouterMock,
   getVaultCake,
@@ -23,10 +23,10 @@ beforeEach(async function () {
   await getNativeToken().transfer(getRouterMock().address, ROUTER_INITIAL_TOKENS);
   await getBusd().transfer(getRouterMock().address, ROUTER_INITIAL_TOKENS);
   await getBnb().transfer(getRouterMock().address, ROUTER_INITIAL_TOKENS);
-  await getNativeToken().transferOwnership(getMinter().address);
+  await getNativeToken().transferOwnership(getGlobalMasterChef().address);
 
-  await getMinter().setMinter(getVaultCake().address, true);
-  await getVaultCake().setMinter(getMinter().address);
+  await getGlobalMasterChef().setMinter(getVaultCake().address, true);
+  await getVaultCake().setMinter(getGlobalMasterChef().address);
 
   // Mint 100 cake tokens to owner
   await getCakeToken().mint(OWNER_INITIAL_CAKES);
