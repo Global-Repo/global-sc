@@ -18,6 +18,7 @@ import './ReentrancyGuard.sol';
 import "./IMinter.sol";
 import "./TokenAddresses.sol";
 import "./IPathFinder.sol";
+import "./IMintNotifier.sol";
 import "hardhat/console.sol";
 
 // HEM DE FER IMPORT DE LA INTERFACE I DEL SC DEL VAULT!!!!!!!!!
@@ -134,7 +135,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
 
     // The migrator contract. It has a lot of power. Can only be set through governance (owner).
     // Intentar evitar fer-lo servir.
-    IMigratorChef public migrator;
+    //IMigratorChef public migrator;
 
     // Info of each pool.
     PoolInfo[] public poolInfo;
@@ -167,6 +168,8 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     mapping(address => bool) private _minters;
 
     IPathFinder public pathFinder;
+
+    IMintNotifier public mintNotifier;
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
@@ -252,6 +255,14 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
 
     /// Funcions de l'autocompound
 
+    function setMintNotifier(address _mintNotifier) public onlyOwner {
+        mintNotifier = IMintNotifier(_mintNotifier);
+    }
+
+    function getMintNotifierAddress() view external returns (address) {
+        return address(mintNotifier);
+    }
+
     // Cridarem a aquesta funció per afegir un vault, per indicar-li al masterchef que tindrà permís per mintejar native tokens
     function setMinter(address minter, bool canMint) external override onlyOwner {
         if (canMint) {
@@ -286,6 +297,11 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
 
         // Mintem tokens al que ens ho ha demanat
         nativeToken.mints(msg.sender, _quantityToMint);
+
+        if(address(mintNotifier) != address(0))
+        {
+            mintNotifier.notify(msg.sender,_quantityToMint);
+        }
 
         return nativeTokenLockedVaultAddr;
     }

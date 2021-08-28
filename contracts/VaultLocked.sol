@@ -169,7 +169,7 @@ contract VaultLocked is IDistributable, Ownable, DepositoryRestriction, Reentran
         emit Deposited(msg.sender, _amount);
     }
 
-    function withdrawAvailable(uint256 _time, address _user) public view returns (uint totalAmount)
+    function availableForWithdraw(uint256 _time, address _user) public view returns (uint totalAmount)
     {
         DepositInfo[] memory myDeposits =  depositInfo[_user];
         for(uint i=0; i< myDeposits.length; i++)
@@ -181,12 +181,29 @@ contract VaultLocked is IDistributable, Ownable, DepositoryRestriction, Reentran
         }
     }
 
+    function removeAvailableDeposits(address user) private
+    {
+        DepositInfo[] storage myDeposits =  depositInfo[user];
+        uint256 now = block.timestamp;
+
+        while(myDeposits.length > 0 && myDeposits[0].nextHarvest<now)
+        {
+            for (uint i = 0; i<myDeposits.length-1; i++)
+            {
+                myDeposits[i] = myDeposits[i+1];
+            }
+            myDeposits.pop();
+        }
+    }
+
     // Withdraw all only
-    function withdraw() external nonReentrant {
-        uint amount = withdrawAvailable(block.timestamp,msg.sender);
+    function withdraw() external nonReentrant{
+        uint amount = availableForWithdraw(block.timestamp,msg.sender);
         require(amount > 0, "VaultLocked: you have no tokens to withdraw!");
         uint earnedBNB = bnbToEarn(msg.sender);
         uint earnedGLOBAL = globalToEarn(msg.sender);
+
+        removeAvailableDeposits(msg.sender);
 
         globalMasterChef.leaveStaking(amount);
         handleRewards(earnedBNB,earnedGLOBAL);

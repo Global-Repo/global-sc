@@ -62,12 +62,17 @@ beforeEach(async function () {
       nativeToken.address,
       NATIVE_TOKEN_PER_BLOCK,
       startBlock,
-      lockedVault.address,
       router.address,
       tokenAddresses.address,
       pathFinder.address
   );
   await masterChef.deployed();
+
+  const MintNotifier = await ethers.getContractFactory("MintNotifier");
+  mintNotifier = await MintNotifier.deploy();
+  await mintNotifier.deployed();
+
+  await masterChef.setMintNotifier(mintNotifier.address);
 
   await pathFinder.transferOwnership(masterChef.address);
 
@@ -101,6 +106,17 @@ describe("MasterChef: Mint", function () {
     const mintedSupply = await nativeToken.totalSupply();
 
     expect(mintedSupply.gt(amountToMint)).to.true;
+  });
+
+  it("When native tokens are minted the MintNotifier should be notified", async function () {
+    expect(await nativeToken.totalSupply()).to.equal(BIG_ZERO);
+
+    const amountToMint = BigNumber.from(3).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+
+    await masterChef.setMinter(vault.address, true);
+    expect(await masterChef.connect(vault).mintNativeTokens(amountToMint))
+        .to.emit(mintNotifier, 'GlobalsMinted')
+        .withArgs(vault.address,amountToMint);
   });
 
   it("When minting tokens, there is an extra mint amount for devs team", async function () {
