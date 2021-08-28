@@ -8,8 +8,9 @@ import "./IGlobalMasterChef.sol";
 import './DepositoryRestriction.sol';
 import "./IDistributable.sol";
 import "./VaultLocked.sol";
+import './ReentrancyGuard.sol';
 
-contract VaultVested is DepositoryRestriction, IDistributable {
+contract VaultVested is DepositoryRestriction, IDistributable, ReentrancyGuard {
     using SafeBEP20 for IBEP20;
     using SafeMath for uint;
     using SafeMath for uint16;
@@ -63,7 +64,7 @@ contract VaultVested is DepositoryRestriction, IDistributable {
         _allowance(global, _vaultLocked);
     }
 
-    function triggerDistribute() external override {
+    function triggerDistribute() external nonReentrant override {
         _distribute();
     }
 
@@ -119,7 +120,7 @@ contract VaultVested is DepositoryRestriction, IDistributable {
     }
 
     // Withdraw all only
-    function withdraw() external {
+    function withdraw() external nonReentrant {
         uint amount = balanceOf(msg.sender);
         uint earned = earned(msg.sender);
 
@@ -135,7 +136,7 @@ contract VaultVested is DepositoryRestriction, IDistributable {
         delete bnbEarned[msg.sender];
     }
 
-    function getReward() external {
+    function getReward() external nonReentrant {
         uint earned = earned(msg.sender);
 
         handleRewards(earned);

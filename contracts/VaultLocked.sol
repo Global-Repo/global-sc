@@ -7,11 +7,12 @@ import "./IGlobalMasterChef.sol";
 import "./IDistributable.sol";
 import './Ownable.sol';
 import "./DepositoryRestriction.sol";
+import './ReentrancyGuard.sol';
 
 // Hem d'afegir un harvest lockup obligatori a cada dipòsit del temps definit a la variable indicada (crear-la).
 // Hem de fer que es distribueixin els tokens GLOBAL que el contracte JA TÉ (fer aquesta part).
 
-contract VaultLocked is IDistributable, Ownable, DepositoryRestriction {
+contract VaultLocked is IDistributable, Ownable, DepositoryRestriction, ReentrancyGuard {
     using SafeBEP20 for IBEP20;
     using SafeMath for uint;
     using SafeMath for uint16;
@@ -85,7 +86,7 @@ contract VaultLocked is IDistributable, Ownable, DepositoryRestriction {
         minGlobalAmountToDistribute = _minGlobalAmountToDistribute;
     }
 
-    function triggerDistribute() external override {
+    function triggerDistribute() external nonReentrant override {
         _distributeBNB();
     }
 
@@ -132,7 +133,7 @@ contract VaultLocked is IDistributable, Ownable, DepositoryRestriction {
     }
 
     // Deposit globals.
-    function deposit(uint _amount) public {
+    function deposit(uint _amount) public nonReentrant {
         bool userExists = false;
         global.safeTransferFrom(msg.sender, address(this), _amount);
 
@@ -181,7 +182,7 @@ contract VaultLocked is IDistributable, Ownable, DepositoryRestriction {
     }
 
     // Withdraw all only
-    function withdraw() external {
+    function withdraw() external nonReentrant {
         uint amount = withdrawAvailable(block.timestamp,msg.sender);
         require(amount > 0, "VaultLocked: you have no tokens to withdraw!");
         uint earnedBNB = bnbToEarn(msg.sender);
@@ -195,7 +196,7 @@ contract VaultLocked is IDistributable, Ownable, DepositoryRestriction {
         delete bnbEarned[msg.sender];
     }
 
-    function getReward() external {
+    function getReward() external nonReentrant {
         uint earnedBNB = bnbToEarn(msg.sender);
         uint earnedGLOBAL = globalToEarn(msg.sender);
         handleRewards(earnedBNB,earnedGLOBAL);
