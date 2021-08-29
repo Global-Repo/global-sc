@@ -26,7 +26,7 @@ contract VaultVested is DepositoryRestriction, IDistributable, ReentrancyGuard {
     uint public minTokenAmountToDistribute;
     uint256 public lastDistributedEvent;
     uint256 public distributionInterval;
-    uint256 private bnbBalance;
+    uint private bnbBalance;
 
     address[] public users;
     mapping (address => uint) private principal;

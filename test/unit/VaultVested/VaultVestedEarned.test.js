@@ -49,7 +49,7 @@ describe("VaultVested: Earned", function () {
     await getBnb().connect(owner).transfer(getVaultVested().address, distributionAmount);
     await getVaultVested().connect(owner).setDistributionInterval(timestampNDays(0));
 
-    await getVaultVested().connect(owner).triggerDistribute();
+    await getVaultVested().connect(owner).triggerDistribute(distributionAmount);
 
     // 1 depositary earns all the BNBs on distribution.
     expect(await getVaultVested().earned(user1.address)).to.equal(distributionAmount);

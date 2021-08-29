@@ -52,7 +52,7 @@ contract VaultDistribution is DevPower, DepositoryRestriction {
         }
 
         // It checks beneficiary has triggerDistribute method before to add it.
-        IDistributable(_beneficiary).triggerDistribute();
+        IDistributable(_beneficiary).triggerDistribute(0);
         beneficiaries.push(_beneficiary);
     }
 
@@ -99,7 +99,7 @@ contract VaultDistribution is DevPower, DepositoryRestriction {
             uint beneficiaryDistributionPercentage = beneficiaryToken.balanceOf(beneficiaries[i]).mul(100).div(totalBeneficiaryTokens);
             uint amountForBeneficiary = totalDistributionTokenAmountToDistribute.mul(beneficiaryDistributionPercentage).div(100);
             distributionToken.safeTransfer(beneficiaries[i], amountForBeneficiary);
-            IDistributable(beneficiaries[i]).triggerDistribute();
+            IDistributable(beneficiaries[i]).triggerDistribute(amountForBeneficiary);
         }
 
         emit Distributed(totalDistributionTokenAmountToDistribute, beneficiaries.length);

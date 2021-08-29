@@ -41,6 +41,8 @@ contract VaultLocked is IDistributable, Ownable, DepositoryRestriction, Reentran
     uint public totalSupply;
     uint256 public lastRewardEvent;
     uint256 public rewardInterval;
+    uint private bnbBalance;
+    uint private globalBalance;
 
     event RewardsDeposited(address indexed _account, uint _amount);
     event Deposited(address indexed _user, uint _amount);
@@ -70,6 +72,9 @@ contract VaultLocked is IDistributable, Ownable, DepositoryRestriction, Reentran
         minTokenAmountToDistribute = 1e18; // 1 BEP20 Token
         minGlobalAmountToDistribute = 100e18; // 1 BEP20 Token
 
+        bnbBalance = 0;
+        globalBalance = 0;
+
         // ????????? Cal?????
         _allowance(global, _globalMasterChef);
 
@@ -86,8 +91,20 @@ contract VaultLocked is IDistributable, Ownable, DepositoryRestriction, Reentran
         minGlobalAmountToDistribute = _minGlobalAmountToDistribute;
     }
 
-    function triggerDistribute() external nonReentrant override {
+    function triggerDistribute(uint _amount) external nonReentrant override {
+        bnbBalance.add(_amount);
+
         _distributeBNB();
+    }
+
+    // TODO: set vested vault as depository
+    function depositRewards(uint _amount) public onlyDepositories {
+        global.safeTransferFrom(msg.sender, address(this), _amount);
+        globalBalance.add(_amount);
+
+        _distributeGLOBAL();
+
+        emit RewardsDeposited(msg.sender, _amount);
     }
 
     function balance() public view returns (uint amount) {
@@ -121,15 +138,6 @@ contract VaultLocked is IDistributable, Ownable, DepositoryRestriction, Reentran
 
     function rewardsToken() external view returns (address) {
         return address(bnb);
-    }
-
-    // TODO: set vested vault as depository
-    function depositRewards(uint _amount) public onlyDepositories {
-        global.safeTransferFrom(msg.sender, address(this), _amount);
-
-        _distributeGLOBAL();
-
-        emit RewardsDeposited(msg.sender, _amount);
     }
 
     // Deposit globals.
@@ -247,36 +255,38 @@ contract VaultLocked is IDistributable, Ownable, DepositoryRestriction, Reentran
     }
 
     function _distributeBNB() private {
-        uint currentBNBAmount = bnb.balanceOf(address(this));
+        uint bnbAmountToDistribute = bnbBalance;
 
-        if (currentBNBAmount < minTokenAmountToDistribute) {
+        if (bnbAmountToDistribute < minTokenAmountToDistribute) {
             // Nothing to distribute.
             return;
         }
 
         for (uint i=0; i < users.length; i++) {
             uint userPercentage = principalOf(users[i]).mul(100).div(totalSupply);
-            uint bnbToUser = currentBNBAmount.mul(userPercentage).div(100);
+            uint bnbToUser = bnbAmountToDistribute.mul(userPercentage).div(100);
+            bnbBalance = bnbBalance.sub(bnbToUser);
 
             bnbEarned[users[i]] = bnbEarned[users[i]].add(bnbToUser);
         }
 
-        emit Distributed(currentBNBAmount);
+        emit Distributed(bnbAmountToDistribute.sub(bnbBalance));
     }
 
     function _distributeGLOBAL() private {
-        uint currentGLOBALAmount = global.balanceOf(address(this));
+        uint globalAmountToDistribute = globalBalance;
         // TODO: revisar lastRewardEvent.add(rewardInterval)>=block.timestamp ha de ser <
-        if(lastRewardEvent.add(rewardInterval)>=block.timestamp && currentGLOBALAmount >= minGlobalAmountToDistribute)
+        if(lastRewardEvent.add(rewardInterval)>=block.timestamp && globalAmountToDistribute >= minGlobalAmountToDistribute)
         {
             lastRewardEvent = block.timestamp;
             for (uint i=0; i < users.length; i++) {
                 uint userPercentage = principalOf(users[i]).mul(100).div(totalSupply);
-                uint globalToUser = currentGLOBALAmount.mul(userPercentage).div(100).div(20);
+                uint globalToUser = globalAmountToDistribute.mul(userPercentage).div(100).div(20);
+                globalBalance = globalBalance.sub(globalToUser);
 
                 globalEarned[users[i]] = globalEarned[users[i]].add(globalToUser);
             }
-            emit DistributedGLOBAL(currentGLOBALAmount);
+            emit DistributedGLOBAL(globalAmountToDistribute.sub(globalBalance));
         }
     }
 }

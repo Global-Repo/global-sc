@@ -24,6 +24,7 @@ contract VaultStaked is IDistributable, ReentrancyGuard {
     mapping (address => uint) private principal;
     mapping (address => uint) private bnbEarned;
     uint public totalSupply;
+    uint private bnbBalance;
 
     event Deposited(address indexed _user, uint _amount);
     event Withdrawn(address indexed _user, uint _amount);
@@ -42,6 +43,7 @@ contract VaultStaked is IDistributable, ReentrancyGuard {
 
         // Li passem el address de bnb
         bnb = IBEP20(_bnb);
+        bnbBalance = 0;
 
         // Li passem el address del masterchef a on es depositaràn els GLOBALs
         globalMasterChef = IGlobalMasterChef(_globalMasterChef);
@@ -53,7 +55,9 @@ contract VaultStaked is IDistributable, ReentrancyGuard {
         _allowance(global, _globalMasterChef);
     }
 
-    function triggerDistribute() external nonReentrant override {
+    function triggerDistribute(uint _amount) external nonReentrant override {
+        bnbBalance.add(_amount);
+
         _distribute();
     }
 
@@ -154,20 +158,21 @@ contract VaultStaked is IDistributable, ReentrancyGuard {
     }
 
     function _distribute() private {
-        uint currentBNBAmount = bnb.balanceOf(address(this));
+        uint bnbAmountToDistribute = bnbBalance;
 
-        if (currentBNBAmount < minTokenAmountToDistribute) {
+        if (bnbAmountToDistribute < minTokenAmountToDistribute) {
             // Nothing to distribute.
             return;
         }
 
         for (uint i=0; i < users.length; i++) {
             uint userPercentage = principalOf(users[i]).mul(100).div(totalSupply);
-            uint bnbToUser = currentBNBAmount.mul(userPercentage).div(100);
+            uint bnbToUser = bnbAmountToDistribute.mul(userPercentage).div(100);
+            bnbBalance = bnbBalance.sub(bnbToUser);
 
             bnbEarned[users[i]] = bnbEarned[users[i]].add(bnbToUser);
         }
 
-        emit Distributed(currentBNBAmount);
+        emit Distributed(bnbAmountToDistribute.sub(bnbBalance));
     }
 }

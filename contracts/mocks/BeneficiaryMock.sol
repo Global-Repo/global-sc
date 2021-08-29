@@ -4,7 +4,7 @@ pragma solidity ^0.6.12;
 import "../IDistributable.sol";
 
 contract BeneficiaryMock is IDistributable {
-    function triggerDistribute() external override {
+    function triggerDistribute(uint _amount) external override {
         emit Distributed(1e18);
     }
 }
