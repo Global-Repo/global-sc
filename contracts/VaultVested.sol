@@ -5,12 +5,13 @@ import "hardhat/console.sol";
 import "./SafeBEP20.sol";
 import "./Math.sol";
 import "./IGlobalMasterChef.sol";
-import './DepositoryRestriction.sol';
 import "./IDistributable.sol";
 import "./VaultLocked.sol";
 import './ReentrancyGuard.sol';
+import './DepositoryRestriction.sol';
+import "./RewarderRestriction.sol";
 
-contract VaultVested is DepositoryRestriction, IDistributable, ReentrancyGuard {
+contract VaultVested is IDistributable, ReentrancyGuard, DepositoryRestriction, RewarderRestriction {
     using SafeBEP20 for IBEP20;
     using SafeMath for uint;
     using SafeMath for uint16;
@@ -66,7 +67,7 @@ contract VaultVested is DepositoryRestriction, IDistributable, ReentrancyGuard {
         _allowance(global, _vaultLocked);
     }
 
-    function triggerDistribute(uint _amount) external nonReentrant override {
+    function triggerDistribute(uint _amount) external nonReentrant onlyRewarders override {
         bnbBalance.add(_amount);
 
         _distribute();

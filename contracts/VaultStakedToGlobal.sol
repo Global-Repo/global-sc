@@ -7,8 +7,9 @@ import "./IGlobalMasterChef.sol";
 import "./IDistributable.sol";
 import "./IRouterV1.sol";
 import './ReentrancyGuard.sol';
+import "./RewarderRestriction.sol";
 
-contract VaultStakedToGlobal is IDistributable, ReentrancyGuard {
+contract VaultStakedToGlobal is IDistributable, ReentrancyGuard, RewarderRestriction {
     using SafeBEP20 for IBEP20;
     using SafeMath for uint;
     using SafeMath for uint16;
@@ -57,7 +58,7 @@ contract VaultStakedToGlobal is IDistributable, ReentrancyGuard {
         _allowance(global, _globalMasterChef);
     }
 
-    function triggerDistribute(uint _amount) external nonReentrant override {
+    function triggerDistribute(uint _amount) external nonReentrant onlyRewarders override {
         bnbBalance.add(_amount);
 
         _distribute();

@@ -6,13 +6,14 @@ import "./Math.sol";
 import "./IGlobalMasterChef.sol";
 import "./IDistributable.sol";
 import './Ownable.sol';
-import "./DepositoryRestriction.sol";
 import './ReentrancyGuard.sol';
+import "./DepositoryRestriction.sol";
+import "./RewarderRestriction.sol";
 
 // Hem d'afegir un harvest lockup obligatori a cada dipòsit del temps definit a la variable indicada (crear-la).
 // Hem de fer que es distribueixin els tokens GLOBAL que el contracte JA TÉ (fer aquesta part).
 
-contract VaultLocked is IDistributable, Ownable, DepositoryRestriction, ReentrancyGuard {
+contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRestriction, RewarderRestriction {
     using SafeBEP20 for IBEP20;
     using SafeMath for uint;
     using SafeMath for uint16;
@@ -91,7 +92,7 @@ contract VaultLocked is IDistributable, Ownable, DepositoryRestriction, Reentran
         minGlobalAmountToDistribute = _minGlobalAmountToDistribute;
     }
 
-    function triggerDistribute(uint _amount) external nonReentrant override {
+    function triggerDistribute(uint _amount) external nonReentrant onlyRewarders override {
         bnbBalance.add(_amount);
 
         _distributeBNB();
