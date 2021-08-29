@@ -116,8 +116,8 @@ contract Router is IRouterV2 {
         (uint amount0, uint amount1) = IPair(pair).burn(to);
         (address token0,) = PancakeLibrary.sortTokens(tokenA, tokenB);
         (amountA, amountB) = tokenA == token0 ? (amount0, amount1) : (amount1, amount0);
-        require(amountA >= amountAMin, 'PancakeRouter: INSUFFICIENT_A_AMOUNT');
-        require(amountB >= amountBMin, 'PancakeRouter: INSUFFICIENT_B_AMOUNT');
+        require(amountA >= amountAMin, 'GlobalRouter: INSUFFICIENT_A_AMOUNT');
+        require(amountB >= amountBMin, 'GlobalRouter: INSUFFICIENT_B_AMOUNT');
     }
     function removeLiquidityETH(
         address token,
@@ -231,7 +231,7 @@ contract Router is IRouterV2 {
         uint deadline
     ) external virtual override ensure(deadline) returns (uint[] memory amounts) {
         amounts = PancakeLibrary.getAmountsOut(factory, amountIn, path);
-        require(amounts[amounts.length - 1] >= amountOutMin, 'PancakeRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+        require(amounts[amounts.length - 1] >= amountOutMin, 'GlobalRouter: INSUFFICIENT_OUTPUT_AMOUNT');
         TransferHelper.safeTransferFrom(
             path[0], msg.sender, PancakeLibrary.pairFor(factory, path[0], path[1]), amounts[0]
         );
@@ -245,7 +245,7 @@ contract Router is IRouterV2 {
         uint deadline
     ) external virtual override ensure(deadline) returns (uint[] memory amounts) {
         amounts = PancakeLibrary.getAmountsIn(factory, amountOut, path);
-        require(amounts[0] <= amountInMax, 'PancakeRouter: EXCESSIVE_INPUT_AMOUNT');
+        require(amounts[0] <= amountInMax, 'GlobalRouter: EXCESSIVE_INPUT_AMOUNT');
         TransferHelper.safeTransferFrom(
             path[0], msg.sender, PancakeLibrary.pairFor(factory, path[0], path[1]), amounts[0]
         );
@@ -259,9 +259,9 @@ contract Router is IRouterV2 {
     ensure(deadline)
     returns (uint[] memory amounts)
     {
-        require(path[0] == WETH, 'PancakeRouter: INVALID_PATH');
+        require(path[0] == WETH, 'GlobalRouter: INVALID_PATH');
         amounts = PancakeLibrary.getAmountsOut(factory, msg.value, path);
-        require(amounts[amounts.length - 1] >= amountOutMin, 'PancakeRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+        require(amounts[amounts.length - 1] >= amountOutMin, 'GlobalRouter: INSUFFICIENT_OUTPUT_AMOUNT');
         IWETH(WETH).deposit{value: amounts[0]}();
         assert(IWETH(WETH).transfer(PancakeLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
         _swap(amounts, path, to);
@@ -273,9 +273,9 @@ contract Router is IRouterV2 {
     ensure(deadline)
     returns (uint[] memory amounts)
     {
-        require(path[path.length - 1] == WETH, 'PancakeRouter: INVALID_PATH');
+        require(path[path.length - 1] == WETH, 'GlobalRouter: INVALID_PATH');
         amounts = PancakeLibrary.getAmountsIn(factory, amountOut, path);
-        require(amounts[0] <= amountInMax, 'PancakeRouter: EXCESSIVE_INPUT_AMOUNT');
+        require(amounts[0] <= amountInMax, 'GlobalRouter: EXCESSIVE_INPUT_AMOUNT');
         TransferHelper.safeTransferFrom(
             path[0], msg.sender, PancakeLibrary.pairFor(factory, path[0], path[1]), amounts[0]
         );
@@ -290,9 +290,9 @@ contract Router is IRouterV2 {
     ensure(deadline)
     returns (uint[] memory amounts)
     {
-        require(path[path.length - 1] == WETH, 'PancakeRouter: INVALID_PATH');
+        require(path[path.length - 1] == WETH, 'GlobalRouter: INVALID_PATH');
         amounts = PancakeLibrary.getAmountsOut(factory, amountIn, path);
-        require(amounts[amounts.length - 1] >= amountOutMin, 'PancakeRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+        require(amounts[amounts.length - 1] >= amountOutMin, 'GlobalRouter: INSUFFICIENT_OUTPUT_AMOUNT');
         TransferHelper.safeTransferFrom(
             path[0], msg.sender, PancakeLibrary.pairFor(factory, path[0], path[1]), amounts[0]
         );
@@ -308,9 +308,9 @@ contract Router is IRouterV2 {
     ensure(deadline)
     returns (uint[] memory amounts)
     {
-        require(path[0] == WETH, 'PancakeRouter: INVALID_PATH');
+        require(path[0] == WETH, 'GlobalRouter: INVALID_PATH');
         amounts = PancakeLibrary.getAmountsIn(factory, amountOut, path);
-        require(amounts[0] <= msg.value, 'PancakeRouter: EXCESSIVE_INPUT_AMOUNT');
+        require(amounts[0] <= msg.value, 'GlobalRouter: EXCESSIVE_INPUT_AMOUNT');
         IWETH(WETH).deposit{value: amounts[0]}();
         assert(IWETH(WETH).transfer(PancakeLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
         _swap(amounts, path, to);
@@ -352,7 +352,7 @@ contract Router is IRouterV2 {
         _swapSupportingFeeOnTransferTokens(path, to);
         require(
             IERC20(path[path.length - 1]).balanceOf(to).sub(balanceBefore) >= amountOutMin,
-            'PancakeRouter: INSUFFICIENT_OUTPUT_AMOUNT'
+            'GlobalRouter: INSUFFICIENT_OUTPUT_AMOUNT'
         );
     }
     function swapExactETHForTokensSupportingFeeOnTransferTokens(
@@ -367,7 +367,7 @@ contract Router is IRouterV2 {
     payable
     ensure(deadline)
     {
-        require(path[0] == WETH, 'PancakeRouter: INVALID_PATH');
+        require(path[0] == WETH, 'GlobalRouter: INVALID_PATH');
         uint amountIn = msg.value;
         IWETH(WETH).deposit{value: amountIn}();
         assert(IWETH(WETH).transfer(PancakeLibrary.pairFor(factory, path[0], path[1]), amountIn));
@@ -375,7 +375,7 @@ contract Router is IRouterV2 {
         _swapSupportingFeeOnTransferTokens(path, to);
         require(
             IERC20(path[path.length - 1]).balanceOf(to).sub(balanceBefore) >= amountOutMin,
-            'PancakeRouter: INSUFFICIENT_OUTPUT_AMOUNT'
+            'GlobalRouter: INSUFFICIENT_OUTPUT_AMOUNT'
         );
     }
     function swapExactTokensForETHSupportingFeeOnTransferTokens(
@@ -390,13 +390,13 @@ contract Router is IRouterV2 {
     override
     ensure(deadline)
     {
-        require(path[path.length - 1] == WETH, 'PancakeRouter: INVALID_PATH');
+        require(path[path.length - 1] == WETH, 'GlobalRouter: INVALID_PATH');
         TransferHelper.safeTransferFrom(
             path[0], msg.sender, PancakeLibrary.pairFor(factory, path[0], path[1]), amountIn
         );
         _swapSupportingFeeOnTransferTokens(path, address(this));
         uint amountOut = IERC20(WETH).balanceOf(address(this));
-        require(amountOut >= amountOutMin, 'PancakeRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+        require(amountOut >= amountOutMin, 'GlobalRouter: INSUFFICIENT_OUTPUT_AMOUNT');
         IWETH(WETH).withdraw(amountOut);
         TransferHelper.safeTransferETH(to, amountOut);
     }
