@@ -8,8 +8,9 @@ import "./IGlobalMasterChef.sol";
 import './DepositoryRestriction.sol';
 import "./IDistributable.sol";
 import "./VaultLocked.sol";
+import './ReentrancyGuard.sol';
 
-contract VaultVested is DepositoryRestriction, IDistributable {
+contract VaultVested is DepositoryRestriction, IDistributable, ReentrancyGuard {
     using SafeBEP20 for IBEP20;
     using SafeMath for uint;
     using SafeMath for uint16;
@@ -25,6 +26,7 @@ contract VaultVested is DepositoryRestriction, IDistributable {
     uint public minTokenAmountToDistribute;
     uint256 public lastDistributedEvent;
     uint256 public distributionInterval;
+    uint256 private bnbBalance;
 
     address[] public users;
     mapping (address => uint) private principal;
@@ -58,12 +60,15 @@ contract VaultVested is DepositoryRestriction, IDistributable {
         minTokenAmountToDistribute = 1e18; // 1 BEP20 Token
         distributionInterval = 12 hours;
         lastDistributedEvent = block.timestamp;
+        bnbBalance = 0;
 
         _allowance(global, _globalMasterChef);
         _allowance(global, _vaultLocked);
     }
 
-    function triggerDistribute() external override {
+    function triggerDistribute(uint _amount) external nonReentrant override {
+        bnbBalance.add(_amount);
+
         _distribute();
     }
 
@@ -135,7 +140,7 @@ contract VaultVested is DepositoryRestriction, IDistributable {
         delete bnbEarned[msg.sender];
     }
 
-    function getReward() external {
+    function getReward() external nonReentrant {
         uint earned = earned(msg.sender);
 
         handleRewards(earned);
@@ -189,7 +194,7 @@ contract VaultVested is DepositoryRestriction, IDistributable {
     }
 
     function _distribute() private {
-        uint currentBNBAmount = bnb.balanceOf(address(this));
+        uint bnbAmountToDistribute = bnbBalance;
 
         // Nothing to distribute.
         if (lastDistributedEvent.add(distributionInterval) >= block.timestamp) {
@@ -197,7 +202,7 @@ contract VaultVested is DepositoryRestriction, IDistributable {
         }
 
         // Nothing to distribute.
-        if (currentBNBAmount < minTokenAmountToDistribute) {
+        if (bnbAmountToDistribute < minTokenAmountToDistribute) {
             return;
         }
 
@@ -208,13 +213,14 @@ contract VaultVested is DepositoryRestriction, IDistributable {
 
         for (uint i = 0; i < users.length; i++) {
             uint userPercentage = principalOf(users[i]).mul(100).div(totalSupply);
-            uint bnbToUser = currentBNBAmount.mul(userPercentage).div(100);
+            uint bnbToUser = bnbAmountToDistribute.mul(userPercentage).div(100);
+            bnbBalance = bnbBalance.sub(bnbToUser);
 
             bnbEarned[users[i]] = bnbEarned[users[i]].add(bnbToUser);
         }
 
         lastDistributedEvent = block.timestamp;
 
-        emit Distributed(currentBNBAmount);
+        emit Distributed(bnbAmountToDistribute.sub(bnbBalance));
     }
 }

@@ -86,7 +86,7 @@ contract VaultLocked is IDistributable, Ownable, DepositoryRestriction, Reentran
         minGlobalAmountToDistribute = _minGlobalAmountToDistribute;
     }
 
-    function triggerDistribute() external override {
+    function triggerDistribute() external nonReentrant override {
         _distributeBNB();
     }
 
@@ -212,7 +212,7 @@ contract VaultLocked is IDistributable, Ownable, DepositoryRestriction, Reentran
         delete bnbEarned[msg.sender];
     }
 
-    function getReward() external {
+    function getReward() external nonReentrant {
         uint earnedBNB = bnbToEarn(msg.sender);
         uint earnedGLOBAL = globalToEarn(msg.sender);
         handleRewards(earnedBNB,earnedGLOBAL);

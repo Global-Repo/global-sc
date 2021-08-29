@@ -6,10 +6,9 @@ import "./Math.sol";
 import "./IGlobalMasterChef.sol";
 import "./IDistributable.sol";
 import "./IRouterV1.sol";
-import "hardhat/console.sol";
+import './ReentrancyGuard.sol';
 
-
-contract VaultStakedToGlobal is IDistributable {
+contract VaultStakedToGlobal is IDistributable, ReentrancyGuard {
     using SafeBEP20 for IBEP20;
     using SafeMath for uint;
     using SafeMath for uint16;
@@ -56,7 +55,7 @@ contract VaultStakedToGlobal is IDistributable {
         _allowance(global, _globalMasterChef);
     }
 
-    function triggerDistribute() external override {
+    function triggerDistribute() external nonReentrant override {
         _distribute();
     }
 
@@ -86,7 +85,7 @@ contract VaultStakedToGlobal is IDistributable {
     }
 
     // Deposit globals.
-    function deposit(uint _amount) public {
+    function deposit(uint _amount) public nonReentrant {
         bool userExists = false;
         global.safeTransferFrom(msg.sender, address(this), _amount);
 
@@ -115,7 +114,7 @@ contract VaultStakedToGlobal is IDistributable {
     }
 
     // Withdraw all only
-    function withdraw() external {
+    function withdraw() external nonReentrant {
         uint amount = balanceOf(msg.sender);
         uint earnedU = earned(msg.sender);
 
@@ -127,7 +126,7 @@ contract VaultStakedToGlobal is IDistributable {
         delete bnbEarned[msg.sender];
     }
 
-    function getReward() external {
+    function getReward() external nonReentrant {
         uint earnedU = earned(msg.sender);
         handleRewards(earnedU);
         delete bnbEarned[msg.sender];
