@@ -183,16 +183,15 @@ contract VaultLocked is IDistributable, Ownable, DepositoryRestriction, Reentran
 
     function removeAvailableDeposits(address user) private
     {
-        DepositInfo[] storage myDeposits =  depositInfo[user];
         uint256 now = block.timestamp;
 
-        while(myDeposits.length > 0 && myDeposits[0].nextHarvest<now)
+        while(depositInfo[user].length > 0 && depositInfo[user][0].nextHarvest<now)
         {
-            for (uint i = 0; i<myDeposits.length-1; i++)
+            for (uint i = 0; i<depositInfo[user].length-1; i++)
             {
-                myDeposits[i] = myDeposits[i+1];
+                depositInfo[user][i] = depositInfo[user][i+1];
             }
-            myDeposits.pop();
+            depositInfo[user].pop();
         }
     }
 

@@ -90,7 +90,7 @@ beforeEach(async function () {
 describe("MasterChef: Mint", function () {
   it("As an owner I am not able to mint tokens", async function () {
     await expect(
-      masterChef.mintNativeTokens(BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER))
+      masterChef.mintNativeTokens(BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER), owner.address)
     ).to.revertedWith('[f] OnlyMinter: caller is not the minter.');
   });
 
@@ -100,7 +100,7 @@ describe("MasterChef: Mint", function () {
     const amountToMint = BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
 
     await masterChef.setMinter(vault.address, true);
-    await masterChef.connect(vault).mintNativeTokens(amountToMint);
+    await masterChef.connect(vault).mintNativeTokens(amountToMint, vault.address);
 
     // Ensures Masterchef minted something.
     const mintedSupply = await nativeToken.totalSupply();
@@ -114,7 +114,7 @@ describe("MasterChef: Mint", function () {
     const amountToMint = BigNumber.from(3).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
 
     await masterChef.setMinter(vault.address, true);
-    expect(await masterChef.connect(vault).mintNativeTokens(amountToMint))
+    expect(await masterChef.connect(vault).mintNativeTokens(amountToMint,vault.address))
         .to.emit(mintNotifier, 'GlobalsMinted')
         .withArgs(vault.address,amountToMint);
   });
@@ -126,7 +126,7 @@ describe("MasterChef: Mint", function () {
 
     await masterChef.setMinter(vault.address, true);
     await masterChef.setDevAddress(devs.address);
-    await masterChef.connect(vault).mintNativeTokens(amountToMint);
+    await masterChef.connect(vault).mintNativeTokens(amountToMint, vault.address);
 
     // Ensures Masterchef minted an extra 10% for devs.
     const expectedAmountMintedForDevs = amountToMint.mul(10).div(100);
@@ -143,7 +143,7 @@ describe("MasterChef: Mint", function () {
     expect(await nativeToken.totalSupply()).to.equal(BIG_ZERO);
 
     await masterChef.setMinter(vault.address, true);
-    await masterChef.connect(vault).mintNativeTokens(BIG_ZERO);
+    await masterChef.connect(vault).mintNativeTokens(BIG_ZERO, vault.address);
 
     expect(await nativeToken.totalSupply()).to.equal(BIG_ZERO);
   });

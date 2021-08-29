@@ -6,9 +6,9 @@ import "hardhat/console.sol";
 
 contract MintNotifier is IMintNotifier {
 
-    event GlobalsMinted(address _for, uint _amount);
+    event GlobalsMinted(address vaultFor, address userFor, uint amount);
 
-    function notify(address _for, uint _amount) external override {
-        emit GlobalsMinted(_for,_amount);
+    function notify(address _vaultFor, address _userFor, uint _amount) external override {
+        emit GlobalsMinted(_vaultFor,_userFor,_amount);
     }
 }

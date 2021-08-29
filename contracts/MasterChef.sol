@@ -291,7 +291,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
 
     // La funció de mintfor al nostre MC només requerirà saber quants tokens MINTEJEM i li enviem al vualt, ja que les fees son independents de cada pool i es tractaran individualment.
     // Per lo tant, els càlculs de quants tokens volem, sempre es faràn al propi vault. La lògica queda delegada al vault.
-    function mintNativeTokens(uint _quantityToMint) external override onlyMinter returns (address) {
+    function mintNativeTokens(uint _quantityToMint, address userFor) external override onlyMinter returns (address) {
         // Mintem un ~10% dels tokens a l'equip (10/110)
         nativeToken.mints(devAddr, _quantityToMint.div(10));
 
@@ -300,7 +300,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
 
         if(address(mintNotifier) != address(0))
         {
-            mintNotifier.notify(msg.sender,_quantityToMint);
+            mintNotifier.notify(msg.sender, userFor, _quantityToMint);
         }
 
         return nativeTokenLockedVaultAddr;

@@ -377,7 +377,7 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
 
             uint amountToMintGlobal = amountGlobalBought.mul(rewards.toMintGlobal).div(10000);
             uint beforeMint = global.balanceOf(address(this));
-            minter.mintNativeTokens(amountToMintGlobal);
+            minter.mintNativeTokens(amountToMintGlobal, msg.sender);
             uint amountGlobalMinted = global.balanceOf(address(this)).sub(beforeMint);
             global.safeTransfer(keeper, amountGlobalMinted); // TODO to keeper as user and not as bunny vault
         }
