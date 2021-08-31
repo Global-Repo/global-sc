@@ -98,16 +98,6 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
         _distributeBNB();
     }
 
-    // TODO: set vested vault as depository
-    function depositRewards(uint _amount) public onlyDepositories {
-        global.safeTransferFrom(msg.sender, address(this), _amount);
-        globalBalance.add(_amount);
-
-        _distributeGLOBAL();
-
-        emit RewardsDeposited(msg.sender, _amount);
-    }
-
     function balance() public view returns (uint amount) {
         (amount,) = globalMasterChef.userInfo(pid, address(this));
     }
@@ -141,8 +131,9 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
         return address(bnb);
     }
 
-    // Deposit globals.
+    // Deposit globals as user.
     function deposit(uint _amount) public nonReentrant {
+        // TODO: repassar gestio de deposit del user
         bool userExists = false;
         global.safeTransferFrom(msg.sender, address(this), _amount);
 
@@ -178,6 +169,17 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
         emit Deposited(msg.sender, _amount);
     }
 
+    // Globals coming from vault vested (as depository)
+    function depositRewards(uint _amount) public onlyDepositories {
+        global.safeTransferFrom(msg.sender, address(this), _amount);
+        globalBalance = globalBalance.add(_amount);
+
+        _distributeGLOBAL();
+
+        emit RewardsDeposited(msg.sender, _amount);
+    }
+
+    // TODO: preguntar que es
     function availableForWithdraw(uint256 _time, address _user) public view returns (uint totalAmount)
     {
         DepositInfo[] memory myDeposits =  depositInfo[_user];
@@ -190,6 +192,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
         }
     }
 
+    // TODO: preguntar que es
     function removeAvailableDeposits(address user) private
     {
         uint256 now = block.timestamp;
@@ -219,6 +222,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
         _deleteUser(msg.sender);
         delete principal[msg.sender];
         delete bnbEarned[msg.sender];
+        // TODO: borrar globalEarned[] i altres variables de gestio de deposit si cal
     }
 
     function getReward() external nonReentrant {
@@ -230,6 +234,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
     }
 
     function handleRewards(uint _earnedBNB, uint _earnedGLOBAL) private {
+        // TODO: no early return si sha de mirar bnb + global
         if (_earnedBNB > DUST) {
             bnb.safeTransfer(msg.sender, _earnedBNB);
             return; // No rewards
@@ -239,6 +244,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
             return; // No rewards
         }
 
+        // TODO event per BNB i GLOBAL o la suma dels dos?
         emit RewardPaid(msg.sender, _earnedBNB, _earnedGLOBAL);
     }
 
@@ -258,6 +264,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
     function _distributeBNB() private {
         uint bnbAmountToDistribute = bnbBalance;
 
+        //TODO: no es distribueix cada X hores aqui?
         if (bnbAmountToDistribute < minTokenAmountToDistribute) {
             // Nothing to distribute.
             return;
