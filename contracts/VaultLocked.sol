@@ -17,23 +17,22 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
 
     struct DepositInfo {
         uint amount;
-        uint256 nextHarvest;
+        uint256 nextWithdraw;
     }
 
-    mapping (address=>DepositInfo[]) private depositInfo;
+    mapping (address=>DepositInfo[]) public depositInfo;
+    address[] public users;
 
     IBEP20 private global;
     IBEP20 private bnb;
     IGlobalMasterChef private globalMasterChef;
 
     uint public constant DUST = 1000;
-    uint256 public constant LOCKUP = 2592000;
+    uint256 public constant LOCKUP = 2592000; //default lockup of 30 days
 
     uint256 public pid;
     uint public minTokenAmountToDistribute;
     uint public minGlobalAmountToDistribute;
-    address[] public users;
-    mapping (address => uint) private principal;
     mapping (address => uint) private bnbEarned;
     mapping (address => uint) private globalEarned;
     uint public totalSupply;
@@ -101,15 +100,11 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
 
     function balanceOf(address _account) public view returns(uint) {
         if (totalSupply == 0) return 0;
-        return principalOf(_account);
-    }
-
-    function principalOf(address _account) public view returns (uint) {
-        return principal[_account];
+        return amountOfUser(_account);
     }
 
     function bnbToEarn(address _account) public view returns (uint) {
-        if (principalOf(_account) > 0) {
+        if (amountOfUser(_account) > 0) {
             return bnbEarned[_account];
         } else {
             return 0;
@@ -117,7 +112,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
     }
 
     function globalToEarn(address _account) public view returns (uint) {
-        if (principalOf(_account) > 0) {
+        if (amountOfUser(_account) > 0) {
             return globalEarned[_account];
         } else {
             return 0;
@@ -135,7 +130,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
 
         depositInfo[msg.sender].push(DepositInfo({
             amount: _amount,
-            nextHarvest: block.timestamp.add(LOCKUP)
+            nextWithdraw: block.timestamp.add(LOCKUP)
         }));
 
         globalMasterChef.enterStaking(_amount);
@@ -152,7 +147,6 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
         }
 
         totalSupply = totalSupply.add(_amount);
-        principal[msg.sender] = principal[msg.sender].add(_amount);
 
         if (bnbToEarn(msg.sender) == 0) {
             bnbEarned[msg.sender] = 0;
@@ -175,14 +169,23 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
         emit RewardsDeposited(msg.sender, _amount);
     }
 
-    function availableForWithdraw(uint256 _time, address _user) public view returns (uint totalAmount)
+    function amountOfUser(address _user) public view returns (uint totalAmount)
     {
         totalAmount = 0;
-
         DepositInfo[] memory myDeposits =  depositInfo[_user];
         for(uint i=0; i< myDeposits.length; i++)
         {
-            if(myDeposits[i].nextHarvest<_time)
+            totalAmount=totalAmount.add(myDeposits[i].amount);
+        }
+    }
+
+    function availableForWithdraw(uint256 _time, address _user) public view returns (uint totalAmount)
+    {
+        totalAmount = 0;
+        DepositInfo[] memory myDeposits =  depositInfo[_user];
+        for(uint i=0; i< myDeposits.length; i++)
+        {
+            if(myDeposits[i].nextWithdraw<_time)
             {
                 totalAmount=totalAmount.add(myDeposits[i].amount);
             }
@@ -193,7 +196,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
     {
         uint256 now = block.timestamp;
 
-        while(depositInfo[user].length > 0 && depositInfo[user][0].nextHarvest<now)
+        while(depositInfo[user].length > 0 && depositInfo[user][0].nextWithdraw<now)
         {
             for (uint i = 0; i<depositInfo[user].length-1; i++)
             {
@@ -213,12 +216,13 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
         removeAvailableDeposits(msg.sender);
 
         globalMasterChef.leaveStaking(amount);
+        global.safeTransfer(msg.sender, amount);
         handleRewards(earnedBNB,earnedGLOBAL);
         totalSupply = totalSupply.sub(amount);
         _deleteUser(msg.sender);
-        delete principal[msg.sender];
         delete bnbEarned[msg.sender];
         delete globalEarned[msg.sender];
+        emit Withdrawn(msg.sender, amount);
     }
 
     function getReward() external nonReentrant {
@@ -267,7 +271,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
         }
 
         for (uint i=0; i < users.length; i++) {
-            uint userPercentage = principalOf(users[i]).mul(100).div(totalSupply);
+            uint userPercentage = amountOfUser(users[i]).mul(100).div(totalSupply);
             uint bnbToUser = bnbAmountToDistribute.mul(userPercentage).div(100);
             bnbBalance = bnbBalance.sub(bnbToUser);
 
@@ -283,7 +287,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
         {
             lastRewardEvent = block.timestamp;
             for (uint i=0; i < users.length; i++) {
-                uint userPercentage = principalOf(users[i]).mul(100).div(totalSupply);
+                uint userPercentage = amountOfUser(users[i]).mul(100).div(totalSupply);
                 uint globalToUser = globalAmountToDistribute.mul(userPercentage).div(100).div(20);
                 globalBalance = globalBalance.sub(globalToUser);
 

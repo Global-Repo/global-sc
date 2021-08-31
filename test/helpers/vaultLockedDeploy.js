@@ -1,5 +1,5 @@
 const ethers = require("hardhat").ethers;
-const { timestampNDays } = require("./utils.js");
+const { timestampNDays, timestampNHours } = require("./utils.js");
 const {
     deployGlobal,
     deployBnb,
@@ -19,7 +19,7 @@ let pathFinderMock;
 let vaultLocked;
 
 let deploy = async function () {
-    [owner, user1, ...addrs] = await ethers.getSigners();
+    [owner, user1, user2, ...addrs] = await ethers.getSigners();
     nativeToken = await deployGlobal();
     weth = await deployBnb();
     tokenAddresses = await deployTokenAddresses();
@@ -35,7 +35,7 @@ let deploy = async function () {
         nativeToken.address,
         weth.address,
         globalMasterChefMock.address,
-        timestampNDays(0)
+        timestampNHours(3)
     );
 };
 
