@@ -39,7 +39,7 @@ contract VaultStakedToGlobal is IDistributable, ReentrancyGuard, RewarderRestric
         address _globalMasterChef
     ) public {
         // Pid del vault.
-        pid = 2;
+        pid = 0;
 
         // Li passem el address de global
         global = IBEP20(_global);
@@ -169,7 +169,6 @@ contract VaultStakedToGlobal is IDistributable, ReentrancyGuard, RewarderRestric
     }
 
     function _distribute() private {
-        uint currentBNBAmount = bnb.balanceOf(address(this));
         uint bnbAmountToDistribute = bnbBalance;
 
         if (bnbAmountToDistribute < minTokenAmountToDistribute) {

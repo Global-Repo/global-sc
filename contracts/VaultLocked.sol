@@ -10,9 +10,6 @@ import './ReentrancyGuard.sol';
 import "./DepositoryRestriction.sol";
 import "./RewarderRestriction.sol";
 
-// Hem d'afegir un harvest lockup obligatori a cada dipòsit del temps definit a la variable indicada (crear-la).
-// Hem de fer que es distribueixin els tokens GLOBAL que el contracte JA TÉ (fer aquesta part).
-
 contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRestriction, RewarderRestriction {
     using SafeBEP20 for IBEP20;
     using SafeMath for uint;
@@ -58,7 +55,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
         uint256 _rewardInterval
     ) public {
         // Pid del vault.
-        pid = 3;
+        pid = 0;
 
         // Li passem el address de global
         global = IBEP20(_global);
@@ -133,16 +130,15 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
 
     // Deposit globals as user.
     function deposit(uint _amount) public nonReentrant {
-        // TODO: repassar gestio de deposit del user
         bool userExists = false;
         global.safeTransferFrom(msg.sender, address(this), _amount);
 
         depositInfo[msg.sender].push(DepositInfo({
-        amount: _amount,
-        nextHarvest: block.timestamp.add(LOCKUP)
+            amount: _amount,
+            nextHarvest: block.timestamp.add(LOCKUP)
         }));
-        globalMasterChef.enterStaking(_amount);
 
+        globalMasterChef.enterStaking(_amount);
 
         for (uint j = 0; j < users.length; j++) {
             if (users[j] == msg.sender)
@@ -179,9 +175,10 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
         emit RewardsDeposited(msg.sender, _amount);
     }
 
-    // TODO: preguntar que es
     function availableForWithdraw(uint256 _time, address _user) public view returns (uint totalAmount)
     {
+        totalAmount = 0;
+
         DepositInfo[] memory myDeposits =  depositInfo[_user];
         for(uint i=0; i< myDeposits.length; i++)
         {
@@ -192,7 +189,6 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
         }
     }
 
-    // TODO: preguntar que es
     function removeAvailableDeposits(address user) private
     {
         uint256 now = block.timestamp;
@@ -222,7 +218,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
         _deleteUser(msg.sender);
         delete principal[msg.sender];
         delete bnbEarned[msg.sender];
-        // TODO: borrar globalEarned[] i altres variables de gestio de deposit si cal
+        delete globalEarned[msg.sender];
     }
 
     function getReward() external nonReentrant {
@@ -234,17 +230,18 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
     }
 
     function handleRewards(uint _earnedBNB, uint _earnedGLOBAL) private {
-        // TODO: no early return si sha de mirar bnb + global
         if (_earnedBNB > DUST) {
             bnb.safeTransfer(msg.sender, _earnedBNB);
-            return; // No rewards
-        }
-        if (_earnedGLOBAL > DUST) {
-            global.safeTransfer(msg.sender, _earnedGLOBAL);
-            return; // No rewards
+        } else {
+            _earnedBNB = 0;
         }
 
-        // TODO event per BNB i GLOBAL o la suma dels dos?
+        if (_earnedGLOBAL > DUST) {
+            global.safeTransfer(msg.sender, _earnedGLOBAL);
+        } else {
+            _earnedGLOBAL = 0;
+        }
+
         emit RewardPaid(msg.sender, _earnedBNB, _earnedGLOBAL);
     }
 
@@ -264,7 +261,6 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
     function _distributeBNB() private {
         uint bnbAmountToDistribute = bnbBalance;
 
-        //TODO: no es distribueix cada X hores aqui?
         if (bnbAmountToDistribute < minTokenAmountToDistribute) {
             // Nothing to distribute.
             return;
@@ -283,8 +279,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
 
     function _distributeGLOBAL() private {
         uint globalAmountToDistribute = globalBalance;
-        // TODO: revisar lastRewardEvent.add(rewardInterval)>=block.timestamp ha de ser <
-        if(lastRewardEvent.add(rewardInterval)>=block.timestamp && globalAmountToDistribute >= minGlobalAmountToDistribute)
+        if(lastRewardEvent.add(rewardInterval)<=block.timestamp && globalAmountToDistribute >= minGlobalAmountToDistribute)
         {
             lastRewardEvent = block.timestamp;
             for (uint i=0; i < users.length; i++) {

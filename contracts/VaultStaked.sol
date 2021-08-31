@@ -37,7 +37,7 @@ contract VaultStaked is IDistributable, ReentrancyGuard, RewarderRestriction {
         address _globalMasterChef
     ) public {
         // Pid del vault.
-        pid = 1;
+        pid = 0;
 
         // Li passem el address de global
         global = IBEP20(_global);
