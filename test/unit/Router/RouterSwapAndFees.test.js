@@ -14,7 +14,7 @@ let tokenB;
 let nativeToken;
 
 beforeEach(async function () {
-    [owner, addr1, addr2, addr3, ...addrs] = await ethers.getSigners();
+    [owner, addr1, addr2, addr3, feetoo, ...addrs] = await ethers.getSigners();
 
     const Factory = await ethers.getContractFactory("Factory");
     factory = await Factory.deploy(owner.address);
@@ -93,7 +93,7 @@ describe("Swap tokens", function () {
                 owner.address,
                 timestamp
             )
-        ).to.be.revertedWith('PancakeRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+        ).to.be.revertedWith('GlobalRouter: INSUFFICIENT_OUTPUT_AMOUNT');
     });
 
     it("Cannot swap tokens from a non token address in path", async function () {
@@ -149,267 +149,295 @@ describe("Swap tokens", function () {
         ).to.be.revertedWith('PancakeLibrary: INSUFFICIENT_INPUT_AMOUNT');
     });
 
-    it("Cannot change the swap fee unless owner", async function () {
+    it("Cannot change the feeto address unless owner", async function () {
         await expect(
-            factory.connect(addr3).setSwapFee(0)
+            factory.connect(addr3).setFeeTo(feetoo.address)
         ).to.revertedWith('FORBIDDEN');
 
         await expect(
-            factory.connect(owner).setSwapFee(0)
+            factory.connect(owner).setFeeTo(feetoo.address)
         );
     });
 
-    it("Cannot set up a negative fee", async function () {
+    it("Cannot change the feeto setter address unless owner", async function () {
         await expect(
-            factory.connect(owner).setSwapFee(-10000)
-        ).to.reverted;
+            factory.connect(addr3).setFeeToSetter(feetoo.address)
+        ).to.revertedWith('FORBIDDEN');
 
         await expect(
-            factory.connect(owner).setSwapFee(-1)
-        ).to.reverted;
+            factory.connect(owner).setFeeToSetter(feetoo.address)
+        );
+    });
 
+    it("Change feeto setter, then set feeto it to new address", async function () {
+        //owner changes feeto setter to feetoo address
         await expect(
-            factory.connect(owner).setSwapFee(100)
-        ).to.revertedWith('You cannot set the swap fees above 25');
+            factory.connect(owner).setFeeToSetter(feetoo.address)
+        );
+        await expect(
+            factory.connect(feetoo).setFeeTo(feetoo.address)
+        );
+        //owner does not have any right
+        await expect(
+            factory.connect(owner).setFeeToSetter(feetoo.address)
+        ).to.revertedWith('FORBIDDEN');
+        await expect(
+            factory.connect(owner).setFeeTo(feetoo.address)
+        ).to.revertedWith('FORBIDDEN');
     });
 
 
-    it("Swap native tokens, complete functionality + swaps + 2 users (no swap fees)", async function () {
-        const INITIAL_SUPPLY = BigNumber.from(100000000).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+    it("Swap tokens, complete functionality + swaps + 2 users", async function () {
         let date = new Date();
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
-        await factory.connect(owner).setSwapFee(0);
+        console.log('\nOWNER sets feetoo adress to ', feetoo.address);
+        factory.connect(owner).setFeeTo(feetoo.address);
+        console.log('feetoo addrs gets approve for nativeToken and tknB from router');
+        await tokenB.connect(feetoo).approve(router.address, 10000000000);
+        await nativeToken.connect(feetoo).approve(router.address, 10000000000);
 
+        //OWNER Initial supplies
+        console.log('\nOWNER initial supplies');
+        let owner_initial_native_balance = await nativeToken.balanceOf(owner.address);
+        let owner_initial_b_balance = await tokenB.balanceOf(owner.address);
+        console.log('owner tkn native balance', owner_initial_native_balance.toString());
+        console.log('owner tkn b balance', owner_initial_b_balance.toString());
+
+        //FIRST liquidity deposit from owner
+        //Inside the Pair.sol _mintFee function (the one who sends the fees to the dev addrs)
+        //   these are the var values at this point (got them with console.logs, which are removed now):
+        //  	_mintFee feeTo 0x15d34aaf54267db7d7c367839aaf71a00a2c6a65
+        //  	_mintFee feeOn true
+        //  	_mintFee klast 0
+        //   (Note that feeTo address will change in every test execution, as new addresses are generated)
+        //   FeeOn will be true as long as we set a feetoo address (we did some lines above, see below),
+        //   otherwise this will be false and fees will not be considered. Need to do this:
+        //      factory.connect(owner).setFeeTo(feetoo.address);
+        //
+        console.log('\nOWNER deposits 100000 for both A and B tokens');
+        let firstdeposit = 100000;
         await router.connect(owner).addLiquidity(
             nativeToken.address,
             tokenB.address,
-            10000000,
-            5000000,
+            firstdeposit,
+            firstdeposit,
             0,
             0,
             owner.address,
             deadline
         );
-        expect(await nativeToken.balanceOf(owner.address)).equal( INITIAL_SUPPLY.sub(10000000) );
-        expect(await tokenB.balanceOf(owner.address)).equal( INITIAL_SUPPLY.sub(5000000) );
-
-        //Also, the pair Native-B has been created
+        let owner_native_balance = await nativeToken.balanceOf(owner.address);
+        let owner_b_balance = await tokenB.balanceOf(owner.address);
+        expect(owner_native_balance).equal( owner_initial_native_balance.sub(firstdeposit) );
+        expect(owner_b_balance).equal( owner_initial_b_balance.sub(firstdeposit) );
         const pairAddress = await factory.getPair(nativeToken.address, tokenB.address);
         expect(pairAddress).not.equal(0);
         const pairContract = await ethers.getContractFactory("Pair");
         const pair = await pairContract.attach(pairAddress);
-        //find balance of pair native-tknb for owner, which should not be 0
-        expect(await pair.balanceOf(owner.address)).equal(7070067);
-
+        //find balance of pair native-tknb for owner, which should be 99000 (100k - blocked first deposit)
         let owner_pair_balance = await pair.balanceOf(owner.address);
-        let owner_native_balance = await nativeToken.balanceOf(owner.address);
-        let owner_b_balance = await tokenB.balanceOf(owner.address);
-        console.log('\nAFTER DEPOSIT')
-        console.log('tkn native balance', owner_native_balance.toString());
-        console.log('tkn b balance', owner_b_balance.toString());
-        console.log('pair balance', owner_pair_balance.toString());
+        expect(owner_pair_balance).equal(99000);
+        let {0: reserves0, 1:reserves1} = await pair.getReserves();
+        expect(reserves0).equal(firstdeposit);
+        expect(reserves1).equal(firstdeposit);
+        console.log('owner tkn native balance', owner_native_balance.toString());
+        console.log('owner tkn b balance', owner_b_balance.toString());
+        console.log('owner LP balance', owner_pair_balance.toString());
+        console.log('LP pool reserves0', reserves0.toString());
+        console.log('LP pool reserves1', reserves1.toString());
 
-        let {0: reserves000, 1:reserves010} = await pair.getReserves();
-        console.log('pair reserves0', reserves000.toString());
-        console.log('pair reserves1', reserves010.toString());
-
-
-        //SWAP NATIVE TOKEN FOR B
+        //OWNER SWAPS 100 TOKENA for TOKENB
+        console.log('\nOWNER swaps 1000 tokens A for B');
+        let swappeda = 10000;
         await router.connect(owner).swapExactTokensForTokens(
-            500,
+            swappeda,
             0,
             [nativeToken.address, tokenB.address],
             owner.address,
             deadline
         );
-        expect(await nativeToken.balanceOf(owner.address)).equal( owner_native_balance.sub(500) );
-        expect(await tokenB.balanceOf(owner.address)).equal( owner_b_balance.add(249) );
-        //check that the LP qty is the same
-        owner_pair_balance = await pair.balanceOf(owner.address);
-        expect(await pair.balanceOf(owner.address)).equal(7070067);
-
-        //update owners balances
         owner_native_balance = await nativeToken.balanceOf(owner.address);
         owner_b_balance = await tokenB.balanceOf(owner.address);
-        console.log('\nAFTER SWAP NATIVE-B')
-        console.log('tkn native balance', owner_native_balance.toString());
-        console.log('tkn b balance', owner_b_balance.toString());
-        console.log('pair balance', owner_pair_balance.toString());
+        expect(owner_native_balance).equal( owner_initial_native_balance.sub(firstdeposit).sub(swappeda)  );
+        expect(owner_b_balance).equal( owner_initial_b_balance.sub(firstdeposit).add(9079)  );
+        owner_pair_balance = await pair.balanceOf(owner.address);
+        console.log('owner tkn native balance', owner_native_balance.toString());
+        console.log('owner tkn b balance (swapped A for B - fees)', owner_b_balance.toString());
+        console.log('owner LP balance', owner_pair_balance.toString());
+        let {0: reserves0_1, 1:reserves1_1} = await pair.getReserves();
+        console.log('LP pool reserves0', reserves0_1.toString());
+        console.log('LP pool reserves1', reserves1_1.toString());
+        //check whether the fees are in the feeto address
+        feeto_native_balance = await nativeToken.balanceOf(feetoo.address);
+        feeto_b_balance = await tokenB.balanceOf(feetoo.address);
+        let feeto_pair_balance = await pair.balanceOf(feetoo.address);
+        console.log('feeto addrs tkn native balance', feeto_native_balance.toString());
+        console.log('feeto addrs tkn b balance', feeto_b_balance.toString());
+        console.log('feeto addrs pair LP balance', feeto_pair_balance.toString());
 
-        let {0: reserves00, 1:reserves01} = await pair.getReserves();
-        console.log('pair reserves0', reserves00.toString());
-        console.log('pair reserves1', reserves01.toString());
 
-        //
-        // SWAP TOKEN B FOR NATIVE
-        //
-        await router.connect(owner).swapExactTokensForTokens(
-            500,
+        //ADDR3 SWAPS SOME COINS
+        console.log('\nADDR3 SWAPS 1000 tokens B for A. Getting permission for tkb and tka, minting 1000tkb from owner and transferring them to addr3.');
+        console.log('\tBefore swap');
+        await tokenB.connect(addr3).approve(router.address, 10000000000);
+        await nativeToken.connect(addr3).approve(router.address, 10000000000);
+        await tokenB.connect(owner).mint(1000);
+        await tokenB.connect(owner).transfer(addr3.address, 1000 );
+        let addr3_native_balance = await nativeToken.balanceOf(addr3.address);
+        let addr3_b_balance = await tokenB.balanceOf(addr3.address);
+        console.log('addr3 tkn native balance', addr3_native_balance.toString());
+        console.log('addr3 tkn b balance', addr3_b_balance.toString());
+        let {0: reserves0_3, 1:reserves1_3} = await pair.getReserves();
+        console.log('LP pool reserves0', reserves0_3.toString());
+        console.log('LP pool reserves1', reserves1_3.toString());
+
+        await router.connect(addr3).swapExactTokensForTokens(
+            1000,
             0,
             [tokenB.address, nativeToken.address],
-            owner.address,
-            deadline
-        );
-        expect(await nativeToken.balanceOf(owner.address)).equal( owner_native_balance.add(999) );
-        expect(await tokenB.balanceOf(owner.address)).equal( owner_b_balance.sub(500) );
-        expect(await pair.balanceOf(owner.address)).equal(7070067);
-
-        owner_pair_balance = await pair.balanceOf(owner.address);
-        owner_native_balance = await nativeToken.balanceOf(owner.address);
-        owner_b_balance = await tokenB.balanceOf(owner.address);
-        console.log('\nAFTER SWAP B-NATIVE')
-        console.log('tkn native balance', owner_native_balance.toString());
-        console.log('tkn b balance', owner_b_balance.toString());
-        console.log('pair balance', owner_pair_balance.toString());
-
-        let {0: reserves0, 1:reserves1} = await pair.getReserves();
-        console.log('pair reserves0', reserves0.toString());
-        console.log('pair reserves1', reserves1.toString());
-
-        //
-        // WITHDRAW, see how the LPs and total tkns has changed
-        //
-        await pair.connect(owner).approve(router.address, 100000000000000);
-        await router.connect(owner).removeLiquidity(
-            nativeToken.address,
-            tokenB.address,
-            owner_pair_balance,
-            1,
-            1,
-            owner.address,
-            deadline
-        );
-
-        owner_pair_balance = (await pair.balanceOf(owner.address));
-        owner_native_balance = await nativeToken.balanceOf(owner.address);
-        owner_b_balance = await tokenB.balanceOf(owner.address);
-        console.log('\nAFTER WITHDRAW')
-        console.log('tkn native balance', owner_native_balance.toString());
-        console.log('tkn b balance', owner_b_balance.toString());
-        console.log('pair balance', owner_pair_balance.toString());
-
-        let {0: reserves_0, 1:reserves_1} = await pair.getReserves();
-        console.log('pair reserves0', reserves_0.toString());
-        console.log('pair reserves1', reserves_1.toString());
-
-        //
-        // NOW WE MINT SOME TOKENS FOR ADDR3 and addliquidity to the same pair
-        // then we try to remove liquidity from owner, and it should break
-        //
-        await pair.connect(addr3).approve(router.address, 100000000000000);
-        await nativeToken.connect(addr3).approve(router.address, 100000000000000);
-        await tokenB.connect(addr3).approve(router.address, 100000000000000);
-        await nativeToken.connect(owner).transfer(addr3.address, 50000 )
-        await tokenB.connect(owner).transfer(addr3.address, 50000 )
-        expect(await nativeToken.balanceOf(owner.address)).equal( owner_native_balance.sub(50000) );
-        expect(await tokenB.balanceOf(owner.address)).equal( owner_b_balance.sub(50000) );
-        owner_native_balance = owner_native_balance.sub(50000);
-        owner_b_balance = owner_b_balance.sub(50000);
-        console.log('\nOWNER AFTER TRANSFERRING 50k to ADDR3');
-        console.log('owner_native_balance', owner_native_balance.toString());
-        console.log('owner_b_balance', owner_b_balance.toString());
-
-        //
-        // ADDR adds liquidity to the same pool
-        //
-        await router.connect(addr3).addLiquidity(
-            nativeToken.address,
-            tokenB.address,
-            30000,
-            30000,
-            200,
-            200,
             addr3.address,
             deadline
         );
-        let {0: reserves__0, 1:reserves__1} = await pair.getReserves();
-        console.log('\nADDR3 ADDED LIQUIDITY')
-        console.log('pair reserves0', reserves__0.toString());
-        console.log('pair reserves1', reserves__1.toString());
+        console.log('\tAfter swap');
+        addr3_native_balance = await nativeToken.balanceOf(addr3.address);
+        addr3_b_balance = await tokenB.balanceOf(addr3.address);
+        console.log('addr3 tkn native balance', addr3_native_balance.toString());
+        console.log('addr3 tkn b balance', addr3_b_balance.toString());
+        let {0: reserves0_2, 1:reserves1_2} = await pair.getReserves();
+        console.log('LP pool reserves0', reserves0_2.toString());
+        console.log('LP pool reserves1', reserves1_2.toString());
 
-        let {0: reserves___0, 1:reserves___1} = await pair.getReserves();
-        console.log('\nOWNER removed liquidity')
-        console.log('pair reserves0', reserves___0.toString());
-        console.log('pair reserves1', reserves___1.toString());
-        owner_pair_balance = await pair.balanceOf(owner.address);
-        owner_native_balance = await nativeToken.balanceOf(owner.address);
-        owner_b_balance = await tokenB.balanceOf(owner.address);
-        console.log('tkn native balance', owner_native_balance.toString());
-        console.log('tkn b balance', owner_b_balance.toString());
-        console.log('pair balance', owner_pair_balance.toString());
+        //checking whether the fees are anywhere. NOT YET! we should wait for a deposit or withdraw
+        //event!
+        feeto_native_balance = await nativeToken.balanceOf(feetoo.address);
+        feeto_b_balance = await tokenB.balanceOf(feetoo.address);
+        feeto_pair_balance = await pair.balanceOf(feetoo.address);
+        console.log('feeto addrs tkn native balance', feeto_native_balance.toString());
+        console.log('feeto addrs tkn b balance', feeto_b_balance.toString());
+        console.log('feeto addrs pair LP balance', feeto_pair_balance.toString());
 
-        await expect( router.connect(addr3).removeLiquidity(
+        //
+        // OWNER deposits 100000 tkA. This will activate the transfer of fees, since
+        // kLast (in Pair.sol) will no longer be zero. WIthdrawns will also activate transfer fees
+        // In this example, this jumps inside Pair._mintFee function, whose inside vars are
+        //    _mintFee feeTo 0x15d34aaf54267db7d7c367839aaf71a00a2c6a65
+        //    _mintFee feeOn true
+        //    _mintFee klast 10000000000
+        //    _mintFee rootK 100007
+        //    _mintFee rootKLast 100000
+        //    _mintFee numerator 700000
+        //    _mintFee denominator 400021
+        //    _mintFee liquidity 1 // this is the number of LPs minted as fees!
+        //
+        console.log('\nOWNER deposits 100000 for both A and B tokens. This activates the fee transfer that should be sent to feeto addres');
+        await router.connect(owner).addLiquidity(
             nativeToken.address,
             tokenB.address,
-            1000,
-            10,
-            5,
+            100000,
+            100000,
+            0,
+            0,
             owner.address,
             deadline
-        ));
+        );
+        //checking whether the fees are in our wallet...
+        feeto_native_balance = await nativeToken.balanceOf(feetoo.address);
+        feeto_b_balance = await tokenB.balanceOf(feetoo.address);
+        feeto_pair_balance = await pair.balanceOf(feetoo.address);
+        console.log('feeto addrs tkn native balance', feeto_native_balance.toString());
+        console.log('feeto addrs tkn b balance', feeto_b_balance.toString());
+        console.log('feeto addrs pair LP balance', feeto_pair_balance.toString());
 
 
-    });
-
-
-    it("Swap tokens, basic functionality", async function () {
-        let date = new Date();
-        const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
-
-        //await factory.setSwapFee(0);
-
-        await router.addLiquidity(
-            tokenA.address,
+        console.log('\nOWNER deposits AGAIN 100000 for both A and B tokens. This activates the fee transfer that should be sent to feeto addres');
+        await router.connect(owner).addLiquidity(
+            nativeToken.address,
             tokenB.address,
-            BigNumber.from(10000000).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            BigNumber.from(10000000).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            BigNumber.from(0).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            BigNumber.from(0).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            100000,
+            100000,
+            0,
+            0,
             owner.address,
             deadline
         );
+        //checking whether the fees are anywhere
+        feeto_native_balance = await nativeToken.balanceOf(feetoo.address);
+        feeto_b_balance = await tokenB.balanceOf(feetoo.address);
+        feeto_pair_balance = await pair.balanceOf(feetoo.address);
+        console.log('feeto addrs tkn native balance', feeto_native_balance.toString());
+        console.log('feeto addrs tkn b balance', feeto_b_balance.toString());
+        console.log('feeto addrs pair LP balance', feeto_pair_balance.toString());
 
-        /*const f = await tokenA.balanceOf(owner.address);
-        const g = await tokenB.balanceOf(owner.address);
-        console.log(f.toString());
-        console.log(g.toString());*/
+        //
+        // Let's swap some more and see how the fees increase for the sake of complexity
+        //
+        console.log('\nLets swap some more, add liquidity again and check again the fees');
+        for(var i = 0; i < 4; i++){
+            await router.connect(owner).swapExactTokensForTokens(
+                10000,
+                0,
+                [tokenB.address, nativeToken.address],
+                owner.address,
+                deadline
+            );
 
-        // Remaining 100 - 10 added as liquidity = 90 tokenA
-        //expect(await tokenA.balanceOf(owner.address)).to.equal(BigNumber.from(90).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
-
-        // Remaining 100 - 10 added as liquidity = 90 tokenB
-        //expect(await tokenB.balanceOf(owner.address)).to.equal(BigNumber.from(90).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
-
-        await router.swapExactTokensForTokens(
-            BigNumber.from(5).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            [tokenA.address, tokenB.address],
+            await router.connect(owner).swapExactTokensForTokens(
+                10000,
+                0,
+                [nativeToken.address, tokenB.address],
+                owner.address,
+                deadline
+            );
+            console.log('Swapping', i);
+        }
+        // After executing this addLiquidity, we find
+        //      _mintFee feeTo 0x15d34aaf54267db7d7c367839aaf71a00a2c6a65
+        //      _mintFee feeOn true
+        //      _mintFee klast 80562592425
+        //      _mintFee rootK 283892
+        //      _mintFee rootKLast 283835
+        //      _mintFee numerator 16177569
+        //      _mintFee denominator 1135511
+        //      _mintFee liquidity 14
+        await router.connect(owner).addLiquidity(
+            nativeToken.address,
+            tokenB.address,
+            10,
+            10,
+            0,
+            0,
             owner.address,
             deadline
         );
+        //checking whether the fees are anywhere
+        feeto_native_balance = await nativeToken.balanceOf(feetoo.address);
+        feeto_b_balance = await tokenB.balanceOf(feetoo.address);
+        feeto_pair_balance = await pair.balanceOf(feetoo.address);
+        console.log('feeto addrs pair LP balance', feeto_pair_balance.toString());
+        let {0: reserves0_4, 1:reserves1_4} = await pair.getReserves();
+        console.log('LP pool reserves0', reserves0_4.toString());
+        console.log('LP pool reserves1', reserves1_4.toString());
+        console.log('LP owner', (await pair.balanceOf(owner.address) ).toString() );
 
-        /*const a = await tokenA.balanceOf(owner.address);
-        const b = await tokenB.balanceOf(owner.address);
-        console.log(a.toString());
-        console.log(b.toString());*/
-
-        //expect(await tokenA.balanceOf(owner.address)).to.equal(BigNumber.from(85).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
-        // TODO: expect token B amount
-
-        await router.swapExactTokensForTokens(
-            BigNumber.from(5).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            [tokenA.address, tokenB.address],
-            owner.address,
+        console.log('\nFinally we removeliquidity from our feetoo address, which received the LPs minted as fees.');
+        // Since there have been no swaps here, we don't have any fees to earn or mint
+        // with the withdrawal. rootK == rootKLast therefore we do not get any fees.
+        // 	_mintFee feeTo 0x15d34aaf54267db7d7c367839aaf71a00a2c6a65
+        // 	_mintFee feeOn true
+        // 	_mintFee klast 80599969590
+        // 	_mintFee rootK 283901
+        // 	_mintFee rootKLast 283901
+        await pair.connect(feetoo).approve(router.address, 50000);
+        await router.connect(feetoo).removeLiquidity(
+            nativeToken.address,
+            tokenB.address,
+            10,
+            0,
+            0,
+            feetoo.address,
             deadline
         );
 
-        //expect(await tokenA.balanceOf(owner.address)).to.equal(BigNumber.from(80).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
-        // TODO: expect token B amount
-
-        /*const c = await tokenA.balanceOf(owner.address);
-        const d = await tokenB.balanceOf(owner.address);
-        console.log(c.toString());
-        console.log(d.toString());*/
     });
+
 });

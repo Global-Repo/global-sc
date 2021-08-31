@@ -190,7 +190,7 @@ describe("Router: removeLiquidity and fees", function () {
         //add liquidity with owner and create the pair AB
         let date = new Date();
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
-        await expect( router.connect(owner).addLiquidity(
+        await router.connect(owner).addLiquidity(
             tokenA.address,
             tokenB.address,
             BigNumber.from(10000),
@@ -199,10 +199,7 @@ describe("Router: removeLiquidity and fees", function () {
             BigNumber.from(1000),
             owner.address,
             deadline
-        )).to.emit(router, 'AddedLiquidity')
-            .withArgs(BigNumber.from(10000),
-                BigNumber.from(10000),
-                BigNumber.from(9000));
+        );
 
         //Also, the pair A-B has been created
         const pairAddress = await factory.getPair(tokenA.address, tokenB.address);
@@ -228,7 +225,7 @@ describe("Router: removeLiquidity and fees", function () {
         //add liquidity with owner and create the pair AB
         let date = new Date();
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
-        await expect( router.connect(owner).addLiquidity(
+        await router.connect(owner).addLiquidity(
             tokenA.address,
             tokenB.address,
             BigNumber.from(10000),
@@ -237,10 +234,7 @@ describe("Router: removeLiquidity and fees", function () {
             BigNumber.from(1000),
             owner.address,
             deadline
-        )).to.emit(router, 'AddedLiquidity')
-            .withArgs(BigNumber.from(10000),
-                BigNumber.from(10000),
-                BigNumber.from(9000));
+        );
 
         //Also, the pair A-B has been created
         const pairAddress = await factory.getPair(tokenA.address, tokenB.address);
@@ -295,7 +289,7 @@ describe("Router: removeLiquidity and fees", function () {
         //add liquidity
         let date = new Date();
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
-        await expect( router.connect(owner).addLiquidity(
+        await router.connect(owner).addLiquidity(
             tokenA.address,
             tokenB.address,
             BigNumber.from(10000),
@@ -304,12 +298,9 @@ describe("Router: removeLiquidity and fees", function () {
             BigNumber.from(1000),
             owner.address,
             deadline
-        )).to.emit(router, 'AddedLiquidity')
-            .withArgs(BigNumber.from(10000),
-                BigNumber.from(10000),
-                BigNumber.from(10000).sub(1000));
+        );
 
-        await expect( router.connect(owner).addLiquidity(
+        await router.connect(owner).addLiquidity(
             tokenA.address,
             tokenB.address,
             BigNumber.from(10000),
@@ -318,10 +309,7 @@ describe("Router: removeLiquidity and fees", function () {
             BigNumber.from(1000),
             owner.address,
             deadline
-        )).to.emit(router, 'AddedLiquidity')
-            .withArgs(BigNumber.from(10000),
-                BigNumber.from(10000),
-                BigNumber.from(10000));
+        );
 
         //Also, the pair A-B has been created
         const pairAddress = await factory.getPair(tokenA.address, tokenB.address);
@@ -329,7 +317,7 @@ describe("Router: removeLiquidity and fees", function () {
         const pairContract = await ethers.getContractFactory("Pair");
         const pair = await pairContract.attach(pairAddress);
 
-        //balance of owner should be 19000 A-B LPs (the two addliquidity)
+        //balance of owner should be 19000 A-B LPs (the two addliquidity) minus the blocked part \o.o/
         expect(await pair.balanceOf(owner.address)).equal(19000 );
         //balance of owner for token1 and tokenb should be 99999999999999980000 (minted - liquidity added)
         expect(await tokenA.balanceOf(owner.address)).equal( INITIAL_SUPPLY.sub(20000) );
@@ -345,16 +333,15 @@ describe("Router: removeLiquidity and fees", function () {
         //since the proportion between A:B es 1:1, we will retrieve the maximum
         //possible between amountAMin and amountBMin considering the liquidity and the qty
         // we want to retrieve of the pool (which is 1000) and send it to the owner address
-        await expect( router.connect(owner).removeLiquidity(
+        await router.connect(owner).removeLiquidity(
             tokenA.address,
             tokenB.address,
             1000,
-            100,
-            1,
+            0,
+            0,
             owner.address,
             deadline
-        )).to.emit(router, 'RemovedLiquidity')
-            .withArgs(1000, 1000);
+        );
 
         //now, the owner recovered 1000 tokensA and 1000 tokensB, therefore he now must have
         //INITIAL_SUPPLY.sub(19000)
@@ -368,7 +355,7 @@ describe("Router: removeLiquidity and fees", function () {
         //
         // retrieve all thats left
         //
-        await expect( router.connect(owner).removeLiquidity(
+        await router.connect(owner).removeLiquidity(
             tokenA.address,
             tokenB.address,
             18000,
@@ -376,8 +363,7 @@ describe("Router: removeLiquidity and fees", function () {
             1,
             owner.address,
             deadline
-        )).to.emit(router, 'RemovedLiquidity')
-            .withArgs(18000, 18000);
+        );
 
         //now, the owner recovered 1000 tokensA and 1000 tokensB, therefore he now must have
         //INITIAL_SUPPLY.sub(19000)
@@ -389,6 +375,19 @@ describe("Router: removeLiquidity and fees", function () {
         let {0: reserves01, 1:reserves11, 2:reserves_timestamp1} = await pair.getReserves();
         expect(reserves01).equal(BigNumber.from(1000) );
         expect(reserves11).equal(BigNumber.from(1000) );
+
+        //
+        // finally, we can't remove the reserves locked in the pool
+        //
+        await expect(router.connect(owner).removeLiquidity(
+            tokenA.address,
+            tokenB.address,
+            900,
+            100,
+            1,
+            owner.address,
+            deadline
+        )).to.revertedWith('SafeMath: subtraction overflow');
     });
 
 });

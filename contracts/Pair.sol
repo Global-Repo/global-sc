@@ -94,6 +94,7 @@ contract Pair is IPair, PancakeERC20 {
     // if fee is on, mint liquidity equivalent to 8/25 of the growth in sqrt(k)
     function _mintFee(uint112 _reserve0, uint112 _reserve1) private returns (bool feeOn) {
         address feeTo = IFactory(factory).feeTo();
+        feeOn = feeTo != address(0);
         uint _kLast = kLast; // gas savings
         if (feeOn) {
             if (_kLast != 0) {
@@ -101,9 +102,10 @@ contract Pair is IPair, PancakeERC20 {
                 uint rootKLast = Math.sqrt(_kLast);
                 if (rootK > rootKLast) {
                     uint numerator = totalSupply.mul(rootK.sub(rootKLast));
-                    uint denominator = rootK.mul(2).add(rootKLast);
+                    uint denominator = rootK.mul(3).add(rootKLast);
                     uint liquidity = numerator / denominator;
                     if (liquidity > 0) _mint(feeTo, liquidity);
+
                 }
             }
         } else if (_kLast != 0) {

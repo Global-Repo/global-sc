@@ -153,8 +153,7 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
         //finally, addr3 can add liquidity to the pool!
         let date = new Date();
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
-
-        await expect( router.connect(addr3).addLiquidity(
+        await router.connect(addr3).addLiquidity(
             tokenA.address,
             tokenC.address,
             tkns_to_mint,
@@ -163,10 +162,10 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
             tkns_to_mint.div(10),
             addr3.address,
             deadline
-        )).to.emit(router, 'AddedLiquidity')
-            .withArgs(tkns_to_mint,
-                tkns_to_mint,
-                tkns_to_mint.sub(1000));
+        )
+        //after the add liquidity, addr3 should have no tokens left
+        expect( await tokenA.balanceOf(addr3.address) ).to.equal(0);
+        expect( await tokenC.balanceOf(addr3.address) ).to.equal(0);
     });
 
     it("Add liquidity from owner, owner not having enough liquidity", async function () {
@@ -226,7 +225,7 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
         //the second is qty tokensB
         //the third is liquidity, which is calculated by sqrt of two tokens minus minimum liquidity, which
         // is 1000 for the first deposit
-        await expect( router.connect(owner).addLiquidity(
+        await router.connect(owner).addLiquidity(
             tokenA.address,
             tokenB.address,
             BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
@@ -235,10 +234,7 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
             BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
             owner.address,
             deadline
-        )).to.emit(router, 'AddedLiquidity')
-            .withArgs(BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-                BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-                BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER).sub(1000));
+        );
 
 
         //since the tx did go through, owner has less tokens now
@@ -272,7 +268,7 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
         //the second is qty tokensB
         //the third is liquidity, which is calculated by sqrt of two tokens minus minimum liquidity, which
         // is 1000 for the first deposit
-        await expect( router.connect(owner).addLiquidity(
+        await router.connect(owner).addLiquidity(
             tokenA.address,
             tokenB.address,
             BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
@@ -281,10 +277,7 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
             BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
             owner.address,
             deadline
-        )).to.emit(router, 'AddedLiquidity')
-            .withArgs(BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-                BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-                BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER).sub(1000));
+        );
 
 
         //since the tx did go through, owner has less tokens now
@@ -308,7 +301,7 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
         expect(reserves_timestamp).lessThanOrEqual(deadline );
 
         //add liquidity swapping pairs (BA)
-        await expect( router.connect(owner).addLiquidity(
+        await router.connect(owner).addLiquidity(
             tokenB.address,
             tokenA.address,
             BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
@@ -317,10 +310,8 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
             BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
             owner.address,
             deadline
-        )).to.emit(router, 'AddedLiquidity')
-            .withArgs(BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-                BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-                BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+        );
+
         //since the tx did go through, owner has less tokens now
         expect( await tokenA.connect(owner).balanceOf(owner.address) ).to.equal(INITIAL_SUPPLY.sub(BigNumber.from(20).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER)));
         expect( await tokenB.connect(owner).balanceOf(owner.address) ).to.equal(INITIAL_SUPPLY.sub(BigNumber.from(20).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER)));
@@ -387,7 +378,7 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
         //first addliquidity, establishing the proportoin 1:1 between tkA:tkB
         let date = new Date();
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
-        await expect( router.connect(owner).addLiquidity(
+        await router.connect(owner).addLiquidity(
             tokenA.address,
             tokenB.address,
             BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
@@ -396,10 +387,7 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
             BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
             owner.address,
             deadline
-        )).to.emit(router, 'AddedLiquidity')
-            .withArgs(BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-                BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-                BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER).sub(1000));
+        );
 
         //second addliquidity, breaking the proportion
         await expect( router.connect(owner).addLiquidity(
@@ -424,9 +412,6 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
             owner.address,
             deadline
         )).to.revertedWith('PancakeRouter: INSUFFICIENT_B_AMOUNT');
-
-
-
     });
 
     it("Add 0 liquidity", async function () {
@@ -453,7 +438,7 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
         // first addliquidity from owner
         //
         // first addliquidity should go trough, establishing the proportion between tokens 1:1
-        await expect( router.connect(owner).addLiquidity(
+        await router.connect(owner).addLiquidity(
             tokenA.address,
             tokenB.address,
             BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
@@ -462,10 +447,7 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
             BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
             owner.address,
             deadline
-        )).to.emit(router, 'AddedLiquidity')
-            .withArgs(BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-                BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-                BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER).sub(1000));
+        );
 
         //
         // check the reserves and coins of owner, now he'll have (10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER) less
@@ -504,7 +486,7 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
         // it'll only collect 5, as the proportion between tkA and tkB should be kept at 1:1 and we are only
         // sending 5 times the tknB. We are also not paying the fee of 1000, since it's only for the first
         // deposit to a token pair
-        await expect( router.connect(owner).addLiquidity(
+        await router.connect(owner).addLiquidity(
             tokenA.address,
             tokenB.address,
             BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
@@ -513,11 +495,7 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
             BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
             owner.address,
             deadline
-        )).to.emit(router, 'AddedLiquidity')
-            .withArgs(
-                BigNumber.from(5).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-                BigNumber.from(5).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-                BigNumber.from(5).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER) );
+        );
         //
         // check the reserves and coins of owner, now he'll have (10+5).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER) less
         // for tknA and tknB
@@ -566,7 +544,7 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
         // first addliquidity from owner
         //
         // first addliquidity should go trough, establishing the proportion between tokens 1:1
-        await expect(router.connect(owner).addLiquidity(
+        await router.connect(owner).addLiquidity(
             tokenA.address,
             tokenB.address,
             BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
@@ -575,10 +553,7 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
             BigNumber.from(1).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
             owner.address,
             deadline
-        )).to.emit(router, 'AddedLiquidity')
-            .withArgs(BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-                BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-                BigNumber.from(10).mul(NORMAL_NUMBER_TOKEN_DECIMALS_MULTIPLIER).sub(1000));
+        );
 
         //Also, the pair A-B has been created
         const pairAddress = await factory.getPair(tokenA.address, tokenB.address);
@@ -611,7 +586,7 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
         await tokenA.connect(addr3).approve(router.address, INITIAL_SUPPLY);
         await tokenB.connect(addr3).approve(router.address, INITIAL_SUPPLY);
         await pair.connect(addr3).approve(router.address, INITIAL_SUPPLY);
-        await expect(router.connect(addr3).addLiquidity(
+        await router.connect(addr3).addLiquidity(
             tokenA.address,
             tokenB.address,
             1000,
@@ -620,7 +595,7 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
             1,
             addr3.address,
             deadline
-        )).to.emit(router, 'AddedLiquidity').withArgs(1000,1000,1000);
+        );
 
         //check reserves of tokens again
         let {0: reserves01, 1: reserves11, 2: reserves_timestamp1} = await pair.getReserves();
@@ -630,15 +605,4 @@ describe("Router: Add liquidity to a pair, and pair proportions + functions", fu
         expect(await pair.balanceOf(addr3.address)).equal(1000);
     });
 
-});
-
-describe("Router: swap and fees", function () {
-    it("Change pair.devfeeto address and check that fees are sent the correct way", async function () {
-    });
-
-    it("Change factory fees to apply for swap and devefeenum and devefeedenum and check that fees are correctly calculated", async function () {
-    });
-
-    it("perform different liquidity adds and withdraws and check that everything works fine", async function () {
-    });
 });

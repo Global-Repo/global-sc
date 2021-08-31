@@ -1,0 +1,28 @@
+ROUTER, FACTORY AND PAIR NOTES
+
+-The deployment should be made by an owner account, as any of the other contracts. And should follow next steps:
+	-deploy Factory from owner, with owner address as param. This will set the feeToSetter param to later change the feeto address
+		Factory.deploy(owner.address)
+	-deploy Weth
+	-deploy Router from owner address, with factory and weth as params.
+		Router.deploy(factory.address, weth.address);
+	-deploy the needed tokens
+
+-Every time we create a new pair in Router, there are some funds that are blocked and can't be removed. This qty is minimum, but check the tests
+-We need to set up the fee too from the factory, otherwise the fees will not be sent anywhere!
+	factory.connect(owner).setFeeTo(feetoo.address);
+-The process to get the fees is basically from each Pair._mintFee function.
+	*The first time we addliquidity we won't send any fees to the feeto addres cause _kLast == 0
+	*After this, we will get
+-Note that before addingliquidity we should get the approve of all tokens involved.
+	await token.connect(feetoo).approve(router.address, 50000);
+-Before removing liquidity we should also get the approve for the LP pair created!!
+	await pair.connect(feetoo).approve(router.address, 50000);
+
+
+ATENCIÓ:
+A Pair._mintFee teniem posat
+	uint denominator = rootK.mul(2).add(rootKLast);
+A pacake tenien posat
+	uint denominator = rootK.mul(3).add(rootKLast);
+Si deixem el denominator amb el .mul(2), potser estarem mintejant masses LPs. Ho he canviat amb el 3. Revisar!
