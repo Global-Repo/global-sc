@@ -58,23 +58,32 @@ contract VaultVested is IDistributable, ReentrancyGuard, DepositoryRestriction, 
         globalMasterChef = IGlobalMasterChef(_globalMasterChef);
         vaultLocked = VaultLocked(_vaultLocked);
 
+        bnbBalance = 0;
+
         minTokenAmountToDistribute = 1e18; // 1 BEP20 Token
         distributionInterval = 12 hours;
         lastDistributedEvent = block.timestamp;
-        bnbBalance = 0;
+
+        penaltyFees.fee = 100; // 1%
+        penaltyFees.interval = 90 days;
 
         _allowance(global, _globalMasterChef);
         _allowance(global, _vaultLocked);
     }
 
     function triggerDistribute(uint _amount) external nonReentrant onlyRewarders override {
-        bnbBalance.add(_amount);
+        bnbBalance = bnbBalance.add(_amount);
 
         _distribute();
     }
 
     function setDistributionInterval(uint _distributionInterval) external onlyDevPower {
         distributionInterval = _distributionInterval;
+    }
+
+    function setPenaltyFees(uint16 _fee, uint _interval) external onlyDevPower {
+        penaltyFees.fee = _fee;
+        penaltyFees.interval = _interval;
     }
 
     function balance() public view returns (uint amount) {

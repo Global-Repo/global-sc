@@ -93,7 +93,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
     }
 
     function triggerDistribute(uint _amount) external nonReentrant onlyRewarders override {
-        bnbBalance.add(_amount);
+        bnbBalance = bnbBalance.add(_amount);
 
         _distributeBNB();
     }

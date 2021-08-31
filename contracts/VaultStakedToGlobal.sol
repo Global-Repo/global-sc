@@ -59,7 +59,7 @@ contract VaultStakedToGlobal is IDistributable, ReentrancyGuard, RewarderRestric
     }
 
     function triggerDistribute(uint _amount) external nonReentrant onlyRewarders override {
-        bnbBalance.add(_amount);
+        bnbBalance = bnbBalance.add(_amount);
 
         _distribute();
     }

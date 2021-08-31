@@ -18,6 +18,7 @@ beforeEach(async function () {
   await getNativeToken().mint(INITIAL_SUPPLY);
   await getGlobalMasterChef().addAddressToWhitelist(getVaultVested().address);
   await getNativeToken().transferOwnership(getGlobalMasterChef().address);
+  await getVaultVested().connect(owner).setRewarder(owner.address, true);
 });
 
 describe("VaultVested: Earned", function () {

@@ -42,6 +42,7 @@ describe("VaultVested: GetReward", function () {
     await getNativeToken().connect(owner).transfer(depositary1.address, depositAmount);
     await getNativeToken().connect(depositary1).approve(getVaultVested().address, depositAmount);
     await getVaultVested().connect(owner).setDepositary(depositary1.address, true);
+    await getVaultVested().connect(owner).setRewarder(depositary1.address, true);
 
     // Deposit for user
     await getVaultVested().connect(depositary1).deposit(depositAmount, user1.address);
@@ -55,7 +56,7 @@ describe("VaultVested: GetReward", function () {
     expect(await getBnb().balanceOf(user1.address)).to.equal(0);
 
     // Distribute all BNB for the only user into the vault.
-    await getVaultVested().connect(depositary1).triggerDistribute();
+    await getVaultVested().connect(depositary1).triggerDistribute(distributionAmount);
 
     // BNB rewards move from vault to user after claiming rewards.
     expect(await getVaultVested().earned(user1.address)).to.equal(distributionAmount);
