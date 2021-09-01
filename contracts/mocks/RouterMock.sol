@@ -20,6 +20,20 @@ contract RouterMock {
         IBEP20 token = IBEP20(path[1]);
         token.safeTransfer(to, amountIn);
 
-        return amounts;
+        amounts = new uint[](1);
+        amounts[0] = amountIn;
+    }
+
+    function swapExactETHForTokens(
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external payable returns (uint[] memory amounts) {
+        IBEP20 token = IBEP20(path[1]);
+        token.safeTransfer(to, amountOutMin);
+
+        amounts = new uint[](1);
+        amounts[0] = amountOutMin;
     }
 }

@@ -2,15 +2,11 @@ const { expect } = require("chai");
 const {
   deploy,
   getNativeToken,
-  getBnb,
-  getGlobalMasterChefMock,
   getVaultLocked,
 } = require("../../helpers/vaultLockedDeploy.js");
-const {getVaultVested} = require("../../helpers/vaultVestedDeploy.js");
 const {ethers} = require("hardhat");
-const {timestampNHours, timestampNDays, timestampNow, bep20Amount} = require("../../helpers/utils");
+const {timestampNDays, timestampNow, bep20Amount} = require("../../helpers/utils");
 const INITIAL_SUPPLY = bep20Amount(100);
-const { BigNumber } = require("@ethersproject/bignumber");
 
 beforeEach(async function () {
   await deploy();
@@ -19,9 +15,7 @@ beforeEach(async function () {
   const depositAmount = bep20Amount(20);
 
   await getNativeToken().connect(owner).transfer(user1.address, depositAmount);
-
   await getNativeToken().connect(owner).transfer(user2.address, depositAmount);
-
 });
 
 describe("VaultLocked: After deployment", function () {
@@ -29,6 +23,7 @@ describe("VaultLocked: After deployment", function () {
     expect(await getVaultLocked().pid()).to.equal(0);
 
   });
+
   it("Check deposit mapping", async function () {
     let vaultLocked =await getVaultLocked();
 

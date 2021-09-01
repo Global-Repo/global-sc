@@ -160,6 +160,20 @@ let deployVaultCake = async function (
     return vaultCake;
 };
 
+let deployVaultStaked = async function (global, bnb, globalMasterChef) {
+    const VaultStaked = await ethers.getContractFactory("VaultStaked");
+    const vaultStaked = await VaultStaked.deploy(global, bnb, globalMasterChef);
+    await vaultStaked.deployed();
+    return vaultStaked;
+};
+
+let deployVaultStakedToGlobal = async function (global, bnb, globalMasterChef, router) {
+    const VaultStakedToGlobal = await ethers.getContractFactory("VaultStakedToGlobal");
+    const vaultStakedToGlobal = await VaultStakedToGlobal.deploy(global, bnb, globalMasterChef, router);
+    await vaultStakedToGlobal.deployed();
+    return vaultStakedToGlobal;
+};
+
 module.exports = {
     deployCake,
     deployGlobal,
@@ -177,4 +191,6 @@ module.exports = {
     deployVaultCake,
     deployVaultVested,
     deployVaultLocked,
+    deployVaultStaked,
+    deployVaultStakedToGlobal,
 };

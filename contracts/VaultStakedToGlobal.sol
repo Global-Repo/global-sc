@@ -5,7 +5,7 @@ import "./SafeBEP20.sol";
 import "./Math.sol";
 import "./IGlobalMasterChef.sol";
 import "./IDistributable.sol";
-import "./IRouterV1.sol";
+import "./IRouterV2.sol";
 import './ReentrancyGuard.sol';
 import "./RewarderRestriction.sol";
 
@@ -17,7 +17,7 @@ contract VaultStakedToGlobal is IDistributable, ReentrancyGuard, RewarderRestric
     IBEP20 private global;
     IBEP20 private bnb;
     IGlobalMasterChef private globalMasterChef;
-    IRouterV1 private globalRouter;
+    IRouterV2 private globalRouter;
 
     uint private constant DUST = 1000;
 
@@ -36,7 +36,8 @@ contract VaultStakedToGlobal is IDistributable, ReentrancyGuard, RewarderRestric
     constructor(
         address _global,
         address _bnb,
-        address _globalMasterChef
+        address _globalMasterChef,
+        address _globalRouter
     ) public {
         // Pid del vault.
         pid = 0;
@@ -54,7 +55,7 @@ contract VaultStakedToGlobal is IDistributable, ReentrancyGuard, RewarderRestric
         // Es repartirà 1bnb com a mínim. En cas contrari, no repartirem.
         minTokenAmountToDistribute = 1e18; // 1 BEP20 Token
 
-        //
+        globalRouter = IRouterV2(_globalRouter);
         _allowance(global, _globalMasterChef);
     }
 
@@ -93,9 +94,7 @@ contract VaultStakedToGlobal is IDistributable, ReentrancyGuard, RewarderRestric
     function deposit(uint _amount) public nonReentrant {
         bool userExists = false;
         global.safeTransferFrom(msg.sender, address(this), _amount);
-
         globalMasterChef.enterStaking(_amount);
-
 
         for (uint j = 0; j < users.length; j++) {
             if (users[j] == msg.sender)
@@ -121,19 +120,22 @@ contract VaultStakedToGlobal is IDistributable, ReentrancyGuard, RewarderRestric
     // Withdraw all only
     function withdraw() external nonReentrant {
         uint amount = balanceOf(msg.sender);
-        uint earnedU = earned(msg.sender);
+        uint earned = earned(msg.sender);
 
         globalMasterChef.leaveStaking(amount);
-        handleRewards(earnedU);
+        global.safeTransfer(msg.sender, amount);
+        handleRewards(earned);
         totalSupply = totalSupply.sub(amount);
         _deleteUser(msg.sender);
         delete principal[msg.sender];
         delete bnbEarned[msg.sender];
+
+        emit Withdrawn(msg.sender, amount);
     }
 
     function getReward() external nonReentrant {
-        uint earnedU = earned(msg.sender);
-        handleRewards(earnedU);
+        uint earned = earned(msg.sender);
+        handleRewards(earned);
         delete bnbEarned[msg.sender];
     }
 
@@ -146,11 +148,10 @@ contract VaultStakedToGlobal is IDistributable, ReentrancyGuard, RewarderRestric
         path[0] = address(bnb);
         path[1] = address(global);
 
-        uint[] memory amounts = globalRouter.swapExactETHForTokens(
-                _earned, path, msg.sender, block.timestamp);
+        uint[] memory amounts = globalRouter.swapExactETHForTokens(_earned, path, msg.sender, block.timestamp);
 
         //uint tokensToSend = amounts[amounts.length-1];
-        //bnb.safeTransfer(msg.sender, tokensToSend);
+        //global.safeTransfer(msg.sender, tokensToSend);
 
         emit RewardPaid(msg.sender, amounts[amounts.length-1]);
     }

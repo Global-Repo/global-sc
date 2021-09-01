@@ -7,6 +7,7 @@ import "./IGlobalMasterChef.sol";
 import "./IDistributable.sol";
 import './ReentrancyGuard.sol';
 import "./RewarderRestriction.sol";
+import "hardhat/console.sol";
 
 contract VaultStaked is IDistributable, ReentrancyGuard, RewarderRestriction {
     using SafeBEP20 for IBEP20;
@@ -52,7 +53,6 @@ contract VaultStaked is IDistributable, ReentrancyGuard, RewarderRestriction {
         // Es repartirà 1bnb com a mínim. En cas contrari, no repartirem.
         minTokenAmountToDistribute = 1e18; // 1 BEP20 Token
 
-        //
         _allowance(global, _globalMasterChef);
     }
 
@@ -119,19 +119,22 @@ contract VaultStaked is IDistributable, ReentrancyGuard, RewarderRestriction {
     // Withdraw all only
     function withdraw() external nonReentrant {
         uint amount = balanceOf(msg.sender);
-        uint earnedU = earned(msg.sender);
+        uint earned = earned(msg.sender);
 
         globalMasterChef.leaveStaking(amount);
-        handleRewards(earnedU);
+        global.safeTransfer(msg.sender, amount);
+        handleRewards(earned);
         totalSupply = totalSupply.sub(amount);
         _deleteUser(msg.sender);
         delete principal[msg.sender];
         delete bnbEarned[msg.sender];
+
+        emit Withdrawn(msg.sender, amount);
     }
 
     function getReward() external nonReentrant {
-        uint earnedU = earned(msg.sender);
-        handleRewards(earnedU);
+        uint earned = earned(msg.sender);
+        handleRewards(earned);
         delete bnbEarned[msg.sender];
     }
 
