@@ -376,17 +376,14 @@ contract VaultCakeBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable 
         if (amountToBuyGlobal < DUST) {
             amountToUser = amountToUser.add(amountToBuyGlobal);
         } else {
-            uint beforeSwap = global.balanceOf(address(this));
-            globalRouter.swapExactTokensForTokens(amountToBuyGlobal, 0, pathToGlobal, address(this), deadline);
-            uint amountGlobalBought = global.balanceOf(address(this)).sub(beforeSwap);
+            uint[] memory amounts = globalRouter.swapExactTokensForTokens(amountToBuyGlobal, 0, pathToGlobal, address(this), deadline);
+            uint amountGlobalBought = amounts[amounts.length-1];
 
             global.safeTransfer(keeper, amountGlobalBought); // To keeper as cake vault
 
             uint amountToMintGlobal = amountGlobalBought.mul(rewards.toMintGlobal).div(10000);
-            uint beforeMint = global.balanceOf(address(this));
             minter.mintNativeTokens(amountToMintGlobal, msg.sender);
-            uint amountGlobalMinted = global.balanceOf(address(this)).sub(beforeMint);
-            global.safeTransfer(keeper, amountGlobalMinted); // TODO to keeper as user and not as cake vault
+            global.safeTransfer(keeper, amountToMintGlobal); // TODO to keeper as user and not as cake vault
         }
 
         lpToken.safeTransfer(msg.sender, amountToUser);

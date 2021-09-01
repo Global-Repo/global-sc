@@ -335,27 +335,25 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         if (amountToBuyBNB < DUST) {
             amountToUser = amountToUser.add(amountToBuyBNB);
         } else {
-            uint beforeBnbSwap = wbnb.balanceOf(address(this));
-            router.swapExactTokensForTokens(amountToBuyBNB, 0, pathToBnb, address(this), deadline);
-            uint amountBnbBought = wbnb.balanceOf(address(this)).sub(beforeBnbSwap);
-            vaultDistribution.deposit(amountBnbBought);
+            uint[] memory amounts = router.swapExactTokensForTokens(amountToBuyBNB, 0, pathToBnb, address(this), deadline);
+            vaultDistribution.deposit(amounts[amounts.length-1]);
         }
 
         if (amountToBuyGlobal < DUST) {
             amountToUser = amountToUser.add(amountToBuyGlobal);
         } else {
-            uint beforeSwap = global.balanceOf(address(this));
-            router.swapExactTokensForTokens(amountToBuyGlobal, 0, pathToGlobal, address(this), deadline);
-            uint amountGlobalBought = global.balanceOf(address(this)).sub(beforeSwap);
+            uint[] memory amountsBNB = router.swapExactTokensForTokens(amountToBuyBNB, 0, pathToBnb, address(this), deadline);
+            vaultDistribution.deposit(amountsBNB[amountsBNB.length-1]);
+
+            uint[] memory amountsGLOBAL = router.swapExactTokensForTokens(amountToBuyGlobal, 0, pathToGlobal, address(this), deadline);
+            uint amountGlobalBought = amountsGLOBAL[amountsGLOBAL.length-1];
 
             vaultVested.deposit(amountGlobalBought, address(this));
 
             uint amountToMintGlobal = amountGlobalBought.mul(rewards.toMintGlobal).div(10000);
-            uint beforeMint = global.balanceOf(address(this));
             minter.mintNativeTokens(amountToMintGlobal, msg.sender);
-            uint amountGlobalMinted = global.balanceOf(address(this)).sub(beforeMint);
 
-            vaultVested.deposit(amountGlobalMinted, msg.sender);
+            vaultVested.deposit(amountToMintGlobal, msg.sender);
         }
 
         cake.safeTransfer(msg.sender, amountToUser);

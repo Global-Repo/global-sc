@@ -235,7 +235,6 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         pool.getReward();
 
         // TODO: ensure reward of pool is in WBNB and not BUNNY
-        uint before = bunny.balanceOf(address(this));
         uint deadline = block.timestamp;
 
         address[] memory pathToBunny = pathFinder.findPath(
@@ -243,9 +242,9 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             tokenAddresses.findByName(tokenAddresses.BUNNY())
         );
 
-        router.swapExactTokensForTokens(wbnb.balanceOf(address(this)), 0, pathToBunny, address(this), deadline);
+        uint[] memory amounts = router.swapExactTokensForTokens(wbnb.balanceOf(address(this)), 0, pathToBunny, address(this), deadline);
 
-        uint harvested = bunny.balanceOf(address(this)).sub(before);
+        uint harvested = amounts[amounts.length-1];
         emit Harvested(harvested);
 
         pool.deposit(harvested);
@@ -369,17 +368,14 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         if (amountToBuyGlobal < DUST) {
             amountToUser = amountToUser.add(amountToBuyGlobal);
         } else {
-            uint beforeSwap = global.balanceOf(address(this));
-            router.swapExactTokensForTokens(amountToBuyGlobal, 0, pathToGlobal, address(this), deadline);
-            uint amountGlobalBought = global.balanceOf(address(this)).sub(beforeSwap);
+            uint[] memory amounts = router.swapExactTokensForTokens(amountToBuyGlobal, 0, pathToGlobal, address(this), deadline);
+            uint amountGlobalBought = amounts[amounts.length-1];
 
             global.safeTransfer(keeper, amountGlobalBought); // To keeper as bunny vault
 
             uint amountToMintGlobal = amountGlobalBought.mul(rewards.toMintGlobal).div(10000);
-            uint beforeMint = global.balanceOf(address(this));
             minter.mintNativeTokens(amountToMintGlobal, msg.sender);
-            uint amountGlobalMinted = global.balanceOf(address(this)).sub(beforeMint);
-            global.safeTransfer(keeper, amountGlobalMinted); // TODO to keeper as user and not as bunny vault
+            global.safeTransfer(keeper, amountToMintGlobal); // TODO to keeper as user and not as bunny vault
         }
 
         bunny.safeTransfer(msg.sender, amountToUser);
