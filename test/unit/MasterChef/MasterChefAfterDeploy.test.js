@@ -62,7 +62,6 @@ beforeEach(async function () {
       nativeToken.address,
       NATIVE_TOKEN_PER_BLOCK,
       startBlock,
-      lockedVault.address,
       router.address,
       tokenAddresses.address,
       pathFinder.address

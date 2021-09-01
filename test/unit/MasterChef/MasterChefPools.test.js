@@ -64,7 +64,6 @@ beforeEach(async function () {
       nativeToken.address,
       NATIVE_TOKEN_PER_BLOCK,
       startBlock,
-      lockedVault.address,
       router.address,
       tokenAddresses.address,
       pathFinder.address
@@ -415,6 +414,7 @@ describe("MasterChef: Deposit", function () {
     //- Addr1 ha de tenir els LPs encara depositats.
     expect(((await masterChef.userInfo(1,addr1.address)).amount).toString()).to.equal(balance.div(2));
 
+
     //Addr1 fa dipòsit dels LPs a la pool 0:
     // - No pot.
     await expect(masterChef.connect(addr1).deposit(0,10)).to.be.revertedWith("deposit GLOBAL by staking");
@@ -424,7 +424,8 @@ describe("MasterChef: Deposit", function () {
     await expect(masterChef.connect(addr1).deposit(2,10)).to.be.revertedWith("This pool does not exist yet");
 
     //Fem setPool i afegim un harvest lock-up de 1 hora.
-    await masterChef.setPool(1,100,
+    await masterChef.setPool(1,
+        100,
         3600,
         true,
         DAY_IN_SECONDS * 3,
@@ -458,7 +459,6 @@ describe("MasterChef: Deposit", function () {
     //- L'usuari té una quantitat de rewards pendents de rebre però locked. // emit RewardLockedUp(msg.sender, _pid, pending);
     expect(await masterChef.pendingNativeToken(1,addr1.address)).to.be.within(NATIVE_TOKEN_PER_BLOCK.mul(2).mul(9900).div(10000),NATIVE_TOKEN_PER_BLOCK.mul(2));
 
-
     await ethers.provider.send('evm_increaseTime', [3610]);
 
     const pendingNativeTokensACobrar = await masterChef.pendingNativeToken(1,addr1.address);
@@ -475,10 +475,11 @@ describe("MasterChef: Deposit", function () {
 
     await ethers.provider.send('evm_increaseTime', [7210]);
 
-    //Addr1 fa emergency withdraw del pid 0 i 2 dos hores més tard:
+    //Addr1 fa emergency withdraw del pid 0 i 2,3 dos hores més tard:
     // - No pot.
-    expect(await masterChef.emergencyWithdraw(0)).to.not.emit(masterChef, 'EmergencyWithdraw');;
-    expect(await masterChef.emergencyWithdraw(2)).to.not.emit(masterChef, 'EmergencyWithdraw');;
+    expect(await masterChef.emergencyWithdraw(0)).to.not.emit(masterChef, 'EmergencyWithdraw');
+    await expect(masterChef.emergencyWithdraw(2)).to.revertedWith('This pool does not exist yet');
+    await expect(masterChef.emergencyWithdraw(3)).to.revertedWith('This pool does not exist yet');
 
     const lpsBeforeEmergencyWithdraw = (await masterChef.userInfo(1,addr1.address)).amount;
     //Addr1 fa emergency withdraw del pid 1 dos hores més tard:
@@ -491,6 +492,7 @@ describe("MasterChef: Deposit", function () {
     //Addr1 fa emergency withdraw del pid 1 dos hores més tard:
     // - No pot, no passa res (no té LPs).
     expect(await masterChef.connect(addr1).emergencyWithdraw(1)).to.not.emit(masterChef, 'EmergencyWithdraw');
-
+    //expect(await masterChef.connect(addr1).emergencyWithdraw()).to.not.emit(masterChef, 'EmergencyWithdraw');
+    //await masterChef.connect(addr1).emergencyWithdraw(0);
   });
 });
