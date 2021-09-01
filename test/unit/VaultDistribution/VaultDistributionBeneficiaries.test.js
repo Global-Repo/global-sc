@@ -19,36 +19,36 @@ beforeEach(async function () {
 });
 
 describe("VaultDistribution: Beneficiaries", function () {
-  it("Only devPower is able to add beneficiaries", async function () {
-    await expect(getVaultDistribution().addBeneficiary(beneficiaryMock1.address))
-        .to.be.revertedWith("DevPower: caller is not the dev with powers");
+  it("Only owner is able to add beneficiaries", async function () {
+    await expect(getVaultDistribution().connect(user1).addBeneficiary(beneficiaryMock1.address))
+        .to.be.revertedWith("Ownable: caller is not the owner");
 
-    await getVaultDistribution().connect(devPower).addBeneficiary(beneficiaryMock1.address);
-    await getVaultDistribution().connect(devPower).addBeneficiary(beneficiaryMock2.address);
+    await getVaultDistribution().addBeneficiary(beneficiaryMock1.address);
+    await getVaultDistribution().addBeneficiary(beneficiaryMock2.address);
 
     expect(await getVaultDistribution().isBeneficiary(beneficiaryMock1.address)).to.true;
     expect(await getVaultDistribution().isBeneficiary(beneficiaryMock2.address)).to.true;
   });
 
-  it("Only devPower is able to remove beneficiaries", async function () {
-    await expect(getVaultDistribution().removeBeneficiary(beneficiaryMock1.address))
-        .to.be.revertedWith("DevPower: caller is not the dev with powers");
+  it("Only owner is able to remove beneficiaries", async function () {
+    await expect(getVaultDistribution().connect(user1).removeBeneficiary(beneficiaryMock1.address))
+        .to.be.revertedWith("Ownable: caller is not the owner");
 
-    await getVaultDistribution().connect(devPower).removeBeneficiary(beneficiaryMock1.address);
-    await getVaultDistribution().connect(devPower).removeBeneficiary(beneficiaryMock2.address);
+    await getVaultDistribution().removeBeneficiary(beneficiaryMock1.address);
+    await getVaultDistribution().removeBeneficiary(beneficiaryMock2.address);
 
     expect(await getVaultDistribution().isBeneficiary(beneficiaryMock1.address)).to.false;
     expect(await getVaultDistribution().isBeneficiary(beneficiaryMock2.address)).to.false;
   });
 
   it("Add and remove beneficiaries", async function () {
-    await getVaultDistribution().connect(devPower).addBeneficiary(beneficiaryMock1.address);
-    await getVaultDistribution().connect(devPower).addBeneficiary(beneficiaryMock2.address);
+    await getVaultDistribution().addBeneficiary(beneficiaryMock1.address);
+    await getVaultDistribution().addBeneficiary(beneficiaryMock2.address);
 
     expect(await getVaultDistribution().isBeneficiary(beneficiaryMock1.address)).to.true;
     expect(await getVaultDistribution().isBeneficiary(beneficiaryMock2.address)).to.true;
 
-    await getVaultDistribution().connect(devPower).removeBeneficiary(beneficiaryMock1.address);
+    await getVaultDistribution().removeBeneficiary(beneficiaryMock1.address);
 
     expect(await getVaultDistribution().isBeneficiary(beneficiaryMock1.address)).to.false;
     expect(await getVaultDistribution().isBeneficiary(beneficiaryMock2.address)).to.true;

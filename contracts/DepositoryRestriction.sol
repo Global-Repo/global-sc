@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
 
-import './DevPower.sol';
+import './Ownable.sol';
 
-contract DepositoryRestriction is DevPower {
+contract DepositoryRestriction is Ownable {
     mapping (address => bool) depositories;
 
     modifier onlyDepositories() {
@@ -11,7 +11,7 @@ contract DepositoryRestriction is DevPower {
         _;
     }
 
-    function setDepositary(address _depository, bool _canDeposit) external onlyDevPower {
+    function setDepositary(address _depository, bool _canDeposit) external onlyOwner {
         if (_canDeposit) {
             depositories[_depository] = _canDeposit;
         } else {

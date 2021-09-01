@@ -25,8 +25,6 @@ contract VaultVested is IDistributable, ReentrancyGuard, DepositoryRestriction, 
     uint256 public pid;
 
     uint public minTokenAmountToDistribute;
-    uint256 public lastDistributedEvent;
-    uint256 public distributionInterval;
     uint private bnbBalance;
 
     address[] public users;
@@ -61,8 +59,6 @@ contract VaultVested is IDistributable, ReentrancyGuard, DepositoryRestriction, 
         bnbBalance = 0;
 
         minTokenAmountToDistribute = 1e18; // 1 BEP20 Token
-        distributionInterval = 12 hours;
-        lastDistributedEvent = block.timestamp;
 
         penaltyFees.fee = 100; // 1%
         penaltyFees.interval = 90 days;
@@ -77,11 +73,7 @@ contract VaultVested is IDistributable, ReentrancyGuard, DepositoryRestriction, 
         _distribute();
     }
 
-    function setDistributionInterval(uint _distributionInterval) external onlyDevPower {
-        distributionInterval = _distributionInterval;
-    }
-
-    function setPenaltyFees(uint16 _fee, uint _interval) external onlyDevPower {
+    function setPenaltyFees(uint16 _fee, uint _interval) external onlyOwner {
         penaltyFees.fee = _fee;
         penaltyFees.interval = _interval;
     }
@@ -207,11 +199,6 @@ contract VaultVested is IDistributable, ReentrancyGuard, DepositoryRestriction, 
         uint bnbAmountToDistribute = bnbBalance;
 
         // Nothing to distribute.
-        if (lastDistributedEvent.add(distributionInterval) >= block.timestamp) {
-            return;
-        }
-
-        // Nothing to distribute.
         if (bnbAmountToDistribute < minTokenAmountToDistribute) {
             return;
         }
@@ -228,8 +215,6 @@ contract VaultVested is IDistributable, ReentrancyGuard, DepositoryRestriction, 
 
             bnbEarned[users[i]] = bnbEarned[users[i]].add(bnbToUser);
         }
-
-        lastDistributedEvent = block.timestamp;
 
         emit Distributed(bnbAmountToDistribute.sub(bnbBalance));
     }

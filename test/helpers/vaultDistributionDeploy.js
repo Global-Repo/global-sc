@@ -10,10 +10,10 @@ let weth;
 let vaultDistribution;
 
 let deploy = async function () {
-    [owner, devPower, treasury, vaultVested, user1, user2, user3, user4, beneficiary1, beneficiary2, beneficiary3, depositary1, depositary2, ...addrs] = await ethers.getSigners();
+    [owner, treasury, vaultVested, user1, user2, user3, user4, beneficiary1, beneficiary2, beneficiary3, depositary1, depositary2, ...addrs] = await ethers.getSigners();
     weth = await deployBnb();
     nativeToken = await deployGlobal();
-    vaultDistribution = await deployVaultDistribution(weth.address, nativeToken.address, devPower.address);
+    vaultDistribution = await deployVaultDistribution(weth.address, nativeToken.address);
 };
 
 let getNativeToken = function () { return nativeToken }

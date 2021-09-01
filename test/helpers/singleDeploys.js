@@ -102,9 +102,9 @@ let deployRouterMock = async function () {
     return routerMock;
 };
 
-let deployVaultDistribution = async function (bnb, global, devAddress) {
+let deployVaultDistribution = async function (bnb, global) {
     const VaultDistribution = await ethers.getContractFactory("VaultDistribution");
-    const vaultDistribution = await VaultDistribution.deploy(bnb, global, devAddress);
+    const vaultDistribution = await VaultDistribution.deploy(bnb, global);
     await vaultDistribution.deployed();
     return vaultDistribution;
 };

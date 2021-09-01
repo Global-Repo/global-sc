@@ -13,12 +13,12 @@ beforeEach(async function () {
 });
 
 describe("VaultDistribution: Depositories", function () {
-  it("Only devPower is able to change depositories", async function () {
-    await expect(getVaultDistribution().setDepositary(depositary1.address, true))
-        .to.be.revertedWith("DevPower: caller is not the dev with powers");
+  it("Only owner is able to change depositories", async function () {
+    await expect(getVaultDistribution().connect(user1).setDepositary(depositary1.address, true))
+        .to.be.revertedWith("Ownable: caller is not the owner");
 
-    await getVaultDistribution().connect(devPower).setDepositary(depositary1.address, true);
-    await getVaultDistribution().connect(devPower).setDepositary(depositary2.address, false);
+    await getVaultDistribution().setDepositary(depositary1.address, true);
+    await getVaultDistribution().setDepositary(depositary2.address, false);
   });
 
   it("Only depositories are able to deposit", async function () {
@@ -29,7 +29,7 @@ describe("VaultDistribution: Depositories", function () {
 
     await getBnb().connect(owner).transfer(depositary1.address, depositAmount);
     await getBnb().connect(depositary1).approve(getVaultDistribution().address, depositAmount);
-    await getVaultDistribution().connect(devPower).setDepositary(depositary1.address, true);
+    await getVaultDistribution().setDepositary(depositary1.address, true);
     await getVaultDistribution().connect(depositary1).deposit(depositAmount);
   });
 });

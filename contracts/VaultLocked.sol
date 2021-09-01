@@ -185,7 +185,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
         DepositInfo[] memory myDeposits =  depositInfo[_user];
         for(uint i=0; i< myDeposits.length; i++)
         {
-            if(myDeposits[i].nextWithdraw<_time)
+            if(myDeposits[i].nextWithdraw < _time)
             {
                 totalAmount=totalAmount.add(myDeposits[i].amount);
             }

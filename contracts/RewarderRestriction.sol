@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
 
-import './DevPower.sol';
+import './Ownable.sol';
 
-contract RewarderRestriction is DevPower {
+contract RewarderRestriction is Ownable {
     mapping (address => bool) rewarders;
 
     modifier onlyRewarders() {
@@ -11,7 +11,7 @@ contract RewarderRestriction is DevPower {
         _;
     }
 
-    function setRewarder(address _rewarder, bool _canReward) external onlyDevPower {
+    function setRewarder(address _rewarder, bool _canReward) external onlyOwner {
         if (_canReward) {
             rewarders[_rewarder] = _canReward;
         } else {

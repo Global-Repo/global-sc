@@ -2,11 +2,11 @@
 pragma solidity ^0.6.12;
 
 import "./SafeBEP20.sol";
-import './DevPower.sol';
+import './Ownable.sol';
 import './DepositoryRestriction.sol';
 import './IDistributable.sol';
 
-contract VaultDistribution is DevPower, DepositoryRestriction {
+contract VaultDistribution is Ownable, DepositoryRestriction {
     using SafeBEP20 for IBEP20;
     using SafeMath for uint;
 
@@ -15,6 +15,8 @@ contract VaultDistribution is DevPower, DepositoryRestriction {
     address[] public beneficiaries;
     uint public minTokenAmountToDistribute;
     uint public distributionPercentage;
+    uint256 public distributionInterval;
+    uint256 public lastDistributedEvent;
 
     event Deposited(address depository, uint amount);
     event Distributed(uint distributedAmount, uint numberOfBeneficiaries);
@@ -24,26 +26,31 @@ contract VaultDistribution is DevPower, DepositoryRestriction {
         _distribute();
     }
 
-    constructor(address _distributionToken, address _beneficiaryToken, address _devPower) public {
+    constructor(address _distributionToken, address _beneficiaryToken) public {
         distributionToken = IBEP20(_distributionToken);
         beneficiaryToken = IBEP20(_beneficiaryToken);
         minTokenAmountToDistribute = 1e18; // 1 BEP20 Token
         distributionPercentage = 10000;    // 100%
-        transferDevPower(_devPower);
+        distributionInterval = 12 hours;
+        lastDistributedEvent = block.timestamp;
     }
 
-    function setMinTokenAmountToDistribute(uint _newAmount) external onlyDevPower {
+    function setMinTokenAmountToDistribute(uint _newAmount) external onlyOwner {
         require(_newAmount >= 0, "Min token amount to distribute must be greater than 0");
         minTokenAmountToDistribute = _newAmount;
     }
 
-    function setDistributionPercentage(uint16 _newPercentage) external onlyDevPower {
+    function setDistributionPercentage(uint16 _newPercentage) external onlyOwner {
         require(_newPercentage <= 10000, "Distribution percentage must not be greater than 100%");
         require(_newPercentage > 0, "Distribution percentage must not be smaller than 0%");
         distributionPercentage = _newPercentage;
     }
 
-    function addBeneficiary(address _beneficiary) external onlyDevPower {
+    function setDistributionInterval(uint _distributionInterval) external onlyOwner {
+        distributionInterval = _distributionInterval;
+    }
+
+    function addBeneficiary(address _beneficiary) external onlyOwner {
         for (uint8 i = 0; i < beneficiaries.length; i++) {
             if (beneficiaries[i] == _beneficiary) {
                 // Beneficiary exists already.
@@ -56,7 +63,7 @@ contract VaultDistribution is DevPower, DepositoryRestriction {
         beneficiaries.push(_beneficiary);
     }
 
-    function removeBeneficiary(address _beneficiary) external onlyDevPower {
+    function removeBeneficiary(address _beneficiary) external onlyOwner {
         for (uint8 i = 0; i < beneficiaries.length; i++) {
             if (beneficiaries[i] == _beneficiary) {
                 delete beneficiaries[i];
@@ -83,6 +90,11 @@ contract VaultDistribution is DevPower, DepositoryRestriction {
     function _distribute() private {
         uint currentDistributionTokenAmount = distributionToken.balanceOf(address(this));
 
+        // Too early to distribute.
+        if (lastDistributedEvent.add(distributionInterval) > block.timestamp) {
+            return;
+        }
+
         if (currentDistributionTokenAmount < minTokenAmountToDistribute) {
             // Nothing to distribute.
             return;
@@ -101,6 +113,8 @@ contract VaultDistribution is DevPower, DepositoryRestriction {
             distributionToken.safeTransfer(beneficiaries[i], amountForBeneficiary);
             IDistributable(beneficiaries[i]).triggerDistribute(amountForBeneficiary);
         }
+
+        lastDistributedEvent = block.timestamp;
 
         emit Distributed(totalDistributionTokenAmountToDistribute, beneficiaries.length);
     }
