@@ -217,7 +217,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
 
         globalMasterChef.leaveStaking(amount);
         global.safeTransfer(msg.sender, amount);
-        handleRewards(earnedBNB,earnedGLOBAL);
+        handleRewards(earnedBNB, earnedGLOBAL);
         totalSupply = totalSupply.sub(amount);
         _deleteUser(msg.sender);
         delete bnbEarned[msg.sender];
@@ -228,7 +228,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
     function getReward() external nonReentrant {
         uint earnedBNB = bnbToEarn(msg.sender);
         uint earnedGLOBAL = globalToEarn(msg.sender);
-        handleRewards(earnedBNB,earnedGLOBAL);
+        handleRewards(earnedBNB, earnedGLOBAL);
         delete bnbEarned[msg.sender];
         delete globalEarned[msg.sender];
     }
