@@ -21,9 +21,9 @@ ROUTER, FACTORY AND PAIR NOTES
 	await pair.connect(feetoo).approve(router.address, 50000);
 
 
-ATENCIÓ:
-A Pair._mintFee teniem posat
-	uint denominator = rootK.mul(2).add(rootKLast);
-A pacake tenien posat
-	uint denominator = rootK.mul(3).add(rootKLast);
-Si deixem el denominator amb el .mul(2), potser estarem mintejant masses LPs. Ho he canviat amb el 3. Revisar!
+Notes:
+He fet tests a les pools de les fees del router, el tema del div(2) o div(3) que vaig comentar ahir.
+Amb un div(2) rebem totes les fees a la direcció de feetoo.
+Tambe he testejat el inbalance de les pools al limit, i sempre podem recuperar els LPs que generem
+com a fees de la pool sense afectar la pool. O sigui, que la pool mai es queda sense pasta,
+les fees que generem semblen correspondre amb els diners que deixem a la pool. En resum, sembla que esta tot correcte :)

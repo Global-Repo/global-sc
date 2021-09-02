@@ -213,7 +213,7 @@ describe("Swap tokens", function () {
 
         console.log('\nADDR1 deposits 100000 for both A and B tokens');
         let firstdepositA = 100000;
-        let firstdepositB = 50000;
+        let firstdepositB = 100000;
         await router.connect(addr1).addLiquidity(
             nativeToken.address,
             tokenB.address,
@@ -309,6 +309,99 @@ describe("Swap tokens", function () {
         console.log('Reserves still in the pair nativetkn:',reserves0.toString(),
             'nativeB:',reserves1.toString());
 
+        console.log('\nAddLiquidity from owner, 1000000tknative, 500000tkB');
+        let ownerdepositA = 1000000;
+        let ownerdepositB = 1000000;
+        await router.connect(owner).addLiquidity(
+            nativeToken.address,
+            tokenB.address,
+            ownerdepositA,
+            ownerdepositB,
+            0,
+            0,
+            owner.address,
+            deadline
+        );
+        let {0: reserves00, 1:reserves10} = await pair.getReserves();
+        console.log('Reserves in the pair nativetkn:',reserves00.toString(),
+            'nativeB:',reserves10.toString());
+        owner_native_balance = await nativeToken.balanceOf(owner.address);
+        owner_b_balance = await tokenB.balanceOf(owner.address);
+        owner_pair_balance = await pair.balanceOf(owner.address);
+        console.log('owner_native_balance tkn native balance', owner_native_balance.toString());
+        console.log('owner_b_balance tkn b balance', owner_b_balance.toString());
+        console.log('owner_pair_balance', owner_pair_balance.toString());
+
+        console.log("\nOwner starts swapping 3x times 100000 ntv->B, 100000 B->ntv")
+        for(let i = 0; i < 3; i++) {
+            await router.connect(owner).swapExactTokensForTokens(
+                100000,
+                0,
+                [tokenB.address, nativeToken.address],
+                owner.address,
+                deadline
+            );
+            await router.connect(owner).swapExactTokensForTokens(
+                100000,
+                0,
+                [nativeToken.address, tokenB.address],
+                owner.address,
+                deadline
+            );
+            console.log("Swapped", i);
+        }
+        owner_native_balance = await nativeToken.balanceOf(owner.address);
+        owner_b_balance = await tokenB.balanceOf(owner.address);
+        owner_pair_balance = await pair.balanceOf(owner.address);
+        console.log('owner_native_balance tkn native balance', owner_native_balance.toString());
+        console.log('owner_b_balance tkn b balance', owner_b_balance.toString());
+        console.log('owner_pair_balance', owner_pair_balance.toString());
+
+
+        console.log('\nOwner removes all liquidity from the pool.' +
+            'Lets check how many LPs have been generated as rewards in feeto addr...');
+        await pair.connect(owner).approve(router.address, 10000000000);
+        await router.connect(owner).removeLiquidity(
+            nativeToken.address,
+            tokenB.address,
+            owner_pair_balance,
+            0,
+            0,
+            owner.address,
+            deadline
+        );
+        owner_initial_native_balance = await nativeToken.balanceOf(owner.address);
+        owner_initial_b_balance = await tokenB.balanceOf(owner.address);
+        owner_pair_balance = await pair.balanceOf(owner.address);
+        console.log('owner tkn native balance', owner_initial_native_balance.toString());
+        console.log('owner tkn b balance', owner_initial_b_balance.toString());
+        console.log('owner_pair_balance', owner_pair_balance.toString());
+        feetoo_pair_balance = await pair.balanceOf(feetoo.address);
+        console.log('feetoo_pair_balance: LPs generated as fees', feetoo_pair_balance.toString());
+
+        console.log('\nNow, address feetoo removes the tokens from the Router, ');
+        await router.connect(feetoo).removeLiquidity(
+            nativeToken.address,
+            tokenB.address,
+            feetoo_pair_balance,
+            0,
+            0,
+            feetoo.address,
+            deadline
+        );
+        feetoo_initial_native_balance = await nativeToken.balanceOf(feetoo.address);
+        feetoo_initial_b_balance = await tokenB.balanceOf(feetoo.address);
+        feetoo_pair_balance = await pair.balanceOf(feetoo.address);
+        console.log('feetoo tkn native balance', feetoo_initial_native_balance.toString());
+        console.log('feetoo tkn b balance', feetoo_initial_b_balance.toString());
+        console.log('feetoo_pair_balance', feetoo_pair_balance.toString());
+        let {0: reserves03, 1:reserves13} = await pair.getReserves();
+        console.log('Reserves still in the pair nativetkn:',reserves03.toString(),
+            'nativeB:',reserves13.toString());
+
+        console.log('[!] So even if the set the denom to 2 or 3, we still get the results correctly and we can retrieve ' +
+            'all LP fees without problem. There is also a minimum hard limit for a pool, it always leaves at least 1tk for the ' +
+            'stronger pair, no matter the swaps performed and the fees taken');
     });
 
     it("Swap tokens, complete functionality + swaps + 2 users + fees", async function () {
