@@ -1,5 +1,5 @@
 const { expect } = require("chai");
-const { bep20Amount, timestampNDays } = require("../../helpers/utils.js");
+const { bep20Amount } = require("../../helpers/utils.js");
 const {
   deploy,
   getNativeToken,
@@ -48,7 +48,6 @@ describe("VaultVested: Earned", function () {
 
     // Set up distribution to be ready
     await getBnb().connect(owner).transfer(getVaultVested().address, distributionAmount);
-    await getVaultVested().connect(owner).setDistributionInterval(timestampNDays(0));
 
     await getVaultVested().connect(owner).triggerDistribute(distributionAmount);
 

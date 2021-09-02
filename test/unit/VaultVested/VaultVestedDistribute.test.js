@@ -1,5 +1,5 @@
 const { expect } = require("chai");
-const { bep20Amount, timestampNDays } = require("../../helpers/utils.js");
+const { bep20Amount } = require("../../helpers/utils.js");
 const {
   deploy,
   getNativeToken,
@@ -22,50 +22,26 @@ beforeEach(async function () {
 
 describe("VaultVested: Distribute", function () {
   it("Distribute without BNBs do not distribute", async function () {
-    const timestamp0day = timestampNDays(0);
-
-    // Set up distribution time.
-    await getVaultVested().connect(owner).setDistributionInterval(timestamp0day);
-
-    expect(await getVaultVested().connect(owner).triggerDistribute(0)).to.not.emit(getVaultVested(), 'Distributed');
-  });
-
-  it("Distribute BNBs out of time do not distribute BNBs", async function () {
-    const distributionAmount = bep20Amount(10);
-    const timestamp1day = timestampNDays(1);
-
-    // Set up distribution BNBs
-    await getBnb().connect(owner).transfer(getVaultVested().address, distributionAmount);
-
-    // Set up distribution time.
-    await getVaultVested().connect(owner).setDistributionInterval(timestamp1day);
-
-    expect(await getVaultVested().connect(owner).triggerDistribute(0)).to.not.emit(getVaultVested(), 'Distributed');
+    expect(await getVaultVested().connect(owner).triggerDistribute(0))
+        .to.not.emit(getVaultVested(), 'Distributed');
   });
 
   it("Distribute BNBs without users do not distribute BNBs", async function () {
     const distributionAmount = bep20Amount(10);
-    const timestamp0day = timestampNDays(0);
 
     // Set up distribution BNBs
     await getBnb().connect(owner).transfer(getVaultVested().address, distributionAmount);
 
-    // Set up distribution time.
-    await getVaultVested().connect(owner).setDistributionInterval(timestamp0day);
-
-    expect(await getVaultVested().connect(owner).triggerDistribute(0)).to.not.emit(getVaultVested(), 'Distributed');
+    expect(await getVaultVested().connect(owner).triggerDistribute(0))
+        .to.not.emit(getVaultVested(), 'Distributed');
   });
 
   it("Distribute BNBs for 1 user successfully", async function () {
     const distributionAmount = bep20Amount(10);
-    const timestamp0day = timestampNDays(0);
     const depositAmount = bep20Amount(2);
 
     // Set up distribution BNBs
     await getBnb().connect(owner).transfer(getVaultVested().address, distributionAmount);
-
-    // Set up distribution time.
-    await getVaultVested().connect(owner).setDistributionInterval(timestamp0day);
 
     // Set up users with their globals into the vault.
     await getNativeToken().connect(owner).transfer(depositary1.address, depositAmount);
@@ -81,7 +57,6 @@ describe("VaultVested: Distribute", function () {
 
   it("Distribute BNBs for many users successfully", async function () {
     const distributionAmount = bep20Amount(10);
-    const timestamp0day = timestampNDays(0);
     const depositAmountUser1 = bep20Amount(2);
     const depositAmountUser2 = bep20Amount(2);
     const depositAmountUser3 = bep20Amount(6);
@@ -91,7 +66,6 @@ describe("VaultVested: Distribute", function () {
 
     // Set up distribution BNBs
     await getBnb().connect(owner).transfer(getVaultVested().address, distributionAmount);
-    await getVaultVested().connect(owner).setDistributionInterval(timestamp0day);
 
     // Set up users with their globals into the vault.
     await getNativeToken().connect(owner).transfer(depositary1.address, INITIAL_SUPPLY);
@@ -111,14 +85,12 @@ describe("VaultVested: Distribute", function () {
 
   it("Distribute BNBs for many users decimals check", async function () {
     const distributionAmount = bep20Amount(4);
-    const timestamp0day = timestampNDays(0);
     const depositAmountUser1 = bep20Amount(2);
     const depositAmountUser2 = bep20Amount(2);
     const depositAmountUser3 = bep20Amount(6);
 
     // Set up distribution BNBs
     await getBnb().connect(owner).transfer(getVaultVested().address, distributionAmount);
-    await getVaultVested().connect(owner).setDistributionInterval(timestamp0day);
 
     // Set up users with their globals into the vault.
     await getNativeToken().connect(owner).transfer(depositary1.address, INITIAL_SUPPLY);

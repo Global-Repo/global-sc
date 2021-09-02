@@ -61,7 +61,7 @@ contract VaultVested is IDistributable, ReentrancyGuard, DepositoryRestriction, 
         minTokenAmountToDistribute = 1e18; // 1 BEP20 Token
 
         penaltyFees.fee = 100; // 1%
-        penaltyFees.interval = 90 days;
+        penaltyFees.interval = 99 days;
 
         _allowance(global, _globalMasterChef);
         _allowance(global, _vaultLocked);
