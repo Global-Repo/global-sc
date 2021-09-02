@@ -186,8 +186,132 @@ describe("Swap tokens", function () {
         ).to.revertedWith('FORBIDDEN');
     });
 
+    it("STORY:- swap tokens, check if fees are correctly computed", async function () {
+        let date = new Date();
+        const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+        console.log('\nOWNER sets feetoo adress to ', feetoo.address);
+        factory.connect(owner).setFeeTo(feetoo.address);
+        //console.log('feetoo addrs gets approve for nativeToken and tknB from router');
+        //await tokenB.connect(feetoo).approve(router.address, 10000000000);
+        //await nativeToken.connect(feetoo).approve(router.address, 10000000000);
 
-    it("Swap tokens, complete functionality + swaps + 2 users", async function () {
+        console.log('\nADDR1 initial supplies');
+        let owner_initial_native_balance = await nativeToken.balanceOf(owner.address);
+        let owner_initial_b_balance = await tokenB.balanceOf(owner.address);
+        console.log('owner tkn native balance', owner_initial_native_balance.toString());
+        console.log('owner tkn b balance', owner_initial_b_balance.toString());
+        await tokenB.connect(addr1).approve(router.address, 10000000000);
+        await nativeToken.connect(addr1).approve(router.address, 10000000000);
+        await tokenB.connect(owner).mint(1000000);
+        await tokenB.connect(owner).transfer(addr1.address, 1000000 );
+        await nativeToken.connect(owner).mint(1000000);
+        await nativeToken.connect(owner).transfer(addr1.address, 1000000 );
+        let addr1_initial_native_balance = await nativeToken.balanceOf(addr1.address);
+        let addr1_initial_b_balance = await tokenB.balanceOf(addr1.address);
+        console.log('addr1 tkn native balance', addr1_initial_native_balance.toString());
+        console.log('addr1 tkn b balance', addr1_initial_b_balance.toString());
+
+        console.log('\nADDR1 deposits 100000 for both A and B tokens');
+        let firstdepositA = 100000;
+        let firstdepositB = 50000;
+        await router.connect(addr1).addLiquidity(
+            nativeToken.address,
+            tokenB.address,
+            firstdepositA,
+            firstdepositB,
+            0,
+            0,
+            addr1.address,
+            deadline
+        );
+        const pairAddress = await factory.getPair(nativeToken.address, tokenB.address);
+        const pairContract = await ethers.getContractFactory("Pair");
+        const pair = await pairContract.attach(pairAddress);
+        await pair.connect(addr1).approve(router.address, 10000000000);
+        addr1_initial_native_balance = await nativeToken.balanceOf(addr1.address);
+        addr1_initial_b_balance = await tokenB.balanceOf(addr1.address);
+        let addr1_pair_balance = await pair.balanceOf(addr1.address);
+        console.log('addr1 tkn native balance', addr1_initial_native_balance.toString());
+        console.log('addr1 tkn b balance', addr1_initial_b_balance.toString());
+        console.log('addr1_pair_balance', addr1_pair_balance.toString());
+
+        console.log('\nLets Swap some coins, to check the fees generated. LPs of addr1 should not change');
+        for(let i = 0; i < 3; i++) {
+            console.log('\tNormal swap 10000tknB per X native swapExactTokensForTokens');
+            await router.connect(addr1).swapExactTokensForTokens(
+                10000,
+                0,
+                [tokenB.address, nativeToken.address],
+                addr1.address,
+                deadline
+            );
+            addr1_initial_native_balance = await nativeToken.balanceOf(addr1.address);
+            addr1_initial_b_balance = await tokenB.balanceOf(addr1.address);
+            addr1_pair_balance = await pair.balanceOf(addr1.address);
+            console.log('addr1 tkn native balance', addr1_initial_native_balance.toString());
+            console.log('addr1 tkn b balance', addr1_initial_b_balance.toString());
+            console.log('addr1_pair_balance', addr1_pair_balance.toString());
+            console.log('\tReverse swap X native per 10000 tknB swapTokensForExactTokens');
+            await router.connect(addr1).swapTokensForExactTokens(
+                10000,
+                100000,
+                [nativeToken.address, tokenB.address],
+                addr1.address,
+                deadline
+            );
+            addr1_initial_native_balance = await nativeToken.balanceOf(addr1.address);
+            addr1_initial_b_balance = await tokenB.balanceOf(addr1.address);
+            addr1_pair_balance = await pair.balanceOf(addr1.address);
+            console.log('addr1 tkn native balance', addr1_initial_native_balance.toString());
+            console.log('addr1 tkn b balance', addr1_initial_b_balance.toString());
+            console.log('addr1_pair_balance', addr1_pair_balance.toString());
+        }
+
+        console.log('\nAddr1 removes all liquidity from the pool.' +
+            'Lets check how many LPs have been generated as rewards in feeto addr...');
+        await router.connect(addr1).removeLiquidity(
+            nativeToken.address,
+            tokenB.address,
+            addr1_pair_balance,
+            0,
+            0,
+            addr1.address,
+            deadline
+        );
+        addr1_initial_native_balance = await nativeToken.balanceOf(addr1.address);
+        addr1_initial_b_balance = await tokenB.balanceOf(addr1.address);
+        addr1_pair_balance = await pair.balanceOf(addr1.address);
+        console.log('addr1 tkn native balance', addr1_initial_native_balance.toString());
+        console.log('addr1 tkn b balance', addr1_initial_b_balance.toString());
+        console.log('addr1_pair_balance', addr1_pair_balance.toString());
+        feetoo_pair_balance = await pair.balanceOf(feetoo.address);
+        console.log('feetoo_pair_balance: LPs generated as fees', feetoo_pair_balance.toString());
+
+        console.log('\nNow, address feetoo removes the tokens from the Router, ' +
+            'after approving spending for LPs!');
+        await pair.connect(feetoo).approve(router.address, 10000000000);
+        await router.connect(feetoo).removeLiquidity(
+            nativeToken.address,
+            tokenB.address,
+            feetoo_pair_balance,
+            0,
+            0,
+            feetoo.address,
+            deadline
+        );
+        feetoo_initial_native_balance = await nativeToken.balanceOf(feetoo.address);
+        feetoo_initial_b_balance = await tokenB.balanceOf(feetoo.address);
+        feetoo_pair_balance = await pair.balanceOf(feetoo.address);
+        console.log('feetoo tkn native balance', feetoo_initial_native_balance.toString());
+        console.log('feetoo tkn b balance', feetoo_initial_b_balance.toString());
+        console.log('feetoo_pair_balance', feetoo_pair_balance.toString());
+        let {0: reserves0, 1:reserves1} = await pair.getReserves();
+        console.log('Reserves still in the pair nativetkn:',reserves0.toString(),
+            'nativeB:',reserves1.toString());
+
+    });
+
+    it("Swap tokens, complete functionality + swaps + 2 users + fees", async function () {
         let date = new Date();
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
         console.log('\nOWNER sets feetoo adress to ', feetoo.address);

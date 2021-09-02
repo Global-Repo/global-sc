@@ -7,6 +7,7 @@ ROUTER, FACTORY AND PAIR NOTES
 	-deploy Router from owner address, with factory and weth as params.
 		Router.deploy(factory.address, weth.address);
 	-deploy the needed tokens
+	-set feeto address from the contract deployer, otherwise it stays at addr 0x0 and we get no fees!
 
 -Every time we create a new pair in Router, there are some funds that are blocked and can't be removed. This qty is minimum, but check the tests
 -We need to set up the fee too from the factory, otherwise the fees will not be sent anywhere!
