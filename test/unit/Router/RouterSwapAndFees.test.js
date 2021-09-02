@@ -333,16 +333,17 @@ describe("Swap tokens", function () {
         console.log('owner_pair_balance', owner_pair_balance.toString());
 
         console.log("\nOwner starts swapping 3x times 100000 ntv->B, 100000 B->ntv")
+        //TODO aquest es el test, si el swap de
         for(let i = 0; i < 3; i++) {
             await router.connect(owner).swapExactTokensForTokens(
-                100000,
+                10000,
                 0,
                 [tokenB.address, nativeToken.address],
                 owner.address,
                 deadline
             );
             await router.connect(owner).swapExactTokensForTokens(
-                100000,
+                10000,
                 0,
                 [nativeToken.address, tokenB.address],
                 owner.address,
