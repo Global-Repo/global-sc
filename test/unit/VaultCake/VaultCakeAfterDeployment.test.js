@@ -16,15 +16,6 @@ describe("VaultCake: After deployment", function () {
     expect(await getVaultCake().pid()).to.equal(0);
   });
 
-  it("Vault is configured as minter", async function () {
-    expect(await getVaultCake().isVaultMintable()).to.false;
-
-    await getGlobalMasterChef().setMinter(getVaultCake().address, true);
-    await getVaultCake().setMinter(getGlobalMasterChef().address);
-
-    expect(await getVaultCake().isVaultMintable()).to.true;
-  });
-
   it("Vault total supply is zero", async function () {
     expect(await getVaultCake().totalSupply()).to.equal(0);
   });

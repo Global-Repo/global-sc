@@ -149,11 +149,6 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         return address(minter) != address(0) && minter.isMinter(address(this));
     }
 
-    // TODO: remove it, used for test only
-    function isVaultMintable() external view returns (bool) {
-        return address(minter) != address(0) && minter.isMinter(address(this));
-    }
-
     function totalSupply() external view override returns (uint) {
         return totalShares;
     }
@@ -342,9 +337,6 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         if (amountToBuyGlobal < DUST) {
             amountToUser = amountToUser.add(amountToBuyGlobal);
         } else {
-            uint[] memory amountsBNB = router.swapExactTokensForTokens(amountToBuyBNB, 0, pathToBnb, address(this), deadline);
-            vaultDistribution.deposit(amountsBNB[amountsBNB.length-1]);
-
             uint[] memory amountsGLOBAL = router.swapExactTokensForTokens(amountToBuyGlobal, 0, pathToGlobal, address(this), deadline);
             uint amountGlobalBought = amountsGLOBAL[amountsGLOBAL.length-1];
 

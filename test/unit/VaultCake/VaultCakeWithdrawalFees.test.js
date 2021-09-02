@@ -12,8 +12,8 @@ const {
   getBusd,
 } = require("../../helpers/vaultCakeDeploy.js");
 
-const OWNER_INITIAL_CAKES = bep20Amount(100);
-const ROUTER_INITIAL_TOKENS = bep20Amount(100);
+const OWNER_INITIAL_CAKES = bep20Amount(1000);
+const ROUTER_INITIAL_TOKENS = bep20Amount(1000);
 
 beforeEach(async function () {
   await deploy();

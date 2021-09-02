@@ -87,6 +87,7 @@ describe("VaultCake: Rewards", function () {
     // So now, there are 15 - 5 = 10 tokens + 3 of auto-compound.
     // There are 2 users staking now so 3 tokens / 2 users = 1.5 cakes per user as a reward at this point.
     expect(await getVaultCake().earned(user1.address)).to.eq("1500000000000000000");
+    expect(await getVaultCake().earned(user2.address)).to.eq("1500000000000000000");
 
     // Gets the deposited 5 cakes + 1.5 cakes of rewards.
     await getVaultCake().connect(user1).withdrawAll();

@@ -150,11 +150,6 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         return address(minter) != address(0) && minter.isMinter(address(this));
     }
 
-    // TODO: remove it, used for test only
-    function isVaultMintable() external view returns (bool) {
-        return address(minter) != address(0) && minter.isMinter(address(this));
-    }
-
     function totalSupply() external view override returns (uint) {
         return totalShares;
     }

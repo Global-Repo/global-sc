@@ -94,12 +94,5 @@ beforeEach(async function () {
 });
 
 describe("VaultBunny: After deployment", function () {
-  it("Vault is configured as minter", async function () {
-    expect(await vaultBunny.isVaultMintable()).to.false;
 
-    await minter.setMinter(vaultBunny.address, true);
-    await vaultBunny.setMinter(minter.address);
-
-    expect(await vaultBunny.isVaultMintable()).to.true;
-  });
 });

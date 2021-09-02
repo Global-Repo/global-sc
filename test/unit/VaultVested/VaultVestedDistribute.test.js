@@ -22,6 +22,7 @@ beforeEach(async function () {
 
 describe("VaultVested: Distribute", function () {
   it("Distribute without BNBs do not distribute", async function () {
+    await getVaultVested().setRewarder(owner.address, true);
     expect(await getVaultVested().connect(owner).triggerDistribute(0))
         .to.not.emit(getVaultVested(), 'Distributed');
   });
@@ -32,6 +33,7 @@ describe("VaultVested: Distribute", function () {
     // Set up distribution BNBs
     await getBnb().connect(owner).transfer(getVaultVested().address, distributionAmount);
 
+    await getVaultVested().setRewarder(owner.address, true);
     expect(await getVaultVested().connect(owner).triggerDistribute(0))
         .to.not.emit(getVaultVested(), 'Distributed');
   });
