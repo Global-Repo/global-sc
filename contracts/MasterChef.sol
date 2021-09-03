@@ -84,8 +84,8 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         uint256 accNativeTokenPerShare; 					// Accumulated Native tokens per share, times 1e12.
         uint256 harvestInterval;  							// Freqüència amb la que podràs fer claim en aquesta pool.
         uint256 maxWithdrawalInterval;						// Punt d'inflexió per decidir si cobres withDrawalFeeOfLps o bé performanceFeesOfNativeTokens
-        uint16 withDrawalFeeOfLpsBurn;						// % (10000 = 100%) dels LPs que es cobraran com a fees que serviran per fer buyback. Aquest i withDrawalFeeOfLpsTeam han de sumar 10.000.
-        uint16 withDrawalFeeOfLpsTeam;						// % (10000 = 100%) dels LPs que es cobraran com a fees que serviran per operations/marketing. Aquest i withDrawalFeeOfLpsBurn han de sumar 10.000.
+        uint16 withDrawalFeeOfLpsBurn;						// % (10000 = 100%) dels LPs que es cobraran com a fees que serviran per fer buyback.
+        uint16 withDrawalFeeOfLpsTeam;						// % (10000 = 100%) dels LPs que es cobraran com a fees que serviran per operations/marketing.
         uint16 performanceFeesOfNativeTokensBurn;			// % (10000 = 100%) dels rewards que es cobraran com a fees que serviran per fer buyback
         uint16 performanceFeesOfNativeTokensToLockedVault;	// % (10000 = 100%) dels rewards que es cobraran com a fees que serviran per fer boost dels native tokens locked
     }
@@ -118,6 +118,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     uint256 public nativeTokenPerBlock;
 
     // Bonus muliplier for early native tokens makers.
+    //TODO no tenim setter pel bonus multiplier. sempre sera 1
     uint256 public BONUS_MULTIPLIER = 1;
 
     // Max interval: 7 days.
@@ -131,6 +132,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     uint16 public constant MAX_FEE_LPS = 150;
 
     // Max extra minted tokens for strategy X in a vault
+    // TODO this var is not used anywhere
     uint256 public constant MAX_EXTRA_NATIVE_TOKENS_MINTED = 200;
 
     // The migrator contract. It has a lot of power. Can only be set through governance (owner).
@@ -142,33 +144,27 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
 
     // Total de fees pendents d'enviar a cremar
     uint256 totalFeesToBurn = 0;
-
     // Total de fees pendens d'enviar al vaul de native token locked.
     uint256 totalFeesToBoostLocked = 0;
-
     // Cada 25 iteracions fem els envios per posar una freqüència i no fer masses envios petits
     uint16 counterForTransfers = 0;
 
     // Info of each user that stakes LP tokens.
     // Info d'un usuari en una pool en concret.
     mapping (uint256 => mapping (address => UserInfo)) public userInfo;
-
     // Total allocation points. Must be the sum of all allocation points in all pools.
     // Comptador del total de pes de les pools.
     uint256 public totalAllocPoint = 0;
-
     // The block number when Native tokens mining starts.
     // Inici del farming.
     uint256 public startBlock;
 
     // Rewards locked de tots els usuaris.
     uint256 public totalLockedUpRewards;
-
     // Llistat de pools que poden demanar tokens natius
     mapping(address => bool) private _minters;
 
     IPathFinder public pathFinder;
-
     IMintNotifier public mintNotifier;
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
@@ -196,16 +192,16 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         // tOT I QUE MOLaria més tenir vaults apart on enviem la pasta i que es gestionin de forma independent, així no liem el masterchef... lo únic q aquells contractes no podràn mintar dentrada perque no farem whitelist, només serveixen per repartir tokens
 
         poolInfo.push(PoolInfo({
-        lpToken: _nativeToken,
-        allocPoint: 1000,
-        lastRewardBlock: _startBlock,
-        accNativeTokenPerShare: 0,
-        harvestInterval: 0,
-        maxWithdrawalInterval: 0,
-        withDrawalFeeOfLpsBurn: 0,
-        withDrawalFeeOfLpsTeam: 0,
-        performanceFeesOfNativeTokensBurn: 0,
-        performanceFeesOfNativeTokensToLockedVault: 0
+            lpToken: _nativeToken,
+            allocPoint: 1000,
+            lastRewardBlock: _startBlock,
+            accNativeTokenPerShare: 0,
+            harvestInterval: 0,
+            maxWithdrawalInterval: 0,
+            withDrawalFeeOfLpsBurn: 0,
+            withDrawalFeeOfLpsTeam: 0,
+            performanceFeesOfNativeTokensBurn: 0,
+            performanceFeesOfNativeTokensToLockedVault: 0
         }));
     }
 
@@ -241,7 +237,6 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     function setSAFU(bool _safu) external onlyDevPower{
         safu = _safu;
     }
-
     function isSAFU() public view returns(bool){
         return safu;
     }
@@ -261,6 +256,11 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
 
     function getMintNotifierAddress() view external returns (address) {
         return address(mintNotifier);
+    }
+
+    //TODO afegit
+    function updateMultiplier(uint256 multiplierNumber) public onlyOwner {
+        BONUS_MULTIPLIER = multiplierNumber;
     }
 
     // Cridarem a aquesta funció per afegir un vault, per indicar-li al masterchef que tindrà permís per mintejar native tokens
@@ -313,6 +313,8 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     {
         address WBNB = tokenAddresses.findByName(tokenAddresses.BNB());
         IPair pair = IPair(address(_lpToken));
+        //TODO
+        bothConnected = false;
         if(pair.token0()==WBNB)
         {
             pathFinder.addRouteInfoDirect(pair.token1());
@@ -400,6 +402,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
             massUpdatePools();
         }
 
+        //TODO why do we do this here
         uint256 prevAllocPoint = poolInfo[_pid].allocPoint;
 
         totalAllocPoint = totalAllocPoint.sub(poolInfo[_pid].allocPoint).add(_allocPoint);
@@ -515,7 +518,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
 
-        //
+        //TODO confirm. Retornem true si cobrarem performance fee (fee sobre els rewards). False si cobrarem dels LPs.
         bool performanceFee = withdrawalOrPerformanceFee(_pid, msg.sender);
 
         // Si és el primer cop que entrem (AKA, fem dipòsit), el user.nextHarvestUntil serà 0, pel que li afegim al user el harvestr interval
@@ -549,6 +552,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
                     counterForTransfers++;
 
                     // Rewards que finalment rebrà l'usuari: total rewards - feesTaken
+                    //TODO, perque no guardar aixo en una var, i despres restarlo a on toca?
                     totalRewards = totalRewards.sub(totalRewards.mul(pool.performanceFeesOfNativeTokensBurn.add(pool.performanceFeesOfNativeTokensToLockedVault)).div(10000));
 
                     // Fees que cremarem i fees que enviarem per fer boost dels locked. Les acumulem a l'espera d'enviarles quan toquin
@@ -626,34 +630,50 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
 
         // Emetem un event.
         emit Deposit(msg.sender, _pid, _amount);
+
+
     }
 
     function getLPFees(uint256 _pid, uint256 _amount) private returns(uint256){
         PoolInfo storage pool = poolInfo[_pid];
 
         // L'usuari rebrà els seus LPs menys els que li hem tret com a fees.
-        uint256 finalAmount = _amount.sub(_amount.mul(pool.withDrawalFeeOfLpsBurn.add(pool.withDrawalFeeOfLpsTeam)).div(10000));
+        uint256 finalAmount = _amount.sub(
+            _amount.mul(pool.withDrawalFeeOfLpsBurn.add(pool.withDrawalFeeOfLpsTeam)).div(10000)
+        );
+
+        console.log("getLPFees::_amount", _amount);
+        console.log("getLPFees::pool.withDrawalFeeOfLpsBurn", pool.withDrawalFeeOfLpsBurn);
+        console.log("getLPFees::pool.withDrawalFeeOfLpsTeam", pool.withDrawalFeeOfLpsTeam);
+        console.log("getLPFees::finalAmount", finalAmount);
+
         if (finalAmount != _amount)
         {
             // Fins aquí hem acabat la gestió de l'user. Ara gestionem la comissió. Tenim un LP. El volem desfer i enviar-lo a BURN i a OPERATIONS
             // Això s'ha de testejar bé perque és molt fàcil que hi hagin errors
             // Si el router no té permís perque address(this) es gasti els tokens, li donem permís
+            console.log("getLPFees::path0");
             if (IBEP20(pool.lpToken).allowance(address(this), address(routerGlobal)) == 0) {
                 IBEP20(pool.lpToken).safeApprove(address(routerGlobal), uint(- 1));
             }
 
-            // Burns del LP perque farem removeliquidity
-            if (IPair(address(pool.lpToken)).balanceOf(address(pool.lpToken)) > 0) {
-                IPair(address(pool.lpToken)).burn(address(routerGlobal));
-            }
+            //TODO this is not necessary, is it?
+            //if (IPair(address(pool.lpToken)).balanceOf(address(pool.lpToken)) > 0) {
+            //    IPair(address(pool.lpToken)).burn(address(routerGlobal)); //TODO ???
+            //}
 
             // Fem remove liquidity del LP i rebrem els dos tokens
+            console.log("getLPFees::path1");
 
             (uint amountToken0, uint amountToken1) = routerGlobal.removeLiquidity(
                 IPair(address(pool.lpToken)).token0(),
                 IPair(address(pool.lpToken)).token1(),
                 _amount.mul(pool.withDrawalFeeOfLpsBurn.add(pool.withDrawalFeeOfLpsTeam)).div(10000),
                 0, 0, address(this), block.timestamp);
+
+            console.log("getLPFees::path2");
+            console.log("getLPFees::amountToken0", amountToken0);
+            console.log("getLPFees::amountToken1", amountToken1);
 
             // Ens assegurem que podem gastar els dos tokens i així els passem a BNB/Global i fem burn/team
             if (IBEP20(IPair(address(pool.lpToken)).token0()).allowance(address(this), address(routerGlobal)) == 0) {
@@ -663,15 +683,25 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
                 IBEP20(IPair(address(pool.lpToken)).token1()).safeApprove(address(routerGlobal), uint(- 1));
             }
 
+            console.log("getLPFees::path3");
+
             // Agafem el que cremem i el que enviem al equip per cada token rebut després de cremar LPs
             uint256 lpsToBuyNativeTokenAndBurn0 = amountToken0.mul(pool.withDrawalFeeOfLpsBurn).div(10000);
+            console.log("getLPFees::path4");
+            console.log("getLPFees::lpsToBuyNativeTokenAndBurn0", lpsToBuyNativeTokenAndBurn0);
             uint256 lpsToBuyNativeTokenAndBurn1 = amountToken1.mul(pool.withDrawalFeeOfLpsBurn).div(10000);
+            console.log("getLPFees::path5");
+            console.log("getLPFees::lpsToBuyNativeTokenAndBurn1", lpsToBuyNativeTokenAndBurn1);
             uint256 lpsToBuyBNBAndTransferForOperations0 = amountToken0.mul(pool.withDrawalFeeOfLpsTeam).div(10000);
+            console.log("getLPFees::path6");
+            console.log("getLPFees::lpsToBuyBNBAndTransferForOperations0", lpsToBuyBNBAndTransferForOperations0);
             uint256 lpsToBuyBNBAndTransferForOperations1 = amountToken1.mul(pool.withDrawalFeeOfLpsTeam).div(10000);
+            console.log("getLPFees::path7");
+            console.log("getLPFees::lpsToBuyBNBAndTransferForOperations1", lpsToBuyBNBAndTransferForOperations1);
 
             // Cremem i enviem els tokens a l'equip
-            manageTokens(IPair(address(pool.lpToken)).token0(), lpsToBuyNativeTokenAndBurn0, lpsToBuyBNBAndTransferForOperations0);
-            manageTokens(IPair(address(pool.lpToken)).token1(), lpsToBuyNativeTokenAndBurn1, lpsToBuyBNBAndTransferForOperations1);
+            //TODO descomentar manageTokens(IPair(address(pool.lpToken)).token0(), lpsToBuyNativeTokenAndBurn0, lpsToBuyBNBAndTransferForOperations0);
+            //TODO descomentar manageTokens(IPair(address(pool.lpToken)).token1(), lpsToBuyNativeTokenAndBurn1, lpsToBuyBNBAndTransferForOperations1);
         }
         return finalAmount;
     }
@@ -717,24 +747,36 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         // Tokens can be WETH, Native Tokens or a random token
         // Les funcions de burn i swap segur que s'han de corregir...!!!
 
+        console.log("manageTokens::_token", _token);
+        console.log("manageTokens::_amountToBurn", _amountToBurn);
+        console.log("manageTokens::_amountForDevs", _amountForDevs);
+
         // Enviem tokens a cremar
         {
             uint256 tokensToBurn;
 
             if(_token == WETH){
                 //routerGlobal.swapETHForExactTokens(...)
+                console.log("manageTokens::INSIDE WETH");
                 uint[] memory amounts = routerGlobal.swapExactETHForTokens(_amountToBurn, pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())), address(this), block.timestamp); //swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
                 tokensToBurn = amounts[amounts.length-1];
+                console.log("manageTokens::tokensToBurn", tokensToBurn);
             } else if(_token != address(nativeToken)){
+                console.log("manageTokens::INSIDE NOT NATIVE");
                 //routerGlobal.swapExactTokensForTokens(...)
+                console.log("tokenAddresses.findByName(tokenAddresses.GLOBAL())", tokenAddresses.findByName(tokenAddresses.GLOBAL()) );
                 uint[] memory amounts = routerGlobal.swapExactTokensForTokens(_amountToBurn, 0, pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())), address(this), block.timestamp); //swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
                 tokensToBurn = amounts[amounts.length-1];
+                console.log("manageTokens::tokensToBurn", tokensToBurn);
             }
             else // Si tenim Nativetokens els cremem directament
             {
+                console.log("manageTokens::INSIDE NATIVE");
                 tokensToBurn = _amountToBurn;
+                console.log("manageTokens::tokensToBurn", tokensToBurn);
             }
 
+            console.log("manageTokens::step2");
             //XXXXXXXXTOKENSGLOBALS DE DALT.transfer(BURN_ADDRESS, _amount);
             IBEP20(tokenAddresses.findByName(tokenAddresses.GLOBAL())).transfer(BURN_ADDRESS, tokensToBurn);
             //SafeNativeTokenTransfer(BURN_ADDRESS, tokensToBurn);
@@ -808,11 +850,14 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         }
 
         uint256 finalAmount = user.amount;
+        console.log("emergencyWithdraw::initial final amount to withdraw", finalAmount);
         PoolInfo storage pool = poolInfo[_pid];
 
         // Si l'usuari vol sortir fent emergencyWithdraw és OK, però li hem de cobrar les fees si toca. En cas contrari, se les podria estalviar per la cara.
         if (safu && !withdrawalOrPerformanceFee(_pid, msg.sender) && !user.whitelisted){
+            console.log("emergencyWithdraw::INSIDE");
             finalAmount = getLPFees(_pid, user.amount);
+            console.log("emergencyWithdraw::INSIDE final amount after LP fees", finalAmount);
         }
 
         uint256 amount = user.amount;

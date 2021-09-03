@@ -146,7 +146,7 @@ describe("MasterChef: Pools", function () {
     // Test getMultiplier
   });
 
-  it("Should be able to add a pool (check requires)", async function () {
+  it("Should be able to add a pool (check requires). Checks CheckRouterTokens as well.", async function () {
 
     let date = new Date();
     const deadline = date.setTime(date.getTime() + 2 * 3600); // +2 hours
@@ -215,6 +215,41 @@ describe("MasterChef: Pools", function () {
     await expect(masterChef.addPool(100, pairAddress2, 0, true, DAY_IN_SECONDS * 3,
         0, 0, 0, 0
     )).to.be.revertedWith("[f] Add: token/s not connected to WBNB");
+
+    //now addr1 adds another pool in Router with path to weth
+    await router.connect(addr1).addLiquidity(
+        tokenA.address,
+        weth.address,
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        owner.address,
+        deadline
+    );
+    const pairAddress3 = await factory.getPair(tokenA.address, weth.address);
+    const pairContract3 = await ethers.getContractFactory("Pair");
+    const pair3 = await pairContract3.attach(pairAddress3);
+
+    //afegim la nova pool de weth a tokena
+    await masterChef.connect(owner).addPool(
+        100,
+        pair3.address,
+        0,
+        true,
+        DAY_IN_SECONDS * 3,
+        0,
+        0,
+        0,
+        0
+    );
+    expect (await masterChef.poolLength()).to.equal(2);
+
+    //ara amb la nove pool hauriem de tenir path fins a weth
+    await masterChef.addPool(100, pairAddress2, 0, true, DAY_IN_SECONDS * 3,
+        0, 0, 0, 0
+    );
+    expect (await masterChef.poolLength()).to.equal(3);
 
   });
 
@@ -327,12 +362,13 @@ describe("MasterChef: Pools", function () {
 
 
 describe("MasterChef: Deposit", function () {
-  it("Create 2 LP pools, tests with deposits from differnet users/qtys", async function () {
+
+  it("Create 2 LP pools in Router, set up poold in MAsterchef and test with deposits from different users/qtys", async function () {
     let date = new Date();
     const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
 
-    await tokenB.connect(addr1).approve(router.address, 10000000000);
     await tokenA.connect(addr1).approve(router.address, 10000000000);
+    await tokenB.connect(addr1).approve(router.address, 10000000000);
     await weth.connect(addr1).approve(router.address, 10000000000);
     await tokenA.connect(owner).mint(1000000);
     await tokenB.connect(owner).mint(1000000);
@@ -417,11 +453,284 @@ describe("MasterChef: Deposit", function () {
         .withArgs(addr1.address,2,9999);
     //el owner no te pairs, then gets reverted
     await expect(masterChef.connect(owner).deposit(1,999)).to.be.revertedWith('SafeMath: subtraction overflow');
-    //lets add more LPs, more than what we have
+    //lets add more LPs, this gets reverted because we don't have that many
     await expect(masterChef.connect(addr1).deposit(1,9999999)).to.be.revertedWith('SafeMath: subtraction overflow');
   });
 
-  it("As a user I should to deposit LP in a pool + withdraw", async function () {
+  it("Deposit + emergencywithdraw after _maxWithdrawalInterval (no fees apply) ", async function () {
+    //addr1 deposits token and weth in the router, and gets LPs
+    let date = new Date();
+    const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+
+    //addr1 creates pool between tokenA and weth, approve balance pair from masterchef
+    const result = await router.connect(addr1).addLiquidity(
+        tokenA.address,
+        weth.address,
+        BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        addr1.address,
+        deadline
+    );
+    const pairAddress = await factory.getPair(tokenA.address, weth.address);
+    const pairContract = await ethers.getContractFactory("Pair");
+    const pair = await pairContract.attach(pairAddress);
+    let addr1_initial_balancepair = await pair.balanceOf(addr1.address);
+    console.log('addr1 balancepair', addr1_initial_balancepair.toString());
+    await pair.connect(addr1).approve(masterChef.address, addr1_initial_balancepair.mul(2));
+
+    //owner adds pool in masterchef
+    await masterChef.connect(owner).addPool(
+        100,
+        pair.address,
+        DAY_IN_SECONDS,       //harvestinterval, cada quant pots fer claim rewards. Si no ha passat el harvest interval no pots fer claim
+        true,                 //update les dades de totes les pools quan fas update de la pool
+        DAY_IN_SECONDS * 3,   //abans de tres dies cobraras fees sobre el diposit, a partir de 3 dies cobres fees sobre els rewards
+        40, //a: sobre 10000
+        40, //b: sobre 10000
+        40, //aquestes fees son sobre els rewards per fer el native token burn si fa més de DAY_IN_SECONDS * 3
+        40  //aquestes fees son sobre els rewards obtinguts si fa més de DAY_IN_SECONDS * 3
+    );
+
+    // add LPS to pool 1
+    // Addr1 fa dipòsit de 100000 LPs a la pool 1.
+    expect(await masterChef.connect(addr1).deposit(1,100000)).to.emit(masterChef, 'Deposit')
+        .withArgs(addr1.address,
+            1,
+            100000);
+    addr1_balancepair = await pair.balanceOf(addr1.address);
+    console.log('addr1 balancepair after deposit 100000 LPs into pool', addr1_balancepair.toString());
+    console.log('Lps depositats a masterchef per addr1', ((await masterChef.userInfo(1,addr1.address)).amount).toString());
+
+    //passen (DAY_IN_SECONDS*3)+1 s, i el addr1 vol retirar la pasta
+    await ethers.provider.send('evm_increaseTime', [(DAY_IN_SECONDS * 3)+1]);
+    expect(await masterChef.connect(addr1).emergencyWithdraw(1)).to.emit(masterChef, 'EmergencyWithdraw')
+        .withArgs(addr1.address,1,100000,100000);
+
+    // Addr1 removes all LPS without fees using the emergency withdraw, all good!
+    addr1_balancepair = await pair.balanceOf(addr1.address);
+    console.log('addr1 balancepair after emergencywithdraw dels 100000 LPs de la pool:', addr1_balancepair.toString());
+    console.log('Lps depositats a masterchef per addr1 despres del withdraw de 100000LPs:', ((await masterChef.userInfo(1,addr1.address)).amount).toString());
+
+    expect(await pair.balanceOf(addr1.address)).to.equal(addr1_initial_balancepair);
+    expect((await masterChef.userInfo(1,addr1.address)).amount).to.equal(0);
+    expect((await masterChef.userInfo(1,addr1.address)).rewardDebt).to.equal(0);
+    expect((await masterChef.userInfo(1,addr1.address)).rewardLockedUp).to.equal(0);
+    expect((await masterChef.userInfo(1,addr1.address)).nextHarvestUntil).to.equal(0);
+    expect((await masterChef.userInfo(1,addr1.address)).withdrawalOrPerformanceFees).to.equal(0);
+  });
+
+
+  it("Deposit + emergencywithdraw before _maxWithdrawalInterval with SAFU false (no fees apply) ", async function () {
+    //addr1 deposits token and weth in the router, and gets LPs
+    let date = new Date();
+    const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+
+    //addr1 creates pool between tokenA and weth, approve balance pair from masterchef
+    const result = await router.connect(addr1).addLiquidity(
+        tokenA.address,
+        weth.address,
+        BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        addr1.address,
+        deadline
+    );
+    const pairAddress = await factory.getPair(tokenA.address, weth.address);
+    const pairContract = await ethers.getContractFactory("Pair");
+    const pair = await pairContract.attach(pairAddress);
+    let addr1_initial_balancepair = await pair.balanceOf(addr1.address);
+    console.log('addr1 balancepair', addr1_initial_balancepair.toString());
+    await pair.connect(addr1).approve(masterChef.address, addr1_initial_balancepair.mul(2));
+
+    //owner adds pool in masterchef
+    await masterChef.connect(owner).addPool(
+        100,
+        pair.address,
+        DAY_IN_SECONDS,
+        true,
+        DAY_IN_SECONDS * 3,
+        40,
+        40,
+        40,
+        40
+    );
+
+    // add LPS to pool 1
+    // Addr1 fa dipòsit de 100000 LPs a la pool 1.
+    expect(await masterChef.connect(addr1).deposit(1,100000)).to.emit(masterChef, 'Deposit')
+        .withArgs(addr1.address,
+            1,
+            100000);
+    addr1_balancepair = await pair.balanceOf(addr1.address);
+    console.log('addr1 balancepair after deposit 100000 LPs into pool', addr1_balancepair.toString());
+    console.log('Lps depositats a masterchef per addr1', ((await masterChef.userInfo(1,addr1.address)).amount).toString());
+
+    //Owner sets safu to false, everyone should be able to remove everything without paying fees
+    masterChef.setSAFU(false);
+    expect(await masterChef.connect(addr1).emergencyWithdraw(1)).to.emit(masterChef, 'EmergencyWithdraw')
+        .withArgs(addr1.address,1,100000,100000);
+
+    // Addr1 removes all LPS without fees using the emergency withdraw, all good!
+    addr1_balancepair = await pair.balanceOf(addr1.address);
+    console.log('addr1 balancepair after emergencywithdraw dels 100000 LPs de la pool:', addr1_balancepair.toString());
+    console.log('Lps depositats a masterchef per addr1 despres del withdraw de 100000LPs:', ((await masterChef.userInfo(1,addr1.address)).amount).toString());
+    expect(await pair.balanceOf(addr1.address)).to.equal(addr1_initial_balancepair);
+    expect(await pair.balanceOf(addr1.address)).to.equal(addr1_initial_balancepair);
+    expect((await masterChef.userInfo(1,addr1.address)).amount).to.equal(0);
+    expect((await masterChef.userInfo(1,addr1.address)).rewardDebt).to.equal(0);
+    expect((await masterChef.userInfo(1,addr1.address)).rewardLockedUp).to.equal(0);
+    expect((await masterChef.userInfo(1,addr1.address)).nextHarvestUntil).to.equal(0);
+    expect((await masterChef.userInfo(1,addr1.address)).withdrawalOrPerformanceFees).to.equal(0);
+  });
+
+
+  it("Deposit + emergencywithdraw before _maxWithdrawalInterval (fees apply) ", async function () {
+    //addr1 deposits token and weth in the router, and gets LPs
+    let date = new Date();
+    const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+
+    //addr1 creates pool between tokenA and weth, approve balance pair from masterchef
+    const result = await router.connect(addr1).addLiquidity(
+        tokenA.address,
+        weth.address,
+        BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        addr1.address,
+        deadline
+    );
+    const pairAddress = await factory.getPair(tokenA.address, weth.address);
+    const pairContract = await ethers.getContractFactory("Pair");
+    const pair = await pairContract.attach(pairAddress);
+    let addr1_initial_balancepair = await pair.balanceOf(addr1.address);
+    console.log('addr1 balancepair', addr1_initial_balancepair.toString());
+    await pair.connect(addr1).approve(masterChef.address, addr1_initial_balancepair.mul(2));
+
+    //owner adds pool in masterchef
+    let LPfees = 40; // 0.4% withdraw fee over the withdrawal if withdrawn before
+    await masterChef.connect(owner).addPool(
+        100,
+        pair.address,
+        DAY_IN_SECONDS,
+        true,
+        DAY_IN_SECONDS * 3,
+        LPfees,
+        LPfees,
+        0,   // we are not going to use any of these fees, we are only checking the LPs deposit fees
+        0    // we are not going to use any of these fees
+    );
+
+    // add LPS to pool 1
+    // Addr1 fa dipòsit de 100000 LPs a la pool 1.
+    let addr1_lp_pool_deposit = 1000000;
+    expect(await masterChef.connect(addr1).deposit(1,addr1_lp_pool_deposit)).to.emit(masterChef, 'Deposit')
+        .withArgs(addr1.address,
+            1,
+            addr1_lp_pool_deposit);
+    addr1_balancepair = await pair.balanceOf(addr1.address);
+    console.log('addr1 balancepair after deposit 100000 LPs into pool', addr1_balancepair.toString());
+    console.log('Lps depositats a masterchef per addr1', ((await masterChef.userInfo(1,addr1.address)).amount).toString());
+
+    //After deposit, addr1 tries to remove the LPs. But we need to apply some fees since the _harvestInterval has not passed yet...
+    let addr1lp_fees = BigNumber.from(addr1_lp_pool_deposit).mul(LPfees).mul(2).div(10000);
+    let addr1lp_balance_minus_fees = BigNumber.from(addr1_lp_pool_deposit).sub(addr1lp_fees);
+    expect(await masterChef.connect(addr1).emergencyWithdraw(1)).to.emit(masterChef, 'EmergencyWithdraw')
+        .withArgs(addr1.address, 1, addr1_lp_pool_deposit, addr1lp_balance_minus_fees);
+
+    // Addr1 removes the LPs inside the pool with the emergency withdraw.
+    // Since fees in the MC were 40, 40, we apply a 0.8% fees over the total deposited
+    addr1_balancepair = await pair.balanceOf(addr1.address);
+    console.log('addr1 balancepair after emergencywithdraw dels 100000 LPs de la pool:', addr1_balancepair.toString());
+    console.log('Lps deposited in MC per addr1 after withdraw of 100000LPs:', ((await masterChef.userInfo(1,addr1.address)).amount).toString());
+    expect(await pair.balanceOf(addr1.address)).to.equal( addr1_initial_balancepair.sub( addr1lp_fees ) );
+    expect((await masterChef.userInfo(1,addr1.address)).amount).to.equal(0);
+    expect((await masterChef.userInfo(1,addr1.address)).rewardDebt).to.equal(0);
+    expect((await masterChef.userInfo(1,addr1.address)).rewardLockedUp).to.equal(0);
+    expect((await masterChef.userInfo(1,addr1.address)).nextHarvestUntil).to.equal(0);
+    expect((await masterChef.userInfo(1,addr1.address)).withdrawalOrPerformanceFees).to.equal(0);
+  });
+
+
+  it("get LPs from router, create pool MC, deposit LPs, emergency withdraw before deadline (fees set to 0).", async function () {
+    //addr1 deposits token and weth in the router, and gets LPs
+    let date = new Date();
+    const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+
+    //addr1 creates pool between tokenA and weth, approve balance pair from masterchef
+    const result = await router.connect(addr1).addLiquidity(
+        tokenA.address,
+        weth.address,
+        BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        addr1.address,
+        deadline
+    );
+    const pairAddress = await factory.getPair(tokenA.address, weth.address);
+    const pairContract = await ethers.getContractFactory("Pair");
+    const pair = await pairContract.attach(pairAddress);
+    let addr1_initial_balancepair = await pair.balanceOf(addr1.address);
+    console.log('addr1 balancepair', addr1_initial_balancepair.toString());
+    await pair.connect(addr1).approve(masterChef.address, addr1_initial_balancepair.mul(2));
+
+    //owner adds pool in masterchef
+    let LPfees = 0; // 0.4% withdraw fee over the withdrawal if withdrawn before
+    await masterChef.connect(owner).addPool(
+        100,
+        pair.address,
+        DAY_IN_SECONDS,
+        true,
+        DAY_IN_SECONDS * 3,
+        LPfees,
+        LPfees,
+        0,   // we are not going to use any of these fees, we are only checking the LPs deposit fees
+        0    // we are not going to use any of these fees
+    );
+
+    // add LPS to pool 1
+    // Addr1 fa dipòsit de 100000 LPs a la pool 1.
+    let addr1_lp_pool_deposit = 1000000;
+    expect(await masterChef.connect(addr1).deposit(1,addr1_lp_pool_deposit)).to.emit(masterChef, 'Deposit')
+        .withArgs(addr1.address,
+            1,
+            addr1_lp_pool_deposit);
+    addr1_balancepair = await pair.balanceOf(addr1.address);
+    console.log('addr1 balancepair after deposit 100000 LPs into pool', addr1_balancepair.toString());
+    console.log('Lps depositats a masterchef per addr1', ((await masterChef.userInfo(1,addr1.address)).amount).toString());
+
+    //After deposit, addr1 tries to remove the LPs. But we need to apply some fees since the _harvestInterval has not passed yet...
+    let addr1lp_fees = BigNumber.from(addr1_lp_pool_deposit).mul(LPfees).mul(2).div(10000);
+    let addr1lp_balance_minus_fees = BigNumber.from(addr1_lp_pool_deposit).sub(addr1lp_fees);
+    expect(await masterChef.connect(addr1).emergencyWithdraw(1)).to.emit(masterChef, 'EmergencyWithdraw')
+        .withArgs(addr1.address,1,addr1lp_balance_minus_fees,addr1lp_balance_minus_fees);
+
+    // Addr1 removes the LPs inside the pool with the emergency withdraw.
+    // Since fees in the MC were 40, 40, we apply a 0.8% fees over the total deposited
+    addr1_balancepair = await pair.balanceOf(addr1.address);
+    console.log('addr1 balancepair after emergencywithdraw dels 100000 LPs de la pool:', addr1_balancepair.toString());
+    console.log('Lps deposited in MC per addr1 after withdraw of 100000LPs:', ((await masterChef.userInfo(1,addr1.address)).amount).toString());
+    expect(await pair.balanceOf(addr1.address)).to.equal( addr1_initial_balancepair.sub( addr1lp_fees ) );
+    expect((await masterChef.userInfo(1,addr1.address)).amount).to.equal(0);
+    expect((await masterChef.userInfo(1,addr1.address)).rewardDebt).to.equal(0);
+    expect((await masterChef.userInfo(1,addr1.address)).rewardLockedUp).to.equal(0);
+    expect((await masterChef.userInfo(1,addr1.address)).nextHarvestUntil).to.equal(0);
+    expect((await masterChef.userInfo(1,addr1.address)).withdrawalOrPerformanceFees).to.equal(0);
+  });
+
+
+
+
+
+
+
+
+
+  it("As a user I should be able to deposit LP in a pool + withdraw", async function () {
     let date = new Date();
     const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
 
@@ -447,8 +756,8 @@ describe("MasterChef: Deposit", function () {
         0,    //harvestinterval, cada quant pots fer claim rewards. Si no ha passat el harvest interval no pots fer claim
         true, //update les dades de totes les pools quan fas update de la pool
         DAY_IN_SECONDS * 3,   //abans de tres dies cobraras fees sobre el diposit, a partir de 3 dies cobres fees sobre els rewards
-        0, //a:
-        0, //b: a+b ha de sumar 10000, son les fees sobre els LPs
+        0, //a: sobre 10000
+        0, //b: sobre 10000
         0, //aquestes fees son sobre els rewards per fer el native token burn si fa més de DAY_IN_SECONDS * 3
         0  //aquestes fees son sobre els rewards obtinguts si fa més de DAY_IN_SECONDS * 3
     );

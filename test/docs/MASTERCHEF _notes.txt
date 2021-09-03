@@ -1,0 +1,18 @@
+Notes:
+
+-devaddress es passa al constructor del MC. Devaddress es on es cobren les fees de nativetoken. A la funció mintNativeTokens es minta un 10% dels tokens a l'equip // aixo es el que volem?
+ 	-devaddress te setter i getter nomes accessible per l'anterior devaddress
+
+== Quan es fa deploy  (totes les funcions son onlyowner) 
+-S'ha de setejar el mintnotifier                                
+-S'ha de setejar el router                                      
+-sha de setejar el pathfinder i donar-li acces des del masterchef 
+	await pathFinder.transferOwnership(masterChef.address);
+        // un cop es fa el transferownership ja no es poden usar les functions de addRouteToPathFinder i removeRouteToPathFinder!!
+-s'ha de setejar la locked vault addr          
+-she de setejar la llista de whitelisted       
+
+
+
+
+	

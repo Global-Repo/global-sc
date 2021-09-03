@@ -116,7 +116,7 @@ describe("MasterChef: Mint", function () {
     await masterChef.setMinter(vault.address, true);
     expect(await masterChef.connect(vault).mintNativeTokens(amountToMint,vault.address))
         .to.emit(mintNotifier, 'GlobalsMinted')
-        .withArgs(vault.address,amountToMint);
+        .withArgs(vault.address,vault.address, amountToMint);
   });
 
   it("When minting tokens, there is an extra mint amount for devs team", async function () {
