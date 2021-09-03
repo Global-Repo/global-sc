@@ -324,7 +324,156 @@ describe("MasterChef: Pools", function () {
   });
 });
 
+
+
 describe("MasterChef: Deposit", function () {
+  it("Create 2 LP pools, tests with deposits from differnet users/qtys", async function () {
+    let date = new Date();
+    const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+
+    await tokenB.connect(addr1).approve(router.address, 10000000000);
+    await tokenA.connect(addr1).approve(router.address, 10000000000);
+    await weth.connect(addr1).approve(router.address, 10000000000);
+    await tokenA.connect(owner).mint(1000000);
+    await tokenB.connect(owner).mint(1000000);
+    await weth.connect(owner).mint(1000000);
+    await tokenA.connect(owner).transfer(addr1.address, 1000000 );
+    await tokenB.connect(owner).transfer(addr1.address, 1000000 );
+    await weth.connect(owner).transfer(addr1.address, 1000000 );
+    let addr1_initial_weth_balance = await weth.balanceOf(addr1.address);
+    let addr1_initial_b_balance = await tokenB.balanceOf(addr1.address);
+    let addr1_initial_a_balance = await tokenA.balanceOf(addr1.address);
+    console.log('addr1_initial_native_balance',addr1_initial_weth_balance.toString());
+    console.log('addr1_initial_b_balance'     ,addr1_initial_b_balance.toString());
+    console.log('addr1_initial_a_balance'     ,addr1_initial_a_balance.toString());
+
+    //create pool between tokenA and weth
+    await router.connect(addr1).addLiquidity(
+        tokenB.address,
+        weth.address,
+        100000,
+        100000,
+        100,
+        100,
+        addr1.address,
+        deadline
+    );
+    const pairAddressA = await factory.getPair(tokenB.address, weth.address);
+    const pairContractA = await ethers.getContractFactory("Pair");
+    const pairA = await pairContractA.attach(pairAddressA);
+    await pairA.connect(addr1).approve(router.address, 10000000000);
+    let addr1_pairA_balance = await pairA.balanceOf(addr1.address);
+    console.log('addr1_pairA_balance', addr1_pairA_balance.toString());
+
+    await router.connect(addr1).addLiquidity(
+        tokenA.address,
+        weth.address,
+        100000,
+        100000,
+        100,
+        100,
+        addr1.address,
+        deadline
+    );
+    const pairAddressB = await factory.getPair(tokenA.address, weth.address);
+    const pairContractB = await ethers.getContractFactory("Pair");
+    const pairB = await pairContractB.attach(pairAddressB);
+    await pairB.connect(addr1).approve(router.address, 10000000000);
+    let addr1_pairB_balance = await pairB.balanceOf(addr1.address);
+    console.log('addr1_pairB_balance', addr1_pairB_balance.toString());
+
+    //add pools to masterchef
+    await masterChef.addPool(
+        100,
+        pairA.address,
+        0,
+        false,
+        DAY_IN_SECONDS * 3,
+        0,
+        0,
+        0,
+        0
+    );
+    await masterChef.addPool(
+        100,
+        pairB.address,
+        0,
+        false,
+        DAY_IN_SECONDS * 3,
+        0,
+        0,
+        0,
+        0
+    );
+    console.log((await masterChef.poolLength()).toString());
+
+    //get masterchefs approve
+    await pairA.connect(addr1).approve(masterChef.address, 10000000);
+    await pairB.connect(addr1).approve(masterChef.address, 10000000);
+    // Addr1 fa dipòsit del 50% dels seus LPs a la pool 1.
+    expect(await masterChef.connect(addr1).deposit(1,999)).to.emit(masterChef, 'Deposit')
+        .withArgs(addr1.address,1,999);
+    expect(await masterChef.connect(addr1).deposit(2,9999)).to.emit(masterChef, 'Deposit')
+        .withArgs(addr1.address,2,9999);
+    //el owner no te pairs, then gets reverted
+    await expect(masterChef.connect(owner).deposit(1,999)).to.be.revertedWith('SafeMath: subtraction overflow');
+    //lets add more LPs, more than what we have
+    await expect(masterChef.connect(addr1).deposit(1,9999999)).to.be.revertedWith('SafeMath: subtraction overflow');
+  });
+
+  it("As a user I should to deposit LP in a pool + withdraw", async function () {
+    let date = new Date();
+    const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+
+    //create pool between tokenA and weth
+    const result = await router.connect(addr1).addLiquidity(
+        tokenA.address,
+        weth.address,
+        BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        addr1.address,
+        deadline
+    );
+    const pairAddress = await factory.getPair(tokenA.address, weth.address);
+    const pairContract = await ethers.getContractFactory("Pair");
+    const pair = await pairContract.attach(pairAddress);
+
+    //add pool in masterchef
+    await masterChef.connect(owner).addPool(
+        100,
+        pairAddress,
+        0,    //harvestinterval, cada quant pots fer claim rewards. Si no ha passat el harvest interval no pots fer claim
+        true, //update les dades de totes les pools quan fas update de la pool
+        DAY_IN_SECONDS * 3,   //abans de tres dies cobraras fees sobre el diposit, a partir de 3 dies cobres fees sobre els rewards
+        0, //a:
+        0, //b: a+b ha de sumar 10000, son les fees sobre els LPs
+        0, //aquestes fees son sobre els rewards per fer el native token burn si fa més de DAY_IN_SECONDS * 3
+        0  //aquestes fees son sobre els rewards obtinguts si fa més de DAY_IN_SECONDS * 3
+    );
+    let balancepair = await pair.balanceOf(addr1.address);
+    console.log('addr1 balancepair', balancepair.toString());
+    await pair.connect(addr1).approve(masterChef.address, balancepair);
+
+    //
+    // Addr1 fa dipòsit del 50% dels seus LPs a la pool 1.
+    //
+    expect(await masterChef.connect(addr1).deposit(1,balancepair.div(2))).to.emit(masterChef, 'Deposit')
+        .withArgs(addr1.address,
+            1,
+            balancepair.div(2));
+
+    //addr1 té els lps dipositats
+    expect(((await masterChef.userInfo(1,addr1.address)).amount).toString()).to.equal(balancepair.div(2));
+    balancepair = await pair.balanceOf(addr1.address);
+    console.log('Lps addr1 balancepair', balancepair.toString());
+    console.log('Lps depositats a masterchef per addr1', ((await masterChef.userInfo(1,addr1.address)).amount).toString());
+
+    //TODO HERE.
+  });
+
+
   it("As a user I should to deposit LP in a pool", async function () {
     //Create pool
     let date = new Date();
@@ -467,6 +616,7 @@ describe("MasterChef: Deposit", function () {
     expect(await masterChef.connect(addr1).deposit(1,0)).to.emit(masterChef, 'Deposit')
         .withArgs(addr1.address,1,0);
 
+
     //- L'usuari reb tots els tokens de rewards pendents.
     expect(await nativeToken.balanceOf(addr1.address)).to.be.within(pendingNativeTokensACobrar.add(originalNativeTokens),pendingNativeTokensACobrar.add(originalNativeTokens).add(NATIVE_TOKEN_PER_BLOCK));
 
@@ -475,11 +625,11 @@ describe("MasterChef: Deposit", function () {
 
     await ethers.provider.send('evm_increaseTime', [7210]);
 
+
     //Addr1 fa emergency withdraw del pid 0 i 2,3 dos hores més tard:
     // - No pot.
     expect(await masterChef.emergencyWithdraw(0)).to.not.emit(masterChef, 'EmergencyWithdraw');
-    await expect(masterChef.emergencyWithdraw(2)).to.revertedWith('This pool does not exist yet');
-    await expect(masterChef.emergencyWithdraw(3)).to.revertedWith('This pool does not exist yet');
+    expect(await masterChef.emergencyWithdraw(2)).to.not.emit(masterChef, 'EmergencyWithdraw');
 
     const lpsBeforeEmergencyWithdraw = (await masterChef.userInfo(1,addr1.address)).amount;
     //Addr1 fa emergency withdraw del pid 1 dos hores més tard:
@@ -494,5 +644,6 @@ describe("MasterChef: Deposit", function () {
     expect(await masterChef.connect(addr1).emergencyWithdraw(1)).to.not.emit(masterChef, 'EmergencyWithdraw');
     //expect(await masterChef.connect(addr1).emergencyWithdraw()).to.not.emit(masterChef, 'EmergencyWithdraw');
     //await masterChef.connect(addr1).emergencyWithdraw(0);
+
   });
 });
