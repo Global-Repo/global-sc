@@ -144,6 +144,10 @@ describe("MasterChef: Deposit", function () {
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
 
         console.log("Eth (or BNB) addr", weth.address);
+        console.log("tokenA addr", tokenA.address);
+        console.log("nativeToken addr", nativeToken.address);
+        console.log("weth addr", weth.address);
+
 
         //addr1 creates pool between nativeToken and weth
         //await router.connect(addr1).addLiquidity(

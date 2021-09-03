@@ -98,9 +98,6 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     // Burn address podria ser 0x0 però mola més un 0x...dEaD;
     address public constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
-    // POSAR AQUÍ LA DIRECCIÓ WETH HARDCODED!!!!!!!!!!!!!!!!!!!!!!!!
-    // SHA DE MODIFICAAAAAAAAAAAR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    address public constant WETH = 0x000000000000000000000000000000000000dEaD;
     TokenAddresses private tokenAddresses;
 
     // En cas d'exploit, deixem sortir a la gent per l'emergency sense pagar LP fees. Not safu = no LPs fees in emergencywithdraw
@@ -725,9 +722,15 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         {
             uint256 tokensToBurn;
 
-            if(_token == WETH){
+            if(_token == tokenAddresses.findByName(tokenAddresses.BNB())){
                 //routerGlobal.swapETHForExactTokens(...)
                 console.log("manageTokens::INSIDE WETH");
+
+                address[] memory elMeuPath = pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL()));
+                console.log("pathFinder.findPath", elMeuPath.length );
+                console.log("token1", _token );
+                console.log("token2", tokenAddresses.findByName(tokenAddresses.GLOBAL()) );
+
                 uint[] memory amounts = routerGlobal.swapExactETHForTokens(_amountToBurn, pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())), BURN_ADDRESS, block.timestamp); //swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
                 tokensToBurn = amounts[amounts.length-1];
                 console.log("manageTokens::tokensToBurn", tokensToBurn);
@@ -757,12 +760,11 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
             uint256 tokensForDevs;
             console.log("manageTokens::step3");
 
-            if(_token != WETH) // Si tenim globals, els venem per passar a BNB i ens els enviem. Si no tenim globals ni WETH, ho passem a WETH
+            if(_token != tokenAddresses.findByName(tokenAddresses.BNB())) // Si tenim globals, els venem per passar a BNB i ens els enviem. Si no tenim globals ni WETH, ho passem a WETH
             {
                 console.log("manageTokens::step12");
                 //routerGlobal.swapExactTokensForETH(...)
                 console.log("tokenAddresses.BNB()", tokenAddresses.findByName(tokenAddresses.BNB()));
-                console.log("pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.BNB()))", pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.BNB())) );
                 uint[] memory amounts = routerGlobal.swapExactTokensForETH(_amountForDevs, 0, pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.BNB())), devAddr, block.timestamp); //swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
                 tokensForDevs = amounts[amounts.length-1];
                 console.log("manageTokens::step12 FINISHED");
