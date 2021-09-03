@@ -632,8 +632,8 @@ describe("MasterChef: Deposit", function () {
             1,
             addr1_lp_pool_deposit);
     addr1_balancepair = await pair.balanceOf(addr1.address);
-    console.log('addr1 balancepair after deposit 100000 LPs into pool', addr1_balancepair.toString());
-    console.log('Lps depositats a masterchef per addr1', ((await masterChef.userInfo(1,addr1.address)).amount).toString());
+    console.log('addr1 balancepair after deposit 1000000 LPs into pool:', addr1_balancepair.toString());
+    console.log('Lps depositats a masterchef per addr1:', ((await masterChef.userInfo(1,addr1.address)).amount).toString());
 
     //After deposit, addr1 tries to remove the LPs. But we need to apply some fees since the _harvestInterval has not passed yet...
     let addr1lp_fees = BigNumber.from(addr1_lp_pool_deposit).mul(LPfees).mul(2).div(10000);
@@ -644,8 +644,8 @@ describe("MasterChef: Deposit", function () {
     // Addr1 removes the LPs inside the pool with the emergency withdraw.
     // Since fees in the MC were 40, 40, we apply a 0.8% fees over the total deposited
     addr1_balancepair = await pair.balanceOf(addr1.address);
-    console.log('addr1 balancepair after emergencywithdraw dels 100000 LPs de la pool:', addr1_balancepair.toString());
-    console.log('Lps deposited in MC per addr1 after withdraw of 100000LPs:', ((await masterChef.userInfo(1,addr1.address)).amount).toString());
+    console.log('addr1 balancepair after emergencywithdraw dels 1000000 LPs de la pool:', addr1_balancepair.toString());
+    console.log('Lps deposited in MC per addr1 after withdraw of 1000000 LPs:', ((await masterChef.userInfo(1,addr1.address)).amount).toString());
     expect(await pair.balanceOf(addr1.address)).to.equal( addr1_initial_balancepair.sub( addr1lp_fees ) );
     expect((await masterChef.userInfo(1,addr1.address)).amount).to.equal(0);
     expect((await masterChef.userInfo(1,addr1.address)).rewardDebt).to.equal(0);

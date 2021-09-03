@@ -10,7 +10,10 @@ Notes:
 	await pathFinder.transferOwnership(masterChef.address);
         // un cop es fa el transferownership ja no es poden usar les functions de addRouteToPathFinder i removeRouteToPathFinder!!
 -s'ha de setejar la locked vault addr          
--she de setejar la llista de whitelisted       
+-she de setejar la llista de whitelisted
+
+
+-sempre ha d'existir aquesta pool -- afegirPool(nativeToken,weth);, sino no podem fer canvis
 
 
 

@@ -1552,7 +1552,6 @@ contract MasterChef is Ownable {
         }));
 
         totalAllocPoint = 1000;
-
     }
 
     function updateMultiplier(uint256 multiplierNumber) public onlyOwner {
