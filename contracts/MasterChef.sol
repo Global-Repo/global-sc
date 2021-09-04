@@ -720,34 +720,20 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
 
         // Enviem tokens a cremar
         {
-            uint256 tokensToBurn;
-
             if(_token == tokenAddresses.findByName(tokenAddresses.BNB())){
                 //routerGlobal.swapETHForExactTokens(...)
                 console.log("manageTokens::INSIDE WETH");
-
-                address[] memory elMeuPath = pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL()));
-                console.log("pathFinder.findPath", elMeuPath.length );
-                console.log("token1", _token );
-                console.log("token2", tokenAddresses.findByName(tokenAddresses.GLOBAL()) );
-
-                uint[] memory amounts = routerGlobal.swapExactETHForTokens(_amountToBurn, pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())), BURN_ADDRESS, block.timestamp); //swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
-                tokensToBurn = amounts[amounts.length-1];
-                console.log("manageTokens::tokensToBurn", tokensToBurn);
+                routerGlobal.swapExactETHForTokensSupportingFeeOnTransferTokens(0, pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())), BURN_ADDRESS, block.timestamp); //swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
             } else if(_token != address(nativeToken)){
                 console.log("manageTokens::INSIDE NOT NATIVE");
                 //routerGlobal.swapExactTokensForTokens(...)
                 //console.log("tokenAddresses.findByName(tokenAddresses.GLOBAL())", tokenAddresses.findByName(tokenAddresses.GLOBAL()) );
-                uint[] memory amounts = routerGlobal.swapExactTokensForTokens(_amountToBurn, 0, pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())), BURN_ADDRESS, block.timestamp); //swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
-                tokensToBurn = amounts[amounts.length-1];
-                console.log("manageTokens::tokensToBurn", tokensToBurn);
+                routerGlobal.swapExactTokensForTokensSupportingFeeOnTransferTokens(_amountToBurn, 0, pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())), BURN_ADDRESS, block.timestamp); //swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
             }
             else // Si tenim Nativetokens els cremem directament
             {
-                console.log("manageTokens::INSIDE NATIVE");
-                tokensToBurn = _amountToBurn;
-                console.log("manageTokens::tokensToBurn", tokensToBurn);
-                IBEP20(tokenAddresses.findByName(tokenAddresses.GLOBAL())).transfer(BURN_ADDRESS, tokensToBurn);
+                console.log("manageTokens::tokensToBurn", _amountToBurn);
+                IBEP20(tokenAddresses.findByName(tokenAddresses.GLOBAL())).transfer(BURN_ADDRESS, _amountToBurn);
             }
 
             console.log("manageTokens::step2");
@@ -759,13 +745,12 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         {
             uint256 tokensForDevs;
             console.log("manageTokens::step3");
-
             if(_token != tokenAddresses.findByName(tokenAddresses.BNB())) // Si tenim globals, els venem per passar a BNB i ens els enviem. Si no tenim globals ni WETH, ho passem a WETH
             {
                 console.log("manageTokens::step12");
                 //routerGlobal.swapExactTokensForETH(...)
                 console.log("tokenAddresses.BNB()", tokenAddresses.findByName(tokenAddresses.BNB()));
-                uint[] memory amounts = routerGlobal.swapExactTokensForETH(_amountForDevs, 0, pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.BNB())), devAddr, block.timestamp); //swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
+                uint[] memory amounts = routerGlobal.swapExactTokensForETHSupportingFeeOnTransferTokens(_amountForDevs, 0, pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.BNB())), devAddr, block.timestamp); //swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
                 tokensForDevs = amounts[amounts.length-1];
                 console.log("manageTokens::step12 FINISHED");
             } else
