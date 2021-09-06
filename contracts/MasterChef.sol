@@ -627,11 +627,6 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
                 IBEP20(pool.lpToken).safeApprove(address(routerGlobal), uint(- 1));
             }
 
-            //TODO this is not necessary, is it?
-            //if (IPair(address(pool.lpToken)).balanceOf(address(pool.lpToken)) > 0) {
-            //    IPair(address(pool.lpToken)).burn(address(routerGlobal)); //TODO ???
-            //}
-
             // Fem remove liquidity del LP i rebrem els dos tokens
             console.log("getLPFees::path1");
 
@@ -711,60 +706,48 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     }
 
     function manageTokens(address _token, uint256 _amountToBurn, uint256 _amountForDevs) private{
-        // Tokens can be WETH, Native Tokens or a random token
-        // Les funcions de burn i swap segur que s'han de corregir...!!!
-
         console.log("manageTokens::_token", _token);
         console.log("manageTokens::_amountToBurn", _amountToBurn);
         console.log("manageTokens::_amountForDevs", _amountForDevs);
+        console.log("manageTokens::devAddr", devAddr);
 
-        // Enviem tokens a cremar
+        //burn
         {
-            if(_token == tokenAddresses.findByName(tokenAddresses.BNB())){
-                //routerGlobal.swapETHForExactTokens(...)
-                console.log("manageTokens::INSIDE WETH");
-                routerGlobal.swapExactETHForTokensSupportingFeeOnTransferTokens(0, pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())), BURN_ADDRESS, block.timestamp); //swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
-            } else if(_token != address(nativeToken)){
+            console.log("manageTokens::Start burning");
+            if(_token != address(nativeToken)){
                 console.log("manageTokens::INSIDE NOT NATIVE");
-                //routerGlobal.swapExactTokensForTokens(...)
-                //console.log("tokenAddresses.findByName(tokenAddresses.GLOBAL())", tokenAddresses.findByName(tokenAddresses.GLOBAL()) );
-                routerGlobal.swapExactTokensForTokensSupportingFeeOnTransferTokens(_amountToBurn, 0, pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())), BURN_ADDRESS, block.timestamp); //swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
-            }
-            else // Si tenim Nativetokens els cremem directament
-            {
-                console.log("manageTokens::tokensToBurn", _amountToBurn);
+                routerGlobal.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+                    _amountToBurn,
+                    0,
+                    pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())),
+                        BURN_ADDRESS,
+                    block.timestamp);
+            }else{
+                console.log("manageTokens::Burning native tokens", _amountToBurn);
                 IBEP20(tokenAddresses.findByName(tokenAddresses.GLOBAL())).transfer(BURN_ADDRESS, _amountToBurn);
             }
-
-            console.log("manageTokens::step2");
-            //XXXXXXXXTOKENSGLOBALS DE DALT.transfer(BURN_ADDRESS, _amount);
-            //SafeNativeTokenTransfer(BURN_ADDRESS, tokensToBurn);
+            console.log("manageTokens::Burning done, burned:", _amountToBurn);
         }
-
-        // Enviem tokens al equip
+        //devfees. ATTENTION, we do not unwrap weth to eth here
         {
-            uint256 tokensForDevs;
-            console.log("manageTokens::step3");
-            if(_token != tokenAddresses.findByName(tokenAddresses.BNB())) // Si tenim globals, els venem per passar a BNB i ens els enviem. Si no tenim globals ni WETH, ho passem a WETH
+            console.log("manageTokens::Start devfee transforming to WETH");
+            if(_token != tokenAddresses.findByName(tokenAddresses.BNB())) // passem a WETH
             {
-                console.log("manageTokens::step12");
-                //routerGlobal.swapExactTokensForETH(...)
-                console.log("tokenAddresses.BNB()", tokenAddresses.findByName(tokenAddresses.BNB()));
-                uint[] memory amounts = routerGlobal.swapExactTokensForETHSupportingFeeOnTransferTokens(_amountForDevs, 0, pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.BNB())), devAddr, block.timestamp); //swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
-                tokensForDevs = amounts[amounts.length-1];
-                console.log("manageTokens::step12 FINISHED");
-            } else
-            {
-                console.log("manageTokens::step3");
-                //routerGlobal.swapExactTokensForETH(...)
-                tokensForDevs = _amountForDevs;
-                IBEP20(tokenAddresses.findByName(tokenAddresses.BNB())).transfer(devAddr, tokensForDevs);
-                console.log("manageTokens::step3 FINISHED");
+                console.log("manageTokens::this token is not an weth.");
+                routerGlobal.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+                    _amountForDevs,
+                        0,
+                        pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.BNB())),
+                        devAddr,
+                        block.timestamp);
+                console.log("manageTokens::transformed to WETH and sent to devs");
+            }else{
+                console.log("manageTokens::this token is WETH");
+                IBEP20(tokenAddresses.findByName(tokenAddresses.BNB())).transfer(devAddr, _amountForDevs);
+                console.log("manageTokens::WETH tokens sent to devs");
             }
-
-            // XXXXXXXXXXXX tokens BNB que ens enviem a devaddress/nosaltres
-            console.log("manageTokens::step5");
         }
+        console.log("manageTokens::function end");
     }
 
     // Stake CAKE tokens to MasterChef
@@ -815,14 +798,11 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         }
 
         uint256 finalAmount = user.amount;
-        console.log("emergencyWithdraw::initial final amount to withdraw", finalAmount);
         PoolInfo storage pool = poolInfo[_pid];
 
         // Si l'usuari vol sortir fent emergencyWithdraw és OK, però li hem de cobrar les fees si toca. En cas contrari, se les podria estalviar per la cara.
         if (safu && !withdrawalOrPerformanceFee(_pid, msg.sender) && !user.whitelisted){
-            console.log("emergencyWithdraw::INSIDE");
             finalAmount = getLPFees(_pid, user.amount);
-            console.log("emergencyWithdraw::INSIDE final amount after LP fees", finalAmount);
         }
 
         uint256 amount = user.amount;

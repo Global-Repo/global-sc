@@ -19,6 +19,7 @@ let tokenBRoute;
 let weth;
 let masterChef;
 
+
 var afegirPool = async function (token0, token1)
 {
     let date = new Date();
@@ -50,7 +51,7 @@ var afegirPool = async function (token0, token1)
 }
 
 beforeEach(async function () {
-    [owner, addr1, lockedVault, ...addrs] = await ethers.getSigners();
+    [owner, addr1, lockedVault, devaddress, ...addrs] = await ethers.getSigners();
 
     const CURRENT_BLOCK = await ethers.provider.getBlockNumber();
     startBlock = CURRENT_BLOCK + 1;
@@ -142,25 +143,23 @@ describe("MasterChef: Deposit", function () {
         //addr1 deposits token and weth in the router, and gets LPs
         let date = new Date();
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
-
+        //set dev address
+        await masterChef.setDevAddress(devaddress.address);
         console.log("Eth (or BNB) addr", weth.address);
         console.log("tokenA addr", tokenA.address);
         console.log("nativeToken addr", nativeToken.address);
         console.log("weth addr", weth.address);
 
-
-        //addr1 creates pool between nativeToken and weth
-        //await router.connect(addr1).addLiquidity(
-        //    weth.address,
-        //    nativeToken.address,
-        //    100000,
-        //    100000,
-        //    1000,
-        //    1000,
-        //    addr1.address,
-        //    deadline
-        //);
+        //add weth to native pool
         await afegirPool(weth,nativeToken);
+
+        const pairAddress2 = await factory.getPair(nativeToken.address, weth.address);
+        const pairContract2 = await ethers.getContractFactory("Pair");
+        const pairwethnative = await pairContract2.attach(pairAddress2);
+        let {0: reserves0_wethnative, 1:reserves1_wethnative} = await pairwethnative.getReserves();
+        console.log('pair weth-native tkns in router pool: ',
+            reserves0_wethnative.toString(),
+            reserves1_wethnative.toString());
 
         //addr1 creates pool between tokenA and weth, approve balance pair from masterchef
         const result = await router.connect(addr1).addLiquidity(
@@ -175,17 +174,21 @@ describe("MasterChef: Deposit", function () {
         );
         const pairAddress = await factory.getPair(tokenA.address, weth.address);
         const pairContract = await ethers.getContractFactory("Pair");
-        const pair = await pairContract.attach(pairAddress);
-        let addr1_initial_balancepair = await pair.balanceOf(addr1.address);
+        const pairtkAweth = await pairContract.attach(pairAddress);
+        let addr1_initial_balancepair = await pairtkAweth.balanceOf(addr1.address);
         console.log('addr1 balancepair', addr1_initial_balancepair.toString());
-        console.log('pair.address', pair.address);
-        await pair.connect(addr1).approve(masterChef.address, addr1_initial_balancepair.mul(2));
+        let {0: reserves0, 1:reserves1, 2:reserves_timestamp} = await pairtkAweth.getReserves();
+        console.log('pair tknA-weth tkns in router pool: ',
+            reserves0.toString(),
+            reserves1.toString());
+
+        await pairtkAweth.connect(addr1).approve(masterChef.address, addr1_initial_balancepair.mul(2));
         //owner adds pool in masterchef
 
-        let LPfees = 40; // 0.4% withdraw fee over the withdrawal if withdrawn before
+        let LPfees = 40; // 0.4% withdraw fee over the withdrawal if withdrawn before deadline DAY_IN_SECONDS * 3
         await masterChef.connect(owner).addPool(
             100,
-            pair.address,
+            pairtkAweth.address,
             DAY_IN_SECONDS,
             true,
             DAY_IN_SECONDS * 3,
@@ -202,11 +205,10 @@ describe("MasterChef: Deposit", function () {
             .withArgs(addr1.address,
                 2,
                 addr1_lp_pool_deposit);
-        addr1_balancepair = await pair.balanceOf(addr1.address);
+        addr1_balancepair = await pairtkAweth.balanceOf(addr1.address);
         console.log('addr1 balancepair after deposit 100000 LPs into pool_', addr1_balancepair.toString());
         console.log('Lps depositats a masterchef pool 2 per addr1:', ((await masterChef.userInfo(2,
             addr1.address)).amount).toString());
-
 
         //After deposit, addr1 tries to remove the LPs.
         // But we need to apply some fees since the _harvestInterval has not passed yet...
@@ -215,19 +217,38 @@ describe("MasterChef: Deposit", function () {
         expect(await masterChef.connect(addr1).emergencyWithdraw(2)).to.emit(masterChef, 'EmergencyWithdraw')
             .withArgs(addr1.address, 2, addr1_lp_pool_deposit, addr1lp_balance_minus_fees);
 
-        /*
-        // Addr1 removes the LPs inside the pool with the emergency withdraw.
-        // Since fees in the MC were 40, 40, we apply a 0.8% fees over the total deposited
-        addr1_balancepair = await pair.balanceOf(addr1.address);
-        console.log('addr1 balancepair after emergencywithdraw dels 100000 LPs de la pool:', addr1_balancepair.toString());
-        console.log('Lps deposited in MC per addr1 after withdraw of 100000LPs:', ((await masterChef.userInfo(1,addr1.address)).amount).toString());
-        expect(await pair.balanceOf(addr1.address)).to.equal( addr1_initial_balancepair.sub( addr1lp_fees ) );
-        expect((await masterChef.userInfo(1,addr1.address)).amount).to.equal(0);
-        expect((await masterChef.userInfo(1,addr1.address)).rewardDebt).to.equal(0);
-        expect((await masterChef.userInfo(1,addr1.address)).rewardLockedUp).to.equal(0);
-        expect((await masterChef.userInfo(1,addr1.address)).nextHarvestUntil).to.equal(0);
-        expect((await masterChef.userInfo(1,addr1.address)).withdrawalOrPerformanceFees).to.equal(0);
-        */
+        //now we have our LPs back, but some fees apply (fees = lpdeposit * 0.004)
+        expect(await(pairtkAweth.balanceOf(addr1.address))).equal(
+            BigNumber.from(addr1_initial_balancepair).sub(
+                BigNumber.from(addr1_lp_pool_deposit).mul(LPfees).mul(2).div(10000)
+            ) );
+
+        //Check whether the devfees are in place
+        let devaddr_balance_native = await nativeToken.balanceOf(devaddress.address);
+        let devaddr_balance_weth = await weth.balanceOf(devaddress.address);
+        console.log('devaddr', devaddress.address);
+        console.log('weth devaddr_balance', devaddr_balance_weth.toString());
+        console.log('globals burn_balance', devaddr_balance_native.toString());
+
+        //after the withdraw we check the tkns in both pools
+        let {0: reserves0_wethnative_final, 1:reserves1_wethnative_final} = await pairwethnative.getReserves();
+        console.log('FINAL pair wethnative tkns in router pool: ',
+            reserves0_wethnative_final.toString(),
+            reserves1_wethnative_final.toString());
+        let {0: reserves0_final, 1:reserves1_final} = await pairtkAweth.getReserves();
+        console.log('FINAL pair tknA-weth tkns in router pool: ',
+            reserves0_final.toString(),
+            reserves1_final.toString());
+
+        //check that all tokens burned and from fees are no longer in the router pools
+       // expect(BigNumber.from(await nativeToken.balanceOf(devaddress.address))).greaterThan(0);
+       // expect(BigNumber.from(await weth.balanceOf(devaddress.address))).greaterThan(0);
+        expect(BigNumber.from(reserves0_wethnative_final).sub(reserves0_wethnative).
+            add(reserves1_wethnative_final).sub(reserves1_wethnative).
+            add(reserves0_final).sub(reserves0).
+            add(reserves1_final).sub(reserves1).
+            add(devaddr_balance_native).
+            add(devaddr_balance_weth)).equal(-7982);
 
     });
 
