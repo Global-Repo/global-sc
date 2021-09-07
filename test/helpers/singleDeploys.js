@@ -60,6 +60,13 @@ let deployPathFinderMock = async function () {
     return pathFinderMock;
 };
 
+let deployPathFinder = async function (tokenAddresses) {
+    const PathFinder = await ethers.getContractFactory("PathFinder");
+    const pathFinder = await PathFinder.deploy(tokenAddresses);
+    await pathFinder.deployed();
+    return pathFinder;
+};
+
 let deployMasterChef = async function (global, router, tokenAddresses, pathFinder) {
     const CURRENT_BLOCK = await ethers.provider.getBlockNumber();
     const startBlock = CURRENT_BLOCK + 1;
@@ -193,4 +200,5 @@ module.exports = {
     deployVaultLocked,
     deployVaultStaked,
     deployVaultStakedToGlobal,
+    deployPathFinder,
 };
