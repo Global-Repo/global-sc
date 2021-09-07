@@ -12,7 +12,7 @@ const {
     deployVaultStaked,
     deployVaultStakedToGlobal,
 } = require("../test/helpers/singleDeploys.js");
-const { timestampNHours } = require("../test/helpers/utils.js");
+const { timestampNHours, bep20Amount } = require("../test/helpers/utils.js");
 
 const { BigNumber } = require("@ethersproject/bignumber");
 require("@nomiclabs/hardhat-ethers");
@@ -63,22 +63,32 @@ let setUpDistributionVault = async function (owner) {
     // Vault distributor depositories
     await vaultDistribution.connect(owner).setDepositary(vaultCake.address, true);
     console.log("Vault CAKE added as depositary");
-    await vaultDistribution.connect(owner).setDepositary(vaultBunny.address, true);
-    console.log("Vault BUNNY added as depositary");
-    await vaultDistribution.connect(owner).setDepositary(vaultCakeBnbLP.address, true);
-    console.log("Vault CAKE-BNB-LP added as depositary");
+    //await vaultDistribution.connect(owner).setDepositary(vaultBunny.address, true);
+    //console.log("Vault BUNNY added as depositary");
+    //await vaultDistribution.connect(owner).setDepositary(vaultCakeBnbLP.address, true);
+    //console.log("Vault CAKE-BNB-LP added as depositary");
 
     // Vault distributor beneficiaries
-    await vaultDistribution().connect(owner).addBeneficiary(vaultVested.address);
+    await vaultDistribution.connect(owner).addBeneficiary(vaultVested.address);
     console.log("Vault vested added as beneficiary");
-    await vaultDistribution().connect(owner).addBeneficiary(vaultLocked.address);
+    await vaultDistribution.connect(owner).addBeneficiary(vaultLocked.address);
     console.log("Vault locked added as beneficiary");
-    await vaultDistribution().connect(owner).addBeneficiary(vaultStaked.address);
+    await vaultDistribution.connect(owner).addBeneficiary(vaultStaked.address);
     console.log("Vault staked added as beneficiary");
-    await vaultDistribution().connect(owner).addBeneficiary(vaultStakedToGlobal.address);
+    await vaultDistribution.connect(owner).addBeneficiary(vaultStakedToGlobal.address);
     console.log("Vault staked to global added as beneficiary");
 
     // TODO: approve del token BNB dels depositories al vault distribution
+    const bnbContract = await ethers.getContractFactory("BEP20"); // TODO: bnb or weth? bnb is not bep20
+    const bnb = await bnbContract.attach(bnbAddress);
+    const APPROVE_AMOUNT = bep20Amount(1000000000000);
+
+    await bnb.connect(vaultCake.address).approve(vaultDistribution.address, APPROVE_AMOUNT);
+    console.log("Allowed vault cake transfer from vault distribution for amount of: ", APPROVE_AMOUNT.toString());
+    //await bnb.connect(vaultBunny.address).approve(vaultDistribution.address, APPROVE_AMOUNT);
+    //console.log("Allowed vault BUNNY transfer from vault distribution for amount of: ", APPROVE_AMOUNT.toString());
+    //await bnb.connect(vaultCakeBnbLP.address).approve(vaultDistribution.address, APPROVE_AMOUNT);
+    //console.log("Allowed vault CAKE-BNB-LP transfer from vault distribution for amount of: ", APPROVE_AMOUNT.toString());
 
     console.log("Vault distribution set up done");
 };
