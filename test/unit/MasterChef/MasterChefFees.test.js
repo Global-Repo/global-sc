@@ -21,10 +21,17 @@ let weth;
 let masterChef;
 
 var print = async function(str, ...args){
-    if(SHOWALLPRINTS) console.log(str, args);
+    if(SHOWALLPRINTS) console.log(str, args.join('') );
 }
 
-var afegirPool = async function (token0, token1)
+
+var getTokenPair_helper = async function(token0, token1){
+    let pairaddr = await factory.getPair(token0.address, token1.address);
+    const pairtkAweth = await (await ethers.getContractFactory("Pair")).attach(pairaddr) ;
+    return pairtkAweth;
+}
+
+var afegirPool = async function (token0, token1, liquidity, allocPointMCpool=1000)
 {
     let date = new Date();
     const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
@@ -33,18 +40,21 @@ var afegirPool = async function (token0, token1)
     await router.addLiquidity(
         token0.address,
         token1.address,
-        BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-        BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        liquidity,
+        liquidity,
+        BigNumber.from(liquidity).div(10),
+        BigNumber.from(liquidity).div(10),
         owner.address,
         deadline
     );
+    let pairaddr = await factory.getPair(token0.address, token1.address);
+    const pairtkAweth = await (await ethers.getContractFactory("Pair")).attach(pairaddr) ;
+    let owner_initial_balancepair = await pairtkAweth.balanceOf(owner.address);
 
     //MC add pool A-B
     await masterChef.addPool(
-        BigNumber.from(40).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-        await factory.getPair(token0.address, token1.address),
+        allocPointMCpool,
+        pairaddr,
         DAY_IN_SECONDS * 3,
         false,
         DAY_IN_SECONDS * 3,
@@ -53,10 +63,13 @@ var afegirPool = async function (token0, token1)
         100,
         100
     );
+
+    print('\t[afegirPool] Owner created a pool in Router from ', token0.address, ' to ', token1.address,
+        ' and received ',owner_initial_balancepair.toString(), ' LPs. Then it created a MC pool for the LP.');
 }
 
 beforeEach(async function () {
-    [owner, addr1, lockedVault, devaddress, ...addrs] = await ethers.getSigners();
+    [owner, addr1, addr2, lockedVault, devaddress, ...addrs] = await ethers.getSigners();
 
     const CURRENT_BLOCK = await ethers.provider.getBlockNumber();
     startBlock = CURRENT_BLOCK + 1;
@@ -144,10 +157,70 @@ beforeEach(async function () {
 
 describe("MasterChef: Fees", function () {
 
-    it("Deposit + emergencywithdraw before _maxWithdrawalInterval (fees apply) ", async function () {
+    it("Deposit + emergencywithdraw before _maxWithdrawalInterval (fees apply) pool 0", async function () {
         console.log('SHOWALLPRINTS:', SHOWALLPRINTS);
 
-        //addr1 deposits token and weth in the router, and gets LPs
+        let date = new Date();
+        const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+        //set dev address
+        await masterChef.setDevAddress(devaddress.address);
+        await afegirPool(
+            weth,
+            nativeToken,
+            BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            1000);
+        await afegirPool(
+            tokenA,
+            nativeToken,
+            BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            1000);
+        await afegirPool(
+            nativeToken,
+            tokenB,
+            BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            1000);
+        await afegirPool(
+            weth,
+            tokenB,
+            BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            1000);
+                                            //TODO. this throws error Boji, is it supposed to be this way?
+                                            //await afegirPool(
+                                            //    tokenA,
+                                            //    tokenB,
+                                            //    BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+                                            //    1000);
+        //assert MC pool length
+        expect(await(masterChef.poolLength())).equal(5);
+        //get pairs created
+        let tknpair_weth_native = await getTokenPair_helper(weth, nativeToken);
+        let tknpair_tokena_native = await getTokenPair_helper(tokenA, nativeToken);
+        let tknpair_native_tokenb = await getTokenPair_helper(nativeToken, tokenB);
+        let tknpair_weth_tokenb = await getTokenPair_helper(weth, tokenB);
+
+        //check addr1
+        let addr1_balance_pair_weth_native = await tknpair_weth_native.balanceOf(addr1.address);
+        expect(await(addr1_balance_pair_weth_native)).equal(0);
+        print('addr1_balance_pair_weth_native',addr1_balance_pair_weth_native);
+        //check native tokens of addr1
+        let addr1_balance_native = await nativeToken.balanceOf(addr1.address);
+        print('addr1_balance_native',addr1_balance_native.toString());
+        expect(await(addr1_balance_native)).equal(BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER).toHexString() );
+
+        //try to perform emergency withdraw from pool 0
+        //TODO how can I withdraw from pool 0? I cannot deposit there
+        await expect(masterChef.connect(addr1).deposit(0,10)).to.be.revertedWith("deposit GLOBAL by staking");
+        expect(await masterChef.connect(addr1).emergencyWithdraw(0)).to.not.emit(masterChef, 'EmergencyWithdraw');
+        expect(await masterChef.connect(addr2).emergencyWithdraw(0)).to.not.emit(masterChef, 'EmergencyWithdraw');
+
+        //check again native tokens of addr1
+        let addr1_balance_native_new = await nativeToken.balanceOf(addr1.address);
+        expect(await(addr1_balance_native_new)).equal(BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER).toHexString() );
+    });
+
+    it("Deposit + emergencywithdraw before _maxWithdrawalInterval (fees apply) normal pool", async function () {
+        console.log('SHOWALLPRINTS:', SHOWALLPRINTS);
+
         let date = new Date();
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
         //set dev address
@@ -158,7 +231,10 @@ describe("MasterChef: Fees", function () {
         print("weth addr", weth.address);
 
         //add weth to native pool
-        await afegirPool(weth,nativeToken);
+        await afegirPool(
+            weth,
+            nativeToken,
+            BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
 
         const pairAddress2 = await factory.getPair(nativeToken.address, weth.address);
         const pairContract2 = await ethers.getContractFactory("Pair");
