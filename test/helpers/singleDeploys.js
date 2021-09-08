@@ -67,6 +67,13 @@ let deployPathFinder = async function (tokenAddresses) {
     return pathFinder;
 };
 
+let deployMintNotifier = async function () {
+    const MintNotifier = await ethers.getContractFactory("MintNotifier");
+    mintNotifier = await MintNotifier.deploy();
+    await mintNotifier.deployed();
+    return mintNotifier;
+};
+
 let deployMasterChef = async function (global, router, tokenAddresses, pathFinder) {
     const CURRENT_BLOCK = await ethers.provider.getBlockNumber();
     const startBlock = CURRENT_BLOCK + 1;
@@ -201,4 +208,5 @@ module.exports = {
     deployVaultStaked,
     deployVaultStakedToGlobal,
     deployPathFinder,
+    deployMintNotifier
 };

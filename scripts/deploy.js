@@ -5,6 +5,8 @@ const {
     deployRouter,
     deployTokenAddresses,
     deployPathFinder,
+    deployMintNotifier,
+    deployMasterChef,
     deployVaultDistribution,
     deployVaultCake,
     deployVaultVested,
@@ -20,6 +22,14 @@ const {ethers} = require("hardhat");
 
 const TOKEN_DECIMALS = 18;
 const BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER = BigNumber.from(10).pow(TOKEN_DECIMALS);
+
+//MAINNET
+//BUSD 0xe9e7cea3dedca5984780bafc599bd69add087d56
+//WBNB 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c
+
+//TESTNET
+//WETH 0x094616f0bdfb0b526bd735bf66eca0ad254ca81f
+
 
 // Existent addresses
 const bnbAddress = null;
@@ -47,6 +57,7 @@ let factory;
 let router;
 let tokenAddresses;
 let pathFinder;
+let mintNotifier;
 let masterChef;
 let vaultDistribution;
 let vaultVested;
@@ -138,19 +149,15 @@ async function main() {
     pathFinder = await deployPathFinder(tokenAddresses.address);
     console.log("PathFinder deployed to:", pathFinder.address);
 
-    const MasterChef = await hre.ethers.getContractFactory("MasterChef");
-    masterChef = await MasterChef.deploy(
-        globalToken.address,
-        NATIVE_TOKEN_PER_BLOCK,
-        masterChefStartBlock,
-        router.address,
-        tokenAddresses.address,
-        pathFinder.address
-    );
-    await masterChef.deployed();
+    masterChef = await deployMasterChef(globalToken.address,router.address,tokenAddresses.address,pathFinder.address);
     console.log("Masterchef deployed to:", masterChef.address);
     console.log("Globals per block: ", NATIVE_TOKEN_PER_BLOCK);
     console.log("Start block", CURRENT_BLOCK + 1);
+
+    await pathFinder.transferOwnership(masterChef.address);
+    await globalToken.transferOwnership(masterChef.address);
+    mintNotifier = await deployMintNotifier();
+    await masterChef.setMintNotifier(mintNotifier.address);
 
     vaultDistribution = await deployVaultDistribution(bnbAddress, globalToken.address);
     console.log("Vault distribution deployed to:", vaultDistribution.address);
