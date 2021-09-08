@@ -32,8 +32,7 @@ contract NativeToken is BEP20{
 
     // DS: Constructor del token. Els paràmetres passen pel constructor del BEP20 + afegim adreces antiwhale whitelisted.
     // DS: OnlyOwner i DevPower = msg.sender.
-    constructor() public BEP20('Glovol', 'GLV'){
-
+    constructor() public BEP20('Global', 'GLB'){
         // DS: el dev/contracte poden transferir entre ells o enviar a BURN_ADDRESS/address(0) sense problemes.
         _antiWhaleWhiteList[msg.sender] = true;
         _antiWhaleWhiteList[address(this)] = true;

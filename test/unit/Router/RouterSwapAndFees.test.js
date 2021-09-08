@@ -333,8 +333,8 @@ describe("Swap tokens", function () {
         console.log('owner_pair_balance', owner_pair_balance.toString());
 
         console.log("\nOwner starts swapping 3x times 100000 ntv->B, 100000 B->ntv")
-        //TODO aquest es el test, forço un swap per a mirar les fees generades.
-        //TODO per a comprovar valors exactes, deixar nomes un swap de 10000 (no loop, no doble swap)
+        //aquest es el test, forço un swap per a mirar les fees generades.
+        //Per a comprovar valors exactes, deixar nomes un swap de 10000 (no loop, no doble swap)
         for(let i = 0; i < 3; i++) {
             await router.connect(owner).swapExactTokensForTokens(
                 10000,

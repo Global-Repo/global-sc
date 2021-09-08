@@ -6,7 +6,7 @@ const TOKEN_DECIMALS = 18;
 const BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER = BigNumber.from(10).pow(TOKEN_DECIMALS);
 const NATIVE_TOKEN_PER_BLOCK = BigNumber.from(40).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
 const DAY_IN_SECONDS = 86400;
-const SHOWALLPRINTS = true;
+const SHOWALLPRINTS = false;
 
 let startBlock = null;
 
@@ -31,7 +31,11 @@ var getTokenPair_helper = async function(token0, token1){
     return pairtkAweth;
 }
 
-var afegirPool = async function (token0, token1, liquidity, allocPointMCpool=1000)
+var afegirPool = async function (token0, token1, liquidity, allocPointMCpool=1000,
+                                 _harvestInterval = DAY_IN_SECONDS * 4,
+                                 _maxWithdrawalInterval= DAY_IN_SECONDS * 3,
+                                 _withDrawalFeeOfLps = 40,
+                                 _performanceFeesOfNativeTokens = 100)
 {
     let date = new Date();
     const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
@@ -55,13 +59,13 @@ var afegirPool = async function (token0, token1, liquidity, allocPointMCpool=100
     await masterChef.addPool(
         allocPointMCpool,
         pairaddr,
-        DAY_IN_SECONDS * 3,
-        false,
-        DAY_IN_SECONDS * 3,
-        50,
-        50,
-        100,
-        100
+        _harvestInterval,
+        true,
+        _maxWithdrawalInterval,
+        _withDrawalFeeOfLps,
+        _withDrawalFeeOfLps,
+        _performanceFeesOfNativeTokens,
+        _performanceFeesOfNativeTokens
     );
 
     print('\t[afegirPool] Owner created a pool in Router from ', token0.address, ' to ', token1.address,
@@ -85,6 +89,10 @@ beforeEach(async function () {
     const TokenB = await ethers.getContractFactory("BEP20");
     tokenB = await TokenB.deploy('tokenB', 'BB');
     await tokenB.deployed();
+
+    const TokenC = await ethers.getContractFactory("BEP20");
+    tokenC = await TokenC.deploy('tokenC', 'CC');
+    await tokenC.deployed();
 
     const Factory = await ethers.getContractFactory("Factory");
     factory = await Factory.deploy(owner.address);
@@ -131,6 +139,7 @@ beforeEach(async function () {
 
     await tokenB.mint(INITIAL_SUPPLY);
     await tokenA.mint(INITIAL_SUPPLY);
+    await tokenC.mint(INITIAL_SUPPLY);
     await weth.mint(INITIAL_SUPPLY);
     await nativeToken.mint(INITIAL_SUPPLY);
 
@@ -138,17 +147,20 @@ beforeEach(async function () {
 
     await tokenA.transfer(addr1.address,INITIAL_SUPPLY_ADDR1);
     await tokenB.transfer(addr1.address,INITIAL_SUPPLY_ADDR1);
+    await tokenC.transfer(addr1.address,INITIAL_SUPPLY_ADDR1);
     await nativeToken.transfer(addr1.address,INITIAL_SUPPLY_ADDR1);
     await weth.transfer(addr1.address,INITIAL_SUPPLY_ADDR1);
 
     await tokenA.approve(router.address, INITIAL_SUPPLY_OWNER.toHexString());
     await tokenB.approve(router.address, INITIAL_SUPPLY_OWNER.toHexString());
+    await tokenC.approve(router.address, INITIAL_SUPPLY_OWNER.toHexString());
     await weth.approve(router.address, INITIAL_SUPPLY_OWNER.toHexString());
     await nativeToken.approve(router.address, INITIAL_SUPPLY_OWNER.toHexString());
 
     await tokenA.connect(addr1).approve(router.address, INITIAL_SUPPLY_ADDR1.toHexString());
     await weth.connect(addr1).approve(router.address, INITIAL_SUPPLY_ADDR1.toHexString());
     await tokenB.connect(addr1).approve(router.address, INITIAL_SUPPLY_ADDR1.toHexString());
+    await tokenC.connect(addr1).approve(router.address, INITIAL_SUPPLY_ADDR1.toHexString());
     await nativeToken.connect(addr1).approve(router.address, INITIAL_SUPPLY_ADDR1.toHexString());
 
     tokenAddresses.addToken(tokenAddresses.BNB(), weth.address);
@@ -157,42 +169,80 @@ beforeEach(async function () {
 
 describe("MasterChef: Fees", function () {
 
-    it("Deposit + emergencywithdraw before _maxWithdrawalInterval (fees apply) pool 0", async function () {
-        console.log('SHOWALLPRINTS:', SHOWALLPRINTS);
+    it("User can't enter or leave staking for pool 0, nor retrieve funds with emergency withdraw", async function () {
+        let date = new Date();
+        const deadline = date.setTime(date.getTime() + 2 * 86400000);
 
+        //native tokens in addr1
+        let addr1_balance_native = await nativeToken.balanceOf(addr1.address);
+        print('addr1_balance_native',addr1_balance_native.toString());
+        expect(await(addr1_balance_native)).equal(
+            BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER).toHexString()
+        );
+
+        //only whitelisted vaults can enter staking
+        await expect ( masterChef.connect(addr1).enterStaking(
+            BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER).toHexString())
+        ).to.be.revertedWith("You are not trusted: you are not in the whitelist");
+        await expect ( masterChef.connect(owner).enterStaking(
+            BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER).toHexString())
+        ).to.be.revertedWith("You are not trusted: you are not in the whitelist");
+
+        //only whitelisted vaults can leave staking
+        await expect ( masterChef.connect(addr1).leaveStaking(
+            BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER).toHexString())
+        ).to.be.revertedWith("You are not trusted: you are not in the whitelist");
+        await expect ( masterChef.connect(owner).leaveStaking(
+            BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER).toHexString())
+        ).to.be.revertedWith("You are not trusted: you are not in the whitelist");
+
+        //can't emergency withdraw from the staking pool
+        expect(await masterChef.connect(addr1).emergencyWithdraw(0))
+            .to.not.emit(masterChef, 'EmergencyWithdraw');
+    });
+
+    it("Create various pools, always at max path distance 2 from native pool", async function () {
         let date = new Date();
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
-        //set dev address
-        await masterChef.setDevAddress(devaddress.address);
         await afegirPool(
             weth,
             nativeToken,
             BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
             1000);
+        //can't add this pool, no path to weth or native
+        await expect(
+            afegirPool(tokenA,tokenB,BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),1000)
+        ).to.be.revertedWith("[f] Add: token/s not connected to WBNB'");
+        //this one is ok
         await afegirPool(
             tokenA,
-            nativeToken,
-            BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            1000);
-        await afegirPool(
-            nativeToken,
-            tokenB,
-            BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-            1000);
-        await afegirPool(
             weth,
+            BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            1000);
+        //this one is ok too now, since we have a path for tokenB as well
+        await afegirPool(
+            tokenA,
             tokenB,
             BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
             1000);
-                                            //TODO. this throws error Boji, is it supposed to be this way?
-                                            //await afegirPool(
-                                            //    tokenA,
-                                            //    tokenB,
-                                            //    BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-                                            //    1000);
-        //assert MC pool length
-        expect(await(masterChef.poolLength())).equal(5);
-        //get pairs created
+        //this one is too far away for tokenC
+        await expect(
+            afegirPool(tokenB,tokenC,BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),1000)
+        ).to.be.revertedWith("[f] Add: token/s not connected to WBNB'");
+        //add a closer path
+        await afegirPool(
+            tokenA,
+            tokenC,
+            BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            1000);
+        //now we can add pool b-c
+        await afegirPool(
+            tokenB,
+            tokenC,
+            BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            1000);
+        expect(await(masterChef.poolLength())).equal(6);
+
         let tknpair_weth_native = await getTokenPair_helper(weth, nativeToken);
         let tknpair_tokena_native = await getTokenPair_helper(tokenA, nativeToken);
         let tknpair_native_tokenb = await getTokenPair_helper(nativeToken, tokenB);
@@ -206,21 +256,10 @@ describe("MasterChef: Fees", function () {
         let addr1_balance_native = await nativeToken.balanceOf(addr1.address);
         print('addr1_balance_native',addr1_balance_native.toString());
         expect(await(addr1_balance_native)).equal(BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER).toHexString() );
-
-        //try to perform emergency withdraw from pool 0
-        //TODO how can I withdraw from pool 0? I cannot deposit there
-        await expect(masterChef.connect(addr1).deposit(0,10)).to.be.revertedWith("deposit GLOBAL by staking");
-        expect(await masterChef.connect(addr1).emergencyWithdraw(0)).to.not.emit(masterChef, 'EmergencyWithdraw');
-        expect(await masterChef.connect(addr2).emergencyWithdraw(0)).to.not.emit(masterChef, 'EmergencyWithdraw');
-
-        //check again native tokens of addr1
-        let addr1_balance_native_new = await nativeToken.balanceOf(addr1.address);
-        expect(await(addr1_balance_native_new)).equal(BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER).toHexString() );
     });
 
-    it("Deposit + emergencywithdraw before _maxWithdrawalInterval (fees apply) normal pool", async function () {
-        console.log('SHOWALLPRINTS:', SHOWALLPRINTS);
 
+    it("Emergencywithdraw before _maxWithdrawalInterval (fees apply)", async function () {
         let date = new Date();
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
         //set dev address
@@ -230,7 +269,7 @@ describe("MasterChef: Fees", function () {
         print("nativeToken addr", nativeToken.address);
         print("weth addr", weth.address);
 
-        //add weth to native pool
+        //add weth to native pool in Router and MC
         await afegirPool(
             weth,
             nativeToken,
@@ -243,7 +282,6 @@ describe("MasterChef: Fees", function () {
         print('pair weth-native tkns in router pool: ',
             reserves0_wethnative.toString(),
             reserves1_wethnative.toString());
-
 
         //addr1 creates pool between tokenA and weth, approve balance pair from masterchef
         const result = await router.connect(addr1).addLiquidity(
@@ -326,16 +364,109 @@ describe("MasterChef: Fees", function () {
             reserves1_final.toString());
 
         //check that all tokens burned and from fees are no longer in the router pools
-       // expect(BigNumber.from(await nativeToken.balanceOf(devaddress.address))).greaterThan(0);
-       // expect(BigNumber.from(await weth.balanceOf(devaddress.address))).greaterThan(0);
         expect(BigNumber.from(reserves0_wethnative_final).sub(reserves0_wethnative).
             add(reserves1_wethnative_final).sub(reserves1_wethnative).
             add(reserves0_final).sub(reserves0).
             add(reserves1_final).sub(reserves1).
             add(devaddr_balance_native).
             add(devaddr_balance_weth)).equal(-7982);
-
     });
 
+    it("Withdraw and partial withdraw with LP fees, and no fees. Withdraw reset test.", async function () {
+        let date = new Date();
+        const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+        //set dev address
+        await masterChef.setDevAddress(devaddress.address);
+        //Pools vars
+        let allocPointMCpool=1000;
+        let harvestInterval = DAY_IN_SECONDS * 4;
+        let maxWithdrawalInterval= DAY_IN_SECONDS * 3;
+        let withDrawalFeeOfLps = 40;
+        await afegirPool(weth,
+            nativeToken,
+            BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            allocPointMCpool,
+            harvestInterval,
+            maxWithdrawalInterval,
+            withDrawalFeeOfLps,
+            0);
+        await afegirPool(tokenA,
+            weth,
+            BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            allocPointMCpool,
+            harvestInterval,
+            maxWithdrawalInterval,
+            withDrawalFeeOfLps,
+            0);
 
+        //addr1 gets LPs for pair A-weth
+        const result = await router.connect(addr1).addLiquidity(
+            tokenA.address,weth.address,
+            100000,100000,100000,100000,addr1.address,deadline
+        );
+        let pair_tkA_weth = await getTokenPair_helper(tokenA, weth);
+        let addr1_initial_balance_pair_tkA_weth = await pair_tkA_weth.balanceOf(addr1.address);
+        console.log('addr1_initial_balance_pair_tkA_weth', addr1_initial_balance_pair_tkA_weth.toString());
+        await expect(addr1_initial_balance_pair_tkA_weth).to.equal(100000);
+        //try deposit, but needs permission
+        let addr1_lp_pool_deposit = BigNumber.from(addr1_initial_balance_pair_tkA_weth).div(10);
+        await expect(masterChef.connect(addr1).deposit(2,addr1_lp_pool_deposit)).to.be.revertedWith("SafeMath: subtraction overflow");
+        await pair_tkA_weth.connect(addr1).approve(masterChef.address, addr1_initial_balance_pair_tkA_weth);
+        //after asking for permission, now deposit 1/10 of the LPs
+        expect(await masterChef.connect(addr1).deposit(2,addr1_lp_pool_deposit)).to.emit(masterChef, 'Deposit')
+            .withArgs(addr1.address,2,addr1_lp_pool_deposit);
+
+        let addr1_new_balancepair = await pair_tkA_weth.balanceOf(addr1.address);
+        await expect(addr1_new_balancepair).equal( 90000 );
+
+        //withdraw 1000 with fees = 0.4%*2, total withdrawn 992
+        expect(await masterChef.connect(addr1).withdraw(2, 1000)).to.emit(masterChef, 'Withdraw')
+            .withArgs(addr1.address, 2, 1000);
+        await expect(await pair_tkA_weth.balanceOf(addr1.address)).equal( 90992 );
+        await expect(await weth.balanceOf(devaddress.address)).equal( 7 );
+        //let's do another withdraw of 1000 with fees = 0.4%*2, total withdrawn 992
+        expect(await masterChef.connect(addr1).withdraw(2, 1000)).to.emit(masterChef, 'Withdraw')
+            .withArgs(addr1.address, 2, 1000);
+        await expect(await pair_tkA_weth.balanceOf(addr1.address)).equal( 91984 );
+        await expect(await weth.balanceOf(devaddress.address)).equal( 14 );
+        //now we fast forward time and withdraw 1000, no fees
+        await ethers.provider.send('evm_increaseTime', [(maxWithdrawalInterval)+1]);
+        expect(await masterChef.connect(addr1).withdraw(2, 1000)).to.emit(masterChef, 'Withdraw')
+            .withArgs(addr1.address, 2, 1000);
+        await expect(await pair_tkA_weth.balanceOf(addr1.address)).equal( 92984 );
+        await expect(await weth.balanceOf(devaddress.address)).equal( 14 );
+        // a deposit resets the withdraw deadline, so withdrawing should charge fees again
+        expect(await masterChef.connect(addr1).deposit(2,1000)).to.emit(masterChef, 'Deposit')
+            .withArgs(addr1.address,2,1000);
+        await expect(await pair_tkA_weth.balanceOf(addr1.address)).equal( 91984 );
+        expect(await masterChef.connect(addr1).withdraw(2, 1000)).to.emit(masterChef, 'Withdraw')
+            .withArgs(addr1.address, 2, 1000);
+        await expect(await pair_tkA_weth.balanceOf(addr1.address)).equal( 92976 );
+        await expect(await weth.balanceOf(devaddress.address)).equal( 21 );
+        //fast forward to the end of the deadline minus 1 second and deposit, new deposit resets
+        //withdraw LP fees deadline
+        await ethers.provider.send('evm_increaseTime', [(maxWithdrawalInterval)-1]);
+        expect(await masterChef.connect(addr1).deposit(2,1000)).to.emit(masterChef, 'Deposit')
+            .withArgs(addr1.address,2,1000);
+        await expect(await pair_tkA_weth.balanceOf(addr1.address)).equal( 91976 );
+        await ethers.provider.send('evm_increaseTime', [10]);
+        expect(await masterChef.connect(addr1).withdraw(2, 1000)).to.emit(masterChef, 'Withdraw')
+            .withArgs(addr1.address, 2, 1000);
+        await expect(await pair_tkA_weth.balanceOf(addr1.address)).equal( 92968 );
+        await expect(await weth.balanceOf(devaddress.address)).equal( 28 );
+        //even after a day...
+        await ethers.provider.send('evm_increaseTime', [DAY_IN_SECONDS]);
+        expect(await masterChef.connect(addr1).withdraw(2, 1000)).to.emit(masterChef, 'Withdraw')
+            .withArgs(addr1.address, 2, 1000);
+        await expect(await pair_tkA_weth.balanceOf(addr1.address)).equal( 93960 );
+        await expect(await weth.balanceOf(devaddress.address)).equal( 35 );
+        //but not after 3 days since the last deposit! we withdraw everything left
+        await ethers.provider.send('evm_increaseTime', [DAY_IN_SECONDS*2]);
+        expect(await masterChef.connect(addr1).withdraw(2, 6000)).to.emit(masterChef, 'Withdraw')
+            .withArgs(addr1.address, 2, 6000);
+        await expect(await pair_tkA_weth.balanceOf(addr1.address)).equal( 99960 );
+        await expect(await weth.balanceOf(devaddress.address)).equal( 35 );
+        //no more LPs to withdraw
+        await expect(masterChef.connect(addr1).withdraw(2, 1)).to.be.revertedWith("[f] Withdraw: you are trying to withdraw more tokens than you have. Cheeky boy. Try again.");
+    });
 });
