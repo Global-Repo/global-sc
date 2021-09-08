@@ -258,8 +258,7 @@ describe("MasterChef: Fees", function () {
         expect(await(addr1_balance_native)).equal(BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER).toHexString() );
     });
 
-
-    it("Emergencywithdraw before _maxWithdrawalInterval (fees apply)", async function () {
+    it("EmergencyWithdraw (fees and no fees apply)", async function () {
         let date = new Date();
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
         //set dev address
@@ -372,7 +371,7 @@ describe("MasterChef: Fees", function () {
             add(devaddr_balance_weth)).equal(-7982);
     });
 
-    it("Withdraw and partial withdraw with LP fees, and no fees. Withdraw reset test.", async function () {
+    it("Withdraw and partial withdraw with LP fees and no fees. Withdraw reset test.", async function () {
         let date = new Date();
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
         //set dev address
@@ -469,4 +468,6 @@ describe("MasterChef: Fees", function () {
         //no more LPs to withdraw
         await expect(masterChef.connect(addr1).withdraw(2, 1)).to.be.revertedWith("[f] Withdraw: you are trying to withdraw more tokens than you have. Cheeky boy. Try again.");
     });
+
+    
 });
