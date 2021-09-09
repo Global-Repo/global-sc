@@ -19,10 +19,11 @@ module.exports = {
       allowUnlimitedContractSize: true
     },
     testnet: {
+      allowUnlimitedContractSize: true,
       url: "https://data-seed-prebsc-1-s1.binance.org:8545",
       chainId: 97,
       gasPrice: 20000000000,
-      accounts: {mnemonic: mnemonic}
+      accounts: {mnemonic: mnemonic},
     },
     mainnet: {
       url: "https://bsc-dataseed.binance.org/",
@@ -43,7 +44,7 @@ module.exports = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 200
+            runs: 2000
           }
         }
       }

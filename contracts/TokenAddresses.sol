@@ -4,8 +4,8 @@ pragma solidity ^0.6.12;
 contract TokenAddresses {
     string public constant GLOBAL = "GLOBAL";
     string public constant CAKE = "CAKE";
-    string public constant BNB = "BNB";
-    string public constant WBNB = "WBNB";
+    string public constant BNB = "BNB";   // ERC20 on eth
+    string public constant WBNB = "WBNB"; // BEP20 on bsc
     string public constant BUSD = "BUSD";
     string public constant BUNNY = "BUNNY";
     string public constant CAKE_BNB_LP = "CAKE-BNB-LP";

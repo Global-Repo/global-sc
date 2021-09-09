@@ -84,6 +84,11 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
         rewardInterval = _rewardInterval;
     }
 
+    function setMinTokenAmountToDistribute(uint _newAmount) external onlyOwner {
+        require(_newAmount >= 0, "Min token amount to distribute must be greater than 0");
+        minTokenAmountToDistribute = _newAmount;
+    }
+
     function setMinGlobalAmountToDistribute(uint _minGlobalAmountToDistribute) external onlyOwner {
         minGlobalAmountToDistribute = _minGlobalAmountToDistribute;
     }

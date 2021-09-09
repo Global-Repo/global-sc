@@ -35,7 +35,7 @@ const BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER = BigNumber.from(10).pow(TOKEN_DECIMA
 const bnbAddress = null;
 const usdtAddress = null;
 let busdAddress = null;
-let wethAddress = "0x094616f0bdfb0b526bd735bf66eca0ad254ca81f"; // TODO: es un bep 20 nostre o existent?
+let wethAddress = "0x094616f0bdfb0b526bd735bf66eca0ad254ca81f"; // existent WBNB
 let cakeAddress = null;
 const cakeBnbLPAddress = null;
 const bunnyAddress = null;
@@ -44,7 +44,6 @@ let cakeMasterChefAddress = null;
 // Setup
 let feeSetterAddress = null;
 let masterChefStartBlock = null;
-let vaultLockedRewardInterval = null; // Hours to distribute Globals from last distribution event.
 let vaultBunnyPoolId = null; // Bunny pool id where bunny stakes tokens
 const CAKE_ROUTER_ADDRESS = null;
 const NATIVE_TOKEN_PER_BLOCK = BigNumber.from(40).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
@@ -56,6 +55,9 @@ const VAULT_DISTRIBUTION_DISTRIBUTE_INTERVAL = timestampNHours(12); // 12h
 const VAULT_VESTED_MIN_BNB_TO_DISTRIBUTE = bep20Amount(1); // 1 BNB
 const VAULT_VESTED_PENALTY_FEES_INTERVAL = timestampNDays(99); // 99 days
 const VAULT_VESTED_PENALTY_FEES_FEE_PERCENTAGE = 100; // 1%
+const VAULT_LOCKED_MIN_BNB_TO_DISTRIBUTE = bep20Amount(1); // 1 BNB
+const VAULT_LOCKED_MIN_GLOBAL_TO_DISTRIBUTE = bep20Amount(1); // 1 BNB
+const VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL = timestampNHours(12); // 12h, Hours to distribute Globals from last distribution event.
 
 // Deployed contracts
 let globalToken;
@@ -129,12 +131,23 @@ let setUpVaultVested = async function (owner) {
     console.log("-- Vault vested set up done");
 }
 
-async function main() {
-    // 1) Deploy contracts
-    // 2) Set up contracts
-    // 3) Pools. mints (paralel a certic)
+let setUpVaultLocked = async function (owner) {
+    console.log("-- Vault locked set up start");
 
-    [owner, addr1, addr2, ...addrs] = await hre.ethers.getSigners();
+    await vaultLocked.connect(owner).setMinTokenAmountToDistribute(VAULT_LOCKED_MIN_BNB_TO_DISTRIBUTE);
+    console.log("Min BNB to distribute set to:", VAULT_LOCKED_MIN_BNB_TO_DISTRIBUTE.toString());
+
+    await vaultLocked.connect(owner).setMinGlobalAmountToDistribute(VAULT_LOCKED_MIN_GLOBAL_TO_DISTRIBUTE);
+    console.log("Min Global to distribute set to:", VAULT_LOCKED_MIN_GLOBAL_TO_DISTRIBUTE.toString());
+
+    await vaultLocked.connect(owner).setRewardInterval(VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL);
+    console.log("Reward interval set to:", VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL.toString());
+
+    console.log("-- Vault locked set up done");
+}
+
+async function main() {
+    [owner, ...addrs] = await hre.ethers.getSigners();
 
     const CURRENT_BLOCK = await ethers.provider.getBlockNumber();
     console.log("Current block is:", CURRENT_BLOCK);
@@ -142,7 +155,6 @@ async function main() {
     // Setup
     feeSetterAddress = owner.address;
     masterChefStartBlock = CURRENT_BLOCK + 1;
-    vaultLockedRewardInterval = timestampNHours(12);
     vaultBunnyPoolId = 0; // TODO: buscar
 
     // TODO: remove only for local
@@ -206,7 +218,7 @@ async function main() {
     vaultDistribution = await deployVaultDistribution(wethAddress, globalToken.address);
     console.log("Vault distribution deployed to:", vaultDistribution.address);
 
-    vaultLocked = await deployVaultLocked(globalToken.address, wethAddress, masterChef.address, vaultLockedRewardInterval);
+    vaultLocked = await deployVaultLocked(globalToken.address, wethAddress, masterChef.address, VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL);
     console.log("Vault locked deployed to:", vaultLocked.address);
 
     vaultVested = await deployVaultVested(globalToken.address, wethAddress, masterChef.address, vaultLocked.address);
@@ -282,6 +294,7 @@ async function main() {
 */
     await setUpVaultDistribution(owner);
     await setUpVaultVested(owner);
+    await setUpVaultLocked(owner);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
