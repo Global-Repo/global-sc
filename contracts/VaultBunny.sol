@@ -94,6 +94,7 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         keeper = _keeper;
 
         bunny.safeApprove(_pool, uint(~0));
+        // TODO approve to vested and distributor
 
         __PausableUpgradeable_init();
         __WhitelistUpgradeable_init();

@@ -7,8 +7,6 @@ const {
   getBnb,
   getVaultDistribution,
 } = require("../../helpers/vaultDistributionDeploy");
-const {timestampNDays} = require("../../helpers/utils");
-
 const MIN_BNB_AMOUNT_TO_DISTRIBUTE = bep20Amount(6);
 
 let beneficiaryMock1;

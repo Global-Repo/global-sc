@@ -85,7 +85,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         tokenAddresses = TokenAddresses(_tokenAddresses);
         cake = IBEP20(_cake);
         global = IBEP20(_global);
-        wbnb = IBEP20(tokenAddresses.findByName(tokenAddresses.BNB()));
+        wbnb = IBEP20(tokenAddresses.findByName(tokenAddresses.WBNB()));
         busd = IBEP20(tokenAddresses.findByName(tokenAddresses.BUSD()));
         cakeMasterChef = ICakeMasterChef(_cakeMasterChef);
         treasury = _treasury;
@@ -331,6 +331,8 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             amountToUser = amountToUser.add(amountToBuyBNB);
         } else {
             uint[] memory amounts = router.swapExactTokensForTokens(amountToBuyBNB, 0, pathToBnb, address(this), deadline);
+            // TODO: mejor esto que el allowance ~0 en el constructor?
+            //wbnb.approve(address(vaultDistribution), amounts[amounts.length-1]);
             vaultDistribution.deposit(amounts[amounts.length-1]);
         }
 

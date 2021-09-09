@@ -12,7 +12,7 @@ const {
     deployVaultStaked,
     deployVaultStakedToGlobal,
 } = require("../test/helpers/singleDeploys.js");
-const { timestampNHours, bep20Amount } = require("../test/helpers/utils.js");
+const { timestampNHours, timestampNDays, bep20Amount } = require("../test/helpers/utils.js");
 
 const { BigNumber } = require("@ethersproject/bignumber");
 require("@nomiclabs/hardhat-ethers");
@@ -24,12 +24,12 @@ const BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER = BigNumber.from(10).pow(TOKEN_DECIMA
 // Existent addresses
 const bnbAddress = null;
 const usdtAddress = null;
-const busdAddress = null;
-const wethAddress = null; // TODO: es un bep 20 nostre o existent?
-const cakeAddress = null;
+let busdAddress = null;
+let wethAddress = "0x094616f0bdfb0b526bd735bf66eca0ad254ca81f"; // TODO: es un bep 20 nostre o existent?
+let cakeAddress = null;
 const cakeBnbLPAddress = null;
 const bunnyAddress = null;
-const cakeMasterChefAddress = null;
+let cakeMasterChefAddress = null;
 
 // Setup
 let feeSetterAddress = null;
@@ -40,6 +40,12 @@ const CAKE_ROUTER_ADDRESS = null;
 const NATIVE_TOKEN_PER_BLOCK = BigNumber.from(40).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
 const DEV_ADDRESS = "0xae1671Faa94A7Cc296D3cb0c3619e35600de384C";
 const OPERATIONS_ADDRESS = "0xae1671Faa94A7Cc296D3cb0c3619e35600de384C";
+const VAULT_DISTRIBUTION_MIN_BNB_TO_DISTRIBUTE = bep20Amount(1); // 1 BNB
+const VAULT_DISTRIBUTION_DISTRIBUTE_PERCENTAGE = 10000; // 100%
+const VAULT_DISTRIBUTION_DISTRIBUTE_INTERVAL = timestampNHours(12); // 12h
+const VAULT_VESTED_MIN_BNB_TO_DISTRIBUTE = bep20Amount(1); // 1 BNB
+const VAULT_VESTED_PENALTY_FEES_INTERVAL = timestampNDays(99); // 99 days
+const VAULT_VESTED_PENALTY_FEES_FEE_PERCENTAGE = 100; // 1%
 
 // Deployed contracts
 let globalToken;
@@ -57,10 +63,10 @@ let vaultCake;
 let vaultCakeBnbLP;
 let vaultBunny;
 
-let setUpDistributionVault = async function (owner) {
-    console.log("Vault distribution set up start");
+let setUpVaultDistribution = async function (owner) {
+    console.log("-- Vault distribution set up start");
 
-    // Vault distributor depositories
+    // Vault distribution depositories
     await vaultDistribution.connect(owner).setDepositary(vaultCake.address, true);
     console.log("Vault CAKE added as depositary");
     //await vaultDistribution.connect(owner).setDepositary(vaultBunny.address, true);
@@ -68,7 +74,17 @@ let setUpDistributionVault = async function (owner) {
     //await vaultDistribution.connect(owner).setDepositary(vaultCakeBnbLP.address, true);
     //console.log("Vault CAKE-BNB-LP added as depositary");
 
-    // Vault distributor beneficiaries
+    // Vault distribution as rewarder
+    await vaultVested.connect(owner).setRewarder(vaultDistribution.address, true);
+    console.log("Vault distribution added as vault vested rewarder");
+    await vaultLocked.connect(owner).setRewarder(vaultDistribution.address, true);
+    console.log("Vault distribution added as vault loked rewarder");
+    await vaultStaked.connect(owner).setRewarder(vaultDistribution.address, true);
+    console.log("Vault distribution added as vault staked rewarder");
+    await vaultStakedToGlobal.connect(owner).setRewarder(vaultDistribution.address, true);
+    console.log("Vault distribution added as vault staked to global rewarder");
+
+    // Vault distribution beneficiaries
     await vaultDistribution.connect(owner).addBeneficiary(vaultVested.address);
     console.log("Vault vested added as beneficiary");
     await vaultDistribution.connect(owner).addBeneficiary(vaultLocked.address);
@@ -78,20 +94,29 @@ let setUpDistributionVault = async function (owner) {
     await vaultDistribution.connect(owner).addBeneficiary(vaultStakedToGlobal.address);
     console.log("Vault staked to global added as beneficiary");
 
-    // TODO: approve del token BNB dels depositories al vault distribution
-    const bnbContract = await ethers.getContractFactory("BEP20"); // TODO: bnb or weth? bnb is not bep20
-    const bnb = await bnbContract.attach(bnbAddress);
-    const APPROVE_AMOUNT = bep20Amount(1000000000000);
+    // Vault distribution config
+    await vaultDistribution.connect(owner).setMinTokenAmountToDistribute(VAULT_DISTRIBUTION_MIN_BNB_TO_DISTRIBUTE);
+    console.log("Min BNB to distribute set to: ", VAULT_DISTRIBUTION_MIN_BNB_TO_DISTRIBUTE.toString());
+    await vaultDistribution.connect(owner).setDistributionPercentage(VAULT_DISTRIBUTION_DISTRIBUTE_PERCENTAGE);
+    console.log("Distribute percentage set to: ", VAULT_DISTRIBUTION_DISTRIBUTE_PERCENTAGE.toString());
+    await vaultDistribution.connect(owner).setDistributionInterval(VAULT_DISTRIBUTION_DISTRIBUTE_INTERVAL);
+    console.log("Distribution interval set to: ", VAULT_DISTRIBUTION_DISTRIBUTE_INTERVAL.toString());
 
-    await bnb.connect(vaultCake.address).approve(vaultDistribution.address, APPROVE_AMOUNT);
-    console.log("Allowed vault cake transfer from vault distribution for amount of: ", APPROVE_AMOUNT.toString());
-    //await bnb.connect(vaultBunny.address).approve(vaultDistribution.address, APPROVE_AMOUNT);
-    //console.log("Allowed vault BUNNY transfer from vault distribution for amount of: ", APPROVE_AMOUNT.toString());
-    //await bnb.connect(vaultCakeBnbLP.address).approve(vaultDistribution.address, APPROVE_AMOUNT);
-    //console.log("Allowed vault CAKE-BNB-LP transfer from vault distribution for amount of: ", APPROVE_AMOUNT.toString());
-
-    console.log("Vault distribution set up done");
+    console.log("-- Vault distribution set up done");
 };
+
+let setUpVaultVested = async function (owner) {
+    console.log("-- Vault vested set up start");
+
+    await vaultVested.connect(owner).setMinTokenAmountToDistribute(VAULT_VESTED_MIN_BNB_TO_DISTRIBUTE);
+    console.log("Min BNB to distribute set to: ", VAULT_VESTED_MIN_BNB_TO_DISTRIBUTE.toString());
+
+    await vaultVested.connect(owner).setPenaltyFees(VAULT_VESTED_PENALTY_FEES_FEE_PERCENTAGE, VAULT_VESTED_PENALTY_FEES_INTERVAL);
+    console.log("Penalty fees fee percentage set to: ", VAULT_VESTED_PENALTY_FEES_FEE_PERCENTAGE.toString());
+    console.log("Penalty fees interval set to: ", VAULT_VESTED_PENALTY_FEES_INTERVAL.toString());
+
+    console.log("-- Vault vested set up done");
+}
 
 async function main() {
     // 1) Deploy contracts
@@ -109,6 +134,23 @@ async function main() {
     vaultLockedRewardInterval = timestampNHours(12);
     vaultBunnyPoolId = 0; // TODO: buscar
 
+    // TODO: remove only for local
+    const Weth = await hre.ethers.getContractFactory("BEP20");
+    const weth = await Weth.deploy("Wrapped BNB", "WBNB");
+    await weth.deployed();
+    wethAddress = weth.address;
+    console.log("Weth token deployed to:", wethAddress);
+    const Cake = await hre.ethers.getContractFactory("BEP20");
+    const cake = await Cake.deploy("Cake", "CAKE");
+    await cake.deployed();
+    cakeAddress = cake.address;
+    console.log("Cake token (for test) deployed to:", cakeAddress);
+    const Busd = await hre.ethers.getContractFactory("BEP20");
+    const busd = await Busd.deploy("Binance USD", "BUSD");
+    await busd.deployed();
+    busdAddress = busd.address;
+    console.log("BUSD token (for test) deployed to:", busdAddress);
+
     // Deploys
     globalToken = await deployGlobal();
     console.log("Global token deployed to:", globalToken.address);
@@ -124,16 +166,16 @@ async function main() {
 
     await tokenAddresses.addToken(tokenAddresses.GLOBAL(), globalToken.address);
     console.log("Added Global to TokenAddresses with address:", globalToken.address);
-    await tokenAddresses.addToken(tokenAddresses.BNB(), bnbAddress);
-    console.log("Added BNB to TokenAddresses with address:", bnbAddress);
+    await tokenAddresses.addToken(tokenAddresses.WBNB(), wethAddress);
+    console.log("Added WBNB to TokenAddresses with address:", wethAddress);
     await tokenAddresses.addToken(tokenAddresses.BUSD(), busdAddress);
     console.log("Added BUSD to TokenAddresses with address:", busdAddress);
     await tokenAddresses.addToken(tokenAddresses.CAKE(), cakeAddress);
     console.log("Added CAKE to TokenAddresses with address:", cakeAddress);
-    await tokenAddresses.addToken(tokenAddresses.CAKE_BNB_LP(), cakeBnbLPAddress);
-    console.log("Added CAKE-BNB-LP to TokenAddresses with address:", cakeBnbLPAddress);
-    await tokenAddresses.addToken(tokenAddresses.BUNNY(), bunnyAddress);
-    console.log("Added BUNNY to TokenAddresses with address:", bunnyAddress);
+    //await tokenAddresses.addToken(tokenAddresses.CAKE_BNB_LP(), cakeBnbLPAddress);
+    //console.log("Added CAKE-BNB-LP to TokenAddresses with address:", cakeBnbLPAddress);
+    //await tokenAddresses.addToken(tokenAddresses.BUNNY(), bunnyAddress);
+    //console.log("Added BUNNY to TokenAddresses with address:", bunnyAddress);
 
     pathFinder = await deployPathFinder(tokenAddresses.address);
     console.log("PathFinder deployed to:", pathFinder.address);
@@ -149,22 +191,25 @@ async function main() {
     );
     await masterChef.deployed();
     console.log("Masterchef deployed to:", masterChef.address);
-    console.log("Globals per block: ", NATIVE_TOKEN_PER_BLOCK);
+    console.log("Globals per block: ", NATIVE_TOKEN_PER_BLOCK.toString());
     console.log("Start block", CURRENT_BLOCK + 1);
 
-    vaultDistribution = await deployVaultDistribution(bnbAddress, globalToken.address);
+    // TODO: remove only for local
+    cakeMasterChefAddress = masterChef.address
+
+    vaultDistribution = await deployVaultDistribution(wethAddress, globalToken.address);
     console.log("Vault distribution deployed to:", vaultDistribution.address);
 
-    vaultLocked = await deployVaultLocked(globalToken.address, bnbAddress, masterChef.address, vaultLockedRewardInterval);
+    vaultLocked = await deployVaultLocked(globalToken.address, wethAddress, masterChef.address, vaultLockedRewardInterval);
     console.log("Vault locked deployed to:", vaultLocked.address);
 
-    vaultVested = await deployVaultVested(globalToken.address, bnbAddress, masterChef.address, vaultLocked.address);
+    vaultVested = await deployVaultVested(globalToken.address, wethAddress, masterChef.address, vaultLocked.address);
     console.log("Vault vested deployed to:", vaultVested.address);
 
-    vaultStaked = await deployVaultStaked(globalToken.address, bnbAddress, masterChef.address);
+    vaultStaked = await deployVaultStaked(globalToken.address, wethAddress, masterChef.address);
     console.log("Vault staked deployed to:", vaultStaked.address);
 
-    vaultStakedToGlobal = await deployVaultStakedToGlobal(globalToken.address, bnbAddress, masterChef.address, router.address);
+    vaultStakedToGlobal = await deployVaultStakedToGlobal(globalToken.address, wethAddress, masterChef.address, router.address);
     console.log("Vault staked to global deployed to:", vaultStakedToGlobal.address);
 
     vaultCake = await deployVaultCake(
@@ -221,15 +266,16 @@ async function main() {
 
 
     // TODO: mint x tokens and change token owner by masterchef address
-
+/*
     // Set ups
     await pathFinder.transferOwnership(masterChef.address);
     console.log("Masterchef is now the PathFinder's owner.");
 
     await globalToken.transferOwnership(masterChef.address);
     console.log("Masterchef is now the Global token's owner.");
-
-    await setUpDistributionVault();
+*/
+    await setUpVaultDistribution(owner);
+    await setUpVaultVested(owner);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

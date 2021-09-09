@@ -5,6 +5,7 @@ contract TokenAddresses {
     string public constant GLOBAL = "GLOBAL";
     string public constant CAKE = "CAKE";
     string public constant BNB = "BNB";
+    string public constant WBNB = "WBNB";
     string public constant BUSD = "BUSD";
     string public constant BUNNY = "BUNNY";
     string public constant CAKE_BNB_LP = "CAKE-BNB-LP";

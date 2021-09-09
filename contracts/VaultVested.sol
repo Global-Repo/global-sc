@@ -78,6 +78,11 @@ contract VaultVested is IDistributable, ReentrancyGuard, DepositoryRestriction, 
         _distribute();
     }
 
+    function setMinTokenAmountToDistribute(uint _newAmount) external onlyOwner {
+        require(_newAmount >= 0, "Min token amount to distribute must be greater than 0");
+        minTokenAmountToDistribute = _newAmount;
+    }
+
     function setPenaltyFees(uint16 _fee, uint _interval) external onlyOwner {
         penaltyFees.fee = _fee;
         penaltyFees.interval = _interval;
