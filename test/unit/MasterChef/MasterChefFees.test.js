@@ -73,6 +73,7 @@ var afegirPool = async function (token0, token1, liquidity, allocPointMCpool=100
 }
 
 beforeEach(async function () {
+    this.timeout(10000);
     [owner, addr1, addr2, lockedVault, devaddress, ...addrs] = await ethers.getSigners();
 
     const CURRENT_BLOCK = await ethers.provider.getBlockNumber();
@@ -258,8 +259,7 @@ describe("MasterChef: Fees", function () {
         expect(await(addr1_balance_native)).equal(BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER).toHexString() );
     });
 
-
-    it("Emergencywithdraw before _maxWithdrawalInterval (fees apply)", async function () {
+    it("EmergencyWithdraw (fees and no fees apply)", async function () {
         let date = new Date();
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
         //set dev address
@@ -372,7 +372,81 @@ describe("MasterChef: Fees", function () {
             add(devaddr_balance_weth)).equal(-7982);
     });
 
-    it("Withdraw and partial withdraw with LP fees, and no fees. Withdraw reset test.", async function () {
+    it("Withdraw and partial withdraw with earning fees.", async function() {
+        this.timeout(10000);
+        const NATIVE_TOKEN_PER_BLOCK = BigNumber.from(40).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+
+        let date = new Date();
+        const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
+        //set dev address
+        await masterChef.setDevAddress(devaddress.address);
+        //Pools vars
+        let allocPointMCpool=1000;
+        let harvestInterval = DAY_IN_SECONDS * 3;
+        let maxWithdrawalInterval= DAY_IN_SECONDS * 3;
+        let PerformanceFee = 40;
+        await afegirPool(weth,
+            nativeToken,
+            BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            allocPointMCpool,
+            harvestInterval,
+            maxWithdrawalInterval,
+            0,
+            PerformanceFee);
+        await afegirPool(tokenA,
+            weth,
+            BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+            allocPointMCpool,
+            harvestInterval,
+            maxWithdrawalInterval,
+            0,
+            PerformanceFee);
+
+        //addr1 gets LPs for pair A-weth
+        const result = await router.connect(addr1).addLiquidity(
+            tokenA.address,weth.address,
+            100000,100000,100000,100000,addr1.address,deadline
+        );
+        //after asking for permission, now deposit 1/10 of the LPs
+        let pair_tkA_weth = await getTokenPair_helper(tokenA, weth);
+        let addr1_initial_balance_pair_tkA_weth = await pair_tkA_weth.balanceOf(addr1.address);
+        let addr1_lp_pool_deposit = BigNumber.from(addr1_initial_balance_pair_tkA_weth).div(10);
+        await pair_tkA_weth.connect(addr1).approve(masterChef.address, addr1_initial_balance_pair_tkA_weth);
+        expect(await masterChef.connect(addr1).deposit(2,addr1_lp_pool_deposit)).to.emit(masterChef, 'Deposit')
+            .withArgs(addr1.address,2,addr1_lp_pool_deposit);
+        let addr1_new_balancepair = await pair_tkA_weth.balanceOf(addr1.address);
+        await expect(addr1_new_balancepair).equal( 90000 );
+
+        //increase time
+        await ethers.provider.send('evm_increaseTime', [(maxWithdrawalInterval)+1]);
+        expect(await masterChef.connect(addr1).withdraw(2, 1000)).to.emit(masterChef, 'Withdraw')
+            .withArgs(addr1.address, 2, 1000);
+        let addr1_final_balancepair = await pair_tkA_weth.balanceOf(addr1.address);
+        await expect(addr1_final_balancepair).equal( 91000 );
+        console.log("canHarvest ", (await masterChef.canHarvest(2, addr1.address)).toString());
+        console.log('balance_native_addr1', (await nativeToken.balanceOf(addr1.address)).toString());
+
+        expect(await masterChef.connect(addr1).withdraw(2, 1000)).to.emit(masterChef, 'Withdraw')
+            .withArgs(addr1.address, 2, 1000);
+        let addr1_final_balancepair2 = await pair_tkA_weth.balanceOf(addr1.address);
+        await expect(addr1_final_balancepair2).equal( 92000 );
+
+        await ethers.provider.send('evm_increaseTime', [(maxWithdrawalInterval)+1]);
+        console.log("pendingAccTokens ", (await masterChef.pendingNativeToken(2, addr1.address)).toString());
+        console.log("canHarvest ", (await masterChef.canHarvest(2, addr1.address)).toString());
+        console.log('balance_native_addr1', (await nativeToken.balanceOf(addr1.address)).toString());
+
+        expect(await masterChef.connect(addr1).withdraw(2, 1000)).to.emit(masterChef, 'Withdraw')
+            .withArgs(addr1.address, 2, 1000);
+        console.log("pendingAccTokens ", (await masterChef.pendingNativeToken(2, addr1.address)).toString());
+        console.log("canHarvest ", (await masterChef.canHarvest(2, addr1.address)).toString());
+
+        console.log('balance_native_addr1', (await nativeToken.balanceOf(addr1.address)).toString());
+
+        //TODO test payOrLockupPendingNativeToken
+    });
+
+    it("Withdraw and partial withdraw with LP fees and no fees. Withdraw reset test.", async function () {
         let date = new Date();
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
         //set dev address
@@ -469,4 +543,6 @@ describe("MasterChef: Fees", function () {
         //no more LPs to withdraw
         await expect(masterChef.connect(addr1).withdraw(2, 1)).to.be.revertedWith("[f] Withdraw: you are trying to withdraw more tokens than you have. Cheeky boy. Try again.");
     });
+
+
 });
