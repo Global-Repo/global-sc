@@ -195,15 +195,13 @@ async function main() {
     console.log("Masterchef deployed to:", masterChef.address);
     console.log("Globals per block: ", NATIVE_TOKEN_PER_BLOCK.toString());
     console.log("Start block", CURRENT_BLOCK + 1);
+    // TODO: remove only for local
+    cakeMasterChefAddress = masterChef.address
 
     await pathFinder.transferOwnership(masterChef.address);
     await globalToken.transferOwnership(masterChef.address);
     mintNotifier = await deployMintNotifier();
     await masterChef.setMintNotifier(mintNotifier.address);
-
-    vaultDistribution = await deployVaultDistribution(bnbAddress, globalToken.address);
-    // TODO: remove only for local
-    cakeMasterChefAddress = masterChef.address
 
     vaultDistribution = await deployVaultDistribution(wethAddress, globalToken.address);
     console.log("Vault distribution deployed to:", vaultDistribution.address);
