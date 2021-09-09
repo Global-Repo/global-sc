@@ -18,7 +18,6 @@ import "./IMinter.sol";
 import "./TokenAddresses.sol";
 import "./IPathFinder.sol";
 import "./IMintNotifier.sol";
-import "hardhat/console.sol";
 
 // HEM DE FER IMPORT DE LA INTERFACE I DEL SC DEL VAULT!!!!!!!!!
 
@@ -611,7 +610,6 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         uint256 finalAmount = _amount.sub(
             _amount.mul(pool.withDrawalFeeOfLpsBurn.add(pool.withDrawalFeeOfLpsTeam)).div(10000)
         );
-        console.log("getLPFees::_amount inicial LP:", _amount, " finalAmount LP after fees:", finalAmount);
 
         if (finalAmount != _amount)
         {
@@ -629,8 +627,6 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
                 _amount.mul(pool.withDrawalFeeOfLpsBurn.add(pool.withDrawalFeeOfLpsTeam)).div(10000),
                 0, 0, address(this), block.timestamp);
 
-            console.log("getLPFees::amountToken0", amountToken0, "amountToken1", amountToken1);
-
             // Ens assegurem que podem gastar els dos tokens i així els passem a BNB/Global i fem burn/team
             if (IBEP20(IPair(address(pool.lpToken)).token0()).allowance(address(this), address(routerGlobal)) == 0) {
                 IBEP20(IPair(address(pool.lpToken)).token0()).safeApprove(address(routerGlobal), uint(- 1));
@@ -645,8 +641,6 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
             uint256 lpsToBuyNativeTokenAndBurn1 = amountToken1.mul(pool.withDrawalFeeOfLpsBurn).div( totalsplit);
             uint256 lpsToBuyBNBAndTransferForOperations0 = amountToken0.sub(lpsToBuyNativeTokenAndBurn0);
             uint256 lpsToBuyBNBAndTransferForOperations1 = amountToken1.sub(lpsToBuyNativeTokenAndBurn1);
-            console.log("getLPFees::lpsToBuyNativeTokenAndBurn0:", lpsToBuyNativeTokenAndBurn0, " token1: ",lpsToBuyNativeTokenAndBurn1 );
-            console.log("getLPFees::lpsToBuyBNBAndTransferForOperations0:", lpsToBuyBNBAndTransferForOperations0, " token1:", lpsToBuyBNBAndTransferForOperations1);
 
             // Cremem i enviem els tokens a l'equip
             manageTokens(IPair(address(pool.lpToken)).token0(), lpsToBuyNativeTokenAndBurn0, lpsToBuyBNBAndTransferForOperations0);
@@ -660,24 +654,17 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         require (_pid != 0, 'withdraw GLOBAL by unstaking');
         require (_pid < poolInfo.length, 'This pool does not exist yet');
 
-        console.log("withdraw::amount to withdraw", _amount);
-
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "[f] Withdraw: you are trying to withdraw more tokens than you have. Cheeky boy. Try again.");
-        console.log("withdraw::user.amount", user.amount);
-
 
         uint256 finalAmount = _amount;
         // Actualitzem # rewards per tokens LP i paguem rewards al contracte
         updatePool(_pid);
-        console.log("withdraw::after updating pools", _amount);
 
         // Paguem els rewards pendents o els deixem locked. Si feeTaken = true, no fem res, perque ja hem cobrat el fee dels rewards. En canvi, si és false, encara hem de cobrar fee sobre els LPs.
         // Aquí s'actualitza el accNativeTokenPerShare
         bool performancefeeTaken = payOrLockupPendingNativeToken(_pid);
-        console.log("withdraw::performancefeeTaken", performancefeeTaken);
-
 
         if(_amount > 0){
         // TESTEJAR AQUESTA FUNCIÓ MOLT PERÒ MOLT A FONS!!! ÉS NOVA I ÉS ON LA PODEM LIAR. Aquí s'actualitza el user.amount.
@@ -689,19 +676,13 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
             // L'usuari deixa de tenir els tokens que ha demanat treure, pel que s'actualitza els LPs que li queden. Quan li enviem els LPs, li enviarem ["_amount demanat" - les fees cobrades] (si n'hi han).
             user.amount = user.amount.sub(_amount);
 
-            console.log("withdraw::finalAmount", finalAmount);
-            console.log("withdraw::user.amount updated ", user.amount);
-
             // Al usuari li enviem els tokens LP demanats menys els LPs trets de fees, si fos el cas
             pool.lpToken.safeTransfer(address(msg.sender), finalAmount);
         }
 
         // Revisar això a fons (és nou). En principi, guardem els LPs actuals i la quantitat que ha cobrat per ells (total). El que li haguem restat després perque ens ho hem cobrat per fees, no hauria d'afectar, ja que és a posteriori i no de cara al usuari.
         // User ha rebut menys tokens si s'0han cobrat fees però a la info del user li és igual, només li interessa saber el total que se li ha gestionat per cobrar. El que se li desviï després, no hauria d'afectar
-        console.log("withdraw::user.rewardDebt before ", user.rewardDebt);
-        console.log("withdraw::pool.accNativeTokenPerShare ", pool.accNativeTokenPerShare);
         user.rewardDebt = user.amount.mul(pool.accNativeTokenPerShare).div(1e12);
-        console.log("withdraw::user.rewardDebt after ", user.rewardDebt);
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
