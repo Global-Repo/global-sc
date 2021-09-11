@@ -2,14 +2,14 @@
 //this version of the router dates 1.8.2021
 pragma solidity >=0.6.6;
 
+import "./Libraries/SafeMath.sol";
+import "./Libraries/PancakeLibrary.sol";
+import "./Libraries/TransferHelper.sol";
+import "./Tokens/IPair.sol";
+import "./Tokens/IWETH.sol";
+import "./Tokens/IERC20.sol";
 import "./IRouterV2.sol";
-import "./SafeMath.sol";
-import "./IPair.sol";
-import "./PancakeLibrary.sol";
-import "./IWETH.sol";
 import "./IFactory.sol";
-import "./IERC20.sol";
-import "./TransferHelper.sol";
 
 contract Router is IRouterV2 {
     using SafeMath for uint;

@@ -1,7 +1,7 @@
 // File: contracts/SmartChefFactory.sol
 pragma solidity 0.6.12;
 
-import './IBEP20.sol';
+import './Tokens/IBEP20.sol';
 import './SmartChef.sol';
 
 contract SmartChefFactory is Ownable {

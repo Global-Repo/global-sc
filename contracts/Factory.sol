@@ -2,7 +2,7 @@
 pragma solidity >= 0.6.12;
 
 import "./IFactory.sol";
-import "./Pair.sol";
+import "./Tokens/Pair.sol";
 
 contract Factory is IFactory {
     // bytes32 public constant INIT_CODE_PAIR_HASH = keccak256(abi.encodePacked(type(Pair).creationCode));

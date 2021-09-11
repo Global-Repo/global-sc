@@ -37,7 +37,7 @@ const usdtAddress = null;
 let busdAddress = null;
 let wethAddress = "0x094616f0bdfb0b526bd735bf66eca0ad254ca81f"; // existent WBNB
 let cakeAddress = null;
-const cakeBnbLPAddress = null;
+const cakeWbnbLPAddress = null;
 const bunnyAddress = null;
 let cakeMasterChefAddress = null;
 
@@ -73,7 +73,7 @@ let vaultLocked;
 let vaultStaked;
 let vaultStakedToGlobal;
 let vaultCake;
-let vaultCakeBnbLP;
+let vaultCakeWbnbLP;
 let vaultBunny;
 
 let setUpVaultDistribution = async function (owner) {
@@ -84,8 +84,8 @@ let setUpVaultDistribution = async function (owner) {
     console.log("Vault CAKE added as depositary");
     //await vaultDistribution.connect(owner).setDepositary(vaultBunny.address, true);
     //console.log("Vault BUNNY added as depositary");
-    //await vaultDistribution.connect(owner).setDepositary(vaultCakeBnbLP.address, true);
-    //console.log("Vault CAKE-BNB-LP added as depositary");
+    //await vaultDistribution.connect(owner).setDepositary(vaultCakeWbnbLP.address, true);
+    //console.log("Vault CAKE-WBNB-LP added as depositary");
 
     // Vault distribution as rewarder
     await vaultVested.connect(owner).setRewarder(vaultDistribution.address, true);
@@ -195,8 +195,8 @@ async function main() {
     console.log("Added BUSD to TokenAddresses with address:", busdAddress);
     await tokenAddresses.addToken(tokenAddresses.CAKE(), cakeAddress);
     console.log("Added CAKE to TokenAddresses with address:", cakeAddress);
-    //await tokenAddresses.addToken(tokenAddresses.CAKE_BNB_LP(), cakeBnbLPAddress);
-    //console.log("Added CAKE-BNB-LP to TokenAddresses with address:", cakeBnbLPAddress);
+    //await tokenAddresses.addToken(tokenAddresses.CAKE_WBNB_LP(), cakeWbnbLPAddress);
+    //console.log("Added CAKE-WBNB-LP to TokenAddresses with address:", cakeWbnbLPAddress);
     //await tokenAddresses.addToken(tokenAddresses.BUNNY(), bunnyAddress);
     //console.log("Added BUNNY to TokenAddresses with address:", bunnyAddress);
 
@@ -261,9 +261,9 @@ async function main() {
     */
 
     /*
-    const VaultCakeBnbLP = await hre.ethers.getContractFactory("VaultCakeBNBLP");
-    vaultCakeBnbLP = await VaultCakeBnbLP.deploy(
-        cakeBnbLPAddress,
+    const VaultCakeWbnbLP = await hre.ethers.getContractFactory("VaultCakeWBNBLP");
+    vaultCakeWbnbLP = await VaultCakeWbnbLP.deploy(
+        cakeWbnbLPAddress,
         globalToken.address,
         cakeMasterChefAddress,
         CAKE_ROUTER_ADDRESS,
@@ -273,8 +273,8 @@ async function main() {
         pathFinder.address,
         // TODO: keeper per vested i distributor vaults
     );
-    await vaultCakeBnbLP.deployed();
-    console.log("Vault CAKE-BNB-LP deployed to:", vaultCakeBnbLP.address);
+    await vaultCakeWbnbLP.deployed();
+    console.log("Vault CAKE-WBNB-LP deployed to:", vaultCakeWbnbLP.address);
     */
 
 
