@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: Unlicensed
 pragma solidity 0.6.12;
 
-import './BEP20.sol';
-import './Context.sol';
-import './Ownable.sol';
-import './Trusted.sol';
-import './Address.sol';
-import './SafeBEP20.sol';
-import './SafeMath.sol';
-import './IBEP20.sol';
-import './NativeToken.sol';
-import './DevPower.sol';
-import './IPair.sol';
+import './Helpers/Context.sol';
+import "./Helpers/IMinter.sol";
+import "./Helpers/TokenAddresses.sol";
+import "./Helpers/IPathFinder.sol";
+import "./Helpers/IMintNotifier.sol";
+import './Modifiers/Ownable.sol';
+import './Modifiers/Trusted.sol';
+import './Modifiers/DevPower.sol';
+import './Modifiers/ReentrancyGuard.sol';
+import './Libraries/Address.sol';
+import './Libraries/SafeBEP20.sol';
+import './Libraries/SafeMath.sol';
+import './Tokens/IBEP20.sol';
+import './Tokens/BEP20.sol';
+import './Tokens/NativeToken.sol';
+import './Tokens/IPair.sol';
 import './IRouterV2.sol';
-import './ReentrancyGuard.sol';
-import "./IMinter.sol";
-import "./TokenAddresses.sol";
-import "./IPathFinder.sol";
-import "./IMintNotifier.sol";
 import "./MasterChefInternal.sol";
 
 // HEM DE FER IMPORT DE LA INTERFACE I DEL SC DEL VAULT!!!!!!!!!

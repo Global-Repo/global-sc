@@ -1,10 +1,10 @@
 // File: contracts/SmartChef.sol
 pragma solidity 0.6.12;
 
-import './Ownable.sol';
-import './ReentrancyGuard.sol';
-import './SafeBEP20.sol';
-import './SafeMath.sol';
+import './Modifiers/Ownable.sol';
+import './Modifiers/ReentrancyGuard.sol';
+import './Libraries/SafeBEP20.sol';
+import './Libraries/SafeMath.sol';
 
 contract SmartChef is Ownable, ReentrancyGuard {
     using SafeMath for uint256;
