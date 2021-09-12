@@ -19,6 +19,7 @@ let tokenARoute;
 let tokenBRoute;
 let weth;
 let masterChef;
+let masterChefInternal;
 
 var print = async function(str, ...args){
     if(SHOWALLPRINTS) console.log(str, args.join('') );
@@ -120,8 +121,13 @@ beforeEach(async function () {
     pathFinder = await PathFinder.deploy(tokenAddresses.address);
     await pathFinder.deployed();
 
+    const MasterChefInternal = await ethers.getContractFactory("MasterChefInternal");
+    masterChefInternal = await MasterChefInternal.deploy(tokenAddresses.address);
+    await masterChefInternal.deployed();
+
     const MasterChef = await ethers.getContractFactory("MasterChef");
     masterChef = await MasterChef.deploy(
+        masterChefInternal.address,
         nativeToken.address,
         NATIVE_TOKEN_PER_BLOCK,
         startBlock,
@@ -131,7 +137,7 @@ beforeEach(async function () {
     );
     await masterChef.deployed();
 
-    await pathFinder.transferOwnership(masterChef.address);
+    await pathFinder.transferOwnership(masterChefInternal.address);
 
     // Set up scenarios
     const INITIAL_SUPPLY = BigNumber.from(1000000).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);

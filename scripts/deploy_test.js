@@ -66,6 +66,7 @@ let tokenAddresses;
 let pathFinder;
 let mintNotifier;
 let masterChef;
+let masterChefInternal;
 let vaultDistribution;
 let vaultVested;
 let vaultLocked;
@@ -191,7 +192,23 @@ async function main() {
     pathFinder = await deployPathFinder(tokenAddresses.address);
     console.log("PathFinder deployed to:", pathFinder.address);
 
-    masterChef = await deployMasterChef(globalToken.address,router.address,tokenAddresses.address,pathFinder.address);
+    const MasterChefInternal = await ethers.getContractFactory("MasterChefInternal");
+    masterChefInternal = await MasterChefInternal.deploy(tokenAddresses.address);
+    await masterChefInternal.deployed();
+    console.log("Masterchef Internal deployed to:", masterChefInternal.address);
+
+    const MasterChef = await ethers.getContractFactory("MasterChef");
+    masterChef = await MasterChef.deploy(
+        masterChefInternal.address,
+        globalToken.address,
+        NATIVE_TOKEN_PER_BLOCK,
+        masterChefStartBlock,
+        router.address,
+        tokenAddresses.address,
+        pathFinder.address
+    );
+    await masterChef.deployed();
+
     console.log("Masterchef deployed to:", masterChef.address);
     console.log("Globals per block: ", NATIVE_TOKEN_PER_BLOCK.toString());
     console.log("Start block", CURRENT_BLOCK + 1);
