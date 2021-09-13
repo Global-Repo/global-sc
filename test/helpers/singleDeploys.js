@@ -3,6 +3,13 @@ const { NATIVE_TOKEN_PER_BLOCK } = require("./constants.js");
 
 let deployedGlobalAddress;
 
+let deployToken = async function (name, symbol) {
+    const TokenX = await ethers.getContractFactory("BEP20");
+    tokenX = await TokenX.deploy(name, symbol);
+    await tokenX.deployed();
+    return tokenX;
+};
+
 let deployCake = async function () {
     const CakeToken = await ethers.getContractFactory("BEP20");
     const cakeToken = await CakeToken.deploy('CakeToken', 'CAKE');
@@ -10,10 +17,19 @@ let deployCake = async function () {
     return cakeToken;
 };
 
+let deployGlobalClosed = async function () {
+    const NativeToken = await ethers.getContractFactory("NativeToken");
+    const nativeToken = await NativeToken.deploy();
+    await nativeToken.deployed();
+    deployedGlobalAddress = nativeToken.address;
+    return nativeToken;
+};
+
 let deployGlobal = async function () {
     const NativeToken = await ethers.getContractFactory("NativeToken");
     const nativeToken = await NativeToken.deploy();
     await nativeToken.deployed();
+    nativeToken.openTrading();
     deployedGlobalAddress = nativeToken.address;
     return nativeToken;
 };
@@ -116,6 +132,20 @@ let deployRouterMock = async function () {
     return routerMock;
 };
 
+let deploySmartChefFactory = async function () {
+    const SmartChefFactory = await ethers.getContractFactory("SmartChefFactory");
+    const smartChefFactory = await SmartChefFactory.deploy();
+    await smartChefFactory.deployed();
+    return smartChefFactory;
+};
+
+let deploySmartChef = async function () {
+    const SmartChef = await ethers.getContractFactory("SmartChef");
+    const smartChef = await SmartChef.deploy();
+    await smartChef.deployed();
+    return smartChef;
+};
+
 let deployVaultDistribution = async function (bnb, global) {
     const VaultDistribution = await ethers.getContractFactory("VaultDistribution");
     const vaultDistribution = await VaultDistribution.deploy(bnb, global);
@@ -189,6 +219,7 @@ let deployVaultStakedToGlobal = async function (global, bnb, globalMasterChef, r
 };
 
 module.exports = {
+    deployToken,
     deployCake,
     deployGlobal,
     deployBnb,
@@ -198,6 +229,8 @@ module.exports = {
     deployTokenAddresses,
     deployPathFinderMock,
     deployMasterChef,
+    deploySmartChef,
+    deploySmartChefFactory,
     deployCakeMasterChefMock,
     deployGlobalMasterChefMock,
     deployRouterMock,

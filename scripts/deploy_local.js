@@ -7,6 +7,7 @@ const {
     deployPathFinder,
     deployMintNotifier,
     deployMasterChef,
+    deploySmartChefFactory,
     deployVaultDistribution,
     deployVaultCake,
     deployVaultVested,
@@ -67,6 +68,7 @@ let tokenAddresses;
 let pathFinder;
 let mintNotifier;
 let masterChef;
+let smartChefFactory;
 let vaultDistribution;
 let vaultVested;
 let vaultLocked;
@@ -208,7 +210,9 @@ async function main() {
     console.log("Globals per block: ", NATIVE_TOKEN_PER_BLOCK.toString());
     console.log("Start block", CURRENT_BLOCK + 1);
     // TODO: remove only for local
-    cakeMasterChefAddress = masterChef.address
+    cakeMasterChefAddress = masterChef.address;
+
+    smartChefFactory = await deploySmartChefFactory();
 
     await pathFinder.transferOwnership(masterChef.address);
     await globalToken.transferOwnership(masterChef.address);
