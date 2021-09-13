@@ -82,6 +82,10 @@ contract VaultStaked is IDistributable, ReentrancyGuard, RewarderRestriction {
         }
     }
 
+    function stakingToken() external view returns (address) {
+        return address(global);
+    }
+
     function rewardsToken() external view returns (address) {
         return address(bnb);
     }

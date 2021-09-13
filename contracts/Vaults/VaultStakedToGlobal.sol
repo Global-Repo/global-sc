@@ -86,6 +86,10 @@ contract VaultStakedToGlobal is IDistributable, ReentrancyGuard, RewarderRestric
         }
     }
 
+    function stakingToken() external view returns (address) {
+        return address(global);
+    }
+
     function rewardsToken() external view returns (address) {
         return address(wbnb);
     }

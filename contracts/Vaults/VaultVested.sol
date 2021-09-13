@@ -104,6 +104,10 @@ contract VaultVested is IDistributable, ReentrancyGuard, DepositoryRestriction, 
         }
     }
 
+    function stakingToken() external view returns (address) {
+        return address(global);
+    }
+
     function rewardsToken() external view returns (address) {
         return address(bnb);
     }
