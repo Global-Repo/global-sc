@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Unlicensed
 pragma solidity 0.6.12;
 
-import './IBEP20.sol';
-import "./TokenAddresses.sol";
-import "./IPathFinder.sol";
-import './IPair.sol';
+import './Tokens/IBEP20.sol';
+import "./Helpers/TokenAddresses.sol";
+import "./Helpers/IPathFinder.sol";
+import './Tokens/IPair.sol';
 
 // MC owner of MCInternal
 contract MasterChefInternal {
