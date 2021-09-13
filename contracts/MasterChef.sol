@@ -433,7 +433,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     // Retornem + si el block.timestamp és superior al block límit de harvest.
     function canHarvest(uint256 _pid, address _user) public view returns (bool) {
         UserInfo storage user = userInfo[_pid][_user];
-        return block.timestamp >= user.nextHarvestUntil;
+        return block.timestamp >= user.nextHarvestUntil || user.whitelisted;
     }
 
     // Update reward variables for all pools. Be careful of gas spending!
@@ -499,7 +499,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         uint256 pending = user.amount.mul(pool.accNativeTokenPerShare).div(1e12).sub(user.rewardDebt);
 
         // L'usuari pot fer harvest?
-        if (canHarvest(_pid, msg.sender) || user.whitelisted) {
+        if (canHarvest(_pid, msg.sender)) {
 
             // Si té rewards pendents de cobrar o ha acumulat per cobrar que estaven locked
             if (pending > 0 || user.rewardLockedUp > 0) {
