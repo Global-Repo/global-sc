@@ -85,7 +85,7 @@ let deployPathFinder = async function (tokenAddresses) {
 
 let deployMintNotifier = async function () {
     const MintNotifier = await ethers.getContractFactory("MintNotifier");
-    mintNotifier = await MintNotifier.deploy();
+    const mintNotifier = await MintNotifier.deploy();
     await mintNotifier.deployed();
     return mintNotifier;
 };

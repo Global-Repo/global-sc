@@ -16,6 +16,7 @@ let tokenA;
 let tokenB;
 let weth;
 let masterChef;
+let masterChefInternal;
 
 beforeEach(async function () {
   [owner, addr1, lockedVault, ...addrs] = await ethers.getSigners();
@@ -57,8 +58,13 @@ beforeEach(async function () {
   pathFinder = await PathFinder.deploy(tokenAddresses.address);
   await pathFinder.deployed();
 
+  const MasterChefInternal = await ethers.getContractFactory("MasterChefInternal");
+  masterChefInternal = await MasterChefInternal.deploy(tokenAddresses.address);
+  await masterChefInternal.deployed();
+
   const MasterChef = await ethers.getContractFactory("MasterChef");
   masterChef = await MasterChef.deploy(
+      masterChefInternal.address,
       nativeToken.address,
       NATIVE_TOKEN_PER_BLOCK,
       startBlock,

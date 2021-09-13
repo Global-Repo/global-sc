@@ -18,6 +18,7 @@ let tokenARoute;
 let tokenBRoute;
 let weth;
 let masterChef;
+let masterChefInternal;
 
 var afegirPool = async function (token0, token1, liquidity, allocPointMCpool=1000,
                                  _harvestInterval = DAY_IN_SECONDS * 4,
@@ -97,8 +98,13 @@ beforeEach(async function () {
   pathFinder = await PathFinder.deploy(tokenAddresses.address);
   await pathFinder.deployed();
 
+  const MasterChefInternal = await ethers.getContractFactory("MasterChefInternal");
+  masterChefInternal = await MasterChefInternal.deploy(tokenAddresses.address);
+  await masterChefInternal.deployed();
+
   const MasterChef = await ethers.getContractFactory("MasterChef");
   masterChef = await MasterChef.deploy(
+      masterChefInternal.address,
       nativeToken.address,
       NATIVE_TOKEN_PER_BLOCK,
       startBlock,
@@ -108,7 +114,7 @@ beforeEach(async function () {
   );
   await masterChef.deployed();
 
-  await pathFinder.transferOwnership(masterChef.address);
+  await pathFinder.transferOwnership(masterChefInternal.address);
 
   // Set up scenarios
   const INITIAL_SUPPLY = BigNumber.from(1000000).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);

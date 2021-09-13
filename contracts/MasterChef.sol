@@ -18,6 +18,7 @@ import './Tokens/BEP20.sol';
 import './Tokens/NativeToken.sol';
 import './Tokens/IPair.sol';
 import './IRouterV2.sol';
+import "./MasterChefInternal.sol";
 
 // HEM DE FER IMPORT DE LA INTERFACE I DEL SC DEL VAULT!!!!!!!!!
 
@@ -156,6 +157,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
 
     IPathFinder public pathFinder;
     IMintNotifier public mintNotifier;
+    MasterChefInternal private masterChefInternal;
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
@@ -164,6 +166,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     event RewardLockedUp(address indexed user, uint256 indexed pid, uint256 amountLockedUp);
 
     constructor(
+        address _masterChefInternal,
         NativeToken _nativeToken,
         uint256 _nativeTokenPerBlock,
         uint256 _startBlock,
@@ -171,6 +174,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         address _tokenAddresses,
         address _pathFinder
     ) public {
+        masterChefInternal = MasterChefInternal(_masterChefInternal);
         nativeToken = _nativeToken;
         nativeTokenPerBlock = _nativeTokenPerBlock;
         startBlock = _startBlock;
@@ -197,6 +201,41 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         //TODO added
         //totalAllocPoint = 1000;
     }
+
+    function manageTokens(
+        address _token,
+        uint256 _amountToBurn,
+        uint256 _amountForDevs
+    ) private {
+        //burn
+        {
+            if(_token != address(nativeToken)){
+                routerGlobal.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+                    _amountToBurn,
+                    0,
+                    pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())),
+                    BURN_ADDRESS,
+                    block.timestamp);
+            }else{
+                IBEP20(tokenAddresses.findByName(tokenAddresses.GLOBAL())).transfer(BURN_ADDRESS, _amountToBurn);
+            }
+        }
+        //devfees. ATTENTION, we do not unwrap weth to eth here
+        {
+            if(_token != tokenAddresses.findByName(tokenAddresses.BNB())) // passem a WETH
+            {
+                routerGlobal.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+                    _amountForDevs,
+                    0,
+                    pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.BNB())),
+                    devAddr,
+                    block.timestamp);
+            }else{
+                IBEP20(tokenAddresses.findByName(tokenAddresses.BNB())).transfer(devAddr, _amountForDevs);
+            }
+        }
+    }
+
 
     function setRouter(address _router) public onlyOwner {
         routerGlobal = IRouterV2(_router);
@@ -301,38 +340,6 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         return poolInfo.length;
     }
 
-    function CheckTokensRoutes(IBEP20 _lpToken) internal returns (bool bothConnected)
-    {
-        address WBNB = tokenAddresses.findByName(tokenAddresses.BNB());
-        IPair pair = IPair(address(_lpToken));
-        //TODO remove both connected
-        bothConnected = false;
-        if(pair.token0()==WBNB)
-        {
-            pathFinder.addRouteInfoDirect(pair.token1());
-            bothConnected = true;
-        }
-        else if(pair.token1()==WBNB)
-        {
-            pathFinder.addRouteInfoDirect(pair.token0());
-            bothConnected = true;
-        }
-        else if(!pathFinder.isTokenConnected(pair.token0()) && pathFinder.getRouteInfoDirectBNB(pair.token1()))
-        {
-            pathFinder.addRouteInfoRoute(pair.token0(),pair.token1());
-            bothConnected = true;
-        }
-        else if(!pathFinder.isTokenConnected(pair.token1()) && pathFinder.getRouteInfoDirectBNB(pair.token0()))
-        {
-            pathFinder.addRouteInfoRoute(pair.token1(),pair.token0());
-            bothConnected = true;
-        }
-        else if(pathFinder.isTokenConnected(pair.token0()) && pathFinder.isTokenConnected(pair.token1()))
-        {
-            bothConnected = true;
-        }
-    }
-
     // Add a new lp to the pool. Can only be called by the owner.
     // XXX DO NOT add the same LP token more than once. Rewards will be messed up if you do.
     function addPool(
@@ -350,7 +357,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         require(_maxWithdrawalInterval <= MAX_INTERVAL, "[f] Add: invalid withdrawal interval. Owner, there is a limit! Check your numbers.");
         require(_withDrawalFeeOfLpsTeam.add(_withDrawalFeeOfLpsBurn) <= MAX_FEE_LPS, "[f] Add: invalid withdrawal fees. Owner, you are trying to charge way too much! Check your numbers.");
         require(_performanceFeesOfNativeTokensBurn.add(_performanceFeesOfNativeTokensToLockedVault) <= MAX_FEE_PERFORMANCE, "[f] Add: invalid performance fees. Owner, you are trying to charge way too much! Check your numbers.");
-        require(CheckTokensRoutes(_lpToken), "[f] Add: token/s not connected to WBNB");
+        require(masterChefInternal.checkTokensRoutes(pathFinder, _lpToken), "[f] Add: token/s not connected to WBNB");
 
         if (_withUpdate) {
             massUpdatePools();
@@ -684,36 +691,6 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         // User ha rebut menys tokens si s'0han cobrat fees però a la info del user li és igual, només li interessa saber el total que se li ha gestionat per cobrar. El que se li desviï després, no hauria d'afectar
         user.rewardDebt = user.amount.mul(pool.accNativeTokenPerShare).div(1e12);
         emit Withdraw(msg.sender, _pid, _amount);
-    }
-
-    function manageTokens(address _token, uint256 _amountToBurn, uint256 _amountForDevs) private{
-        //burn
-        {
-            if(_token != address(nativeToken)){
-                routerGlobal.swapExactTokensForTokensSupportingFeeOnTransferTokens(
-                    _amountToBurn,
-                    0,
-                    pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())),
-                        BURN_ADDRESS,
-                    block.timestamp);
-            }else{
-                IBEP20(tokenAddresses.findByName(tokenAddresses.GLOBAL())).transfer(BURN_ADDRESS, _amountToBurn);
-            }
-        }
-        //devfees. ATTENTION, we do not unwrap weth to eth here
-        {
-            if(_token != tokenAddresses.findByName(tokenAddresses.BNB())) // passem a WETH
-            {
-                routerGlobal.swapExactTokensForTokensSupportingFeeOnTransferTokens(
-                    _amountForDevs,
-                        0,
-                        pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.BNB())),
-                        devAddr,
-                        block.timestamp);
-            }else{
-                IBEP20(tokenAddresses.findByName(tokenAddresses.BNB())).transfer(devAddr, _amountForDevs);
-            }
-        }
     }
 
     // Stake CAKE tokens to MasterChef

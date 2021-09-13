@@ -124,6 +124,10 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
         }
     }
 
+    function stakingToken() external view returns (address) {
+        return address(global);
+    }
+
     function rewardsToken() external view returns (address) {
         return address(bnb);
     }
