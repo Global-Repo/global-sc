@@ -29,7 +29,6 @@ let deployGlobal = async function () {
     const NativeToken = await ethers.getContractFactory("NativeToken");
     const nativeToken = await NativeToken.deploy();
     await nativeToken.deployed();
-    nativeToken.openTrading();
     deployedGlobalAddress = nativeToken.address;
     return nativeToken;
 };

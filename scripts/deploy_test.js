@@ -167,6 +167,8 @@ async function main() {
     // Deploys
     globalToken = await deployGlobal();
     console.log("Global token deployed to:", globalToken.address);
+    await globalToken.connect(owner).openTrading();
+    console.log("Global token launched");
 
     factory = await deployFactory(feeSetterAddress);
     console.log("Factory deployed to:", factory.address);
@@ -216,14 +218,14 @@ async function main() {
     // TODO: remove only for local
     cakeMasterChefAddress = masterChef.address;
 
-    smartChefFactory = await deploySmartChefFactory();
+    //smartChefFactory = await deploySmartChefFactory();
 
 
     await pathFinder.transferOwnership(masterChef.address);
     await globalToken.transferOwnership(masterChef.address);
     mintNotifier = await deployMintNotifier();
     await masterChef.setMintNotifier(mintNotifier.address);
-
+/*
     vaultDistribution = await deployVaultDistribution(wethAddress, globalToken.address);
     console.log("Vault distribution deployed to:", vaultDistribution.address);
 
@@ -251,7 +253,7 @@ async function main() {
         vaultVested.address
     );
     console.log("Vault CAKE deployed to:", vaultCake.address);
-
+*/
     /*
     const VaultBunny = await hre.ethers.getContractFactory("VaultBunny");
     vaultBunny = await VaultBunny.deploy(
@@ -301,9 +303,9 @@ async function main() {
     await globalToken.transferOwnership(masterChef.address);
     console.log("Masterchef is now the Global token's owner.");
 */
-    await setUpVaultDistribution(owner);
-    await setUpVaultVested(owner);
-    await setUpVaultLocked(owner);
+    //await setUpVaultDistribution(owner);
+    //await setUpVaultVested(owner);
+    //await setUpVaultLocked(owner);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
