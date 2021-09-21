@@ -243,18 +243,19 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
 
     function setPathFinder(address _pathFinder) public onlyOwner {
         pathFinder = IPathFinder(_pathFinder);
+        masterChefInternal.setInternalPathFinder(_pathFinder);
     }
 
     function addRouteToPathFinder(
         address _token, address _tokenRoute, bool _directBNB
     ) public onlyOwner {
-        pathFinder.addRouteInfo(_token,_tokenRoute, _directBNB);
+        masterChefInternal.addRouteToPathFinder(_token,_tokenRoute, _directBNB);
     }
 
     function removeRouteToPathFinder(
         address _token
     ) public onlyOwner {
-        pathFinder.removeRouteInfo(_token);
+        masterChefInternal.removeRouteToPathFinder(_token);
     }
 
     function setLockedVaultAddress(address _newLockedVault) external onlyOwner{
@@ -357,7 +358,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         require(_maxWithdrawalInterval <= MAX_INTERVAL, "[f] Add: invalid withdrawal interval. Owner, there is a limit! Check your numbers.");
         require(_withDrawalFeeOfLpsTeam.add(_withDrawalFeeOfLpsBurn) <= MAX_FEE_LPS, "[f] Add: invalid withdrawal fees. Owner, you are trying to charge way too much! Check your numbers.");
         require(_performanceFeesOfNativeTokensBurn.add(_performanceFeesOfNativeTokensToLockedVault) <= MAX_FEE_PERFORMANCE, "[f] Add: invalid performance fees. Owner, you are trying to charge way too much! Check your numbers.");
-        require(masterChefInternal.checkTokensRoutes(pathFinder, _lpToken), "[f] Add: token/s not connected to WBNB");
+        require(masterChefInternal.checkTokensRoutes(_lpToken), "[f] Add: token/s not connected to WBNB");
 
         if (_withUpdate) {
             massUpdatePools();
