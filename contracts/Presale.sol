@@ -21,7 +21,7 @@ contract Presale is Ownable, Trusted{
     uint public publicBegins;
     uint public publicEnds;
 
-    uint hardcap = 7850e18;
+    uint hardcap = 7345e18;
     uint public bnbacc = 0;
 
     mapping (address => uint) private quantityBought;
