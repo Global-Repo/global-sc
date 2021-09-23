@@ -62,7 +62,7 @@ contract Presale is Ownable, Trusted{
     }
 
     function buyTokens(uint256 quantity, address buyer) public onlyHuman{
-        require((getStatus() == 0 && whitelist[buyer] && bnbacc < hardcap) || (getStatus() == 1 && bnbacc < hardcap) || (getStatus() == 1 && publicBegins.add(12 hours) > block.timestamp) , "NOT YOUR TIME BRODAH");
+        require((getStatus() == 0 && whitelist[buyer] && bnbacc < hardcap) || (getStatus() == 1 && bnbacc < hardcap) || (getStatus() == 1 && publicBegins.add(6 hours) > block.timestamp) , "NOT YOUR TIME BRODAH");
 
         console.log("[buyTokens]");
         console.log("   Buyer: ", buyer);
@@ -84,7 +84,7 @@ contract Presale is Ownable, Trusted{
             quantityBought[buyer] = quantityBought[buyer].add(quantity);
             emit TokensBought(buyer, quantity, globalToReceive, bnbacc);
         }
-        else if(getStatus() == 1 && publicBegins.add(12 hours) > block.timestamp)
+        else if(getStatus() == 1 && publicBegins.add(6 hours) > block.timestamp)
         {
             globalToReceive = quantity.mul(4100);
             nativeToken.transfer(buyer, globalToReceive);
