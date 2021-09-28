@@ -60,7 +60,7 @@ contract Presale is Ownable, Trusted{
     }
 
     function buyTokens(uint256 quantity, address buyer) public onlyHuman{
-        require((getStatus() == 0 && whitelist[buyer] && bnbacc < hardcap) || (getStatus() == 1 && bnbacc < hardcap) || (getStatus() == 1 && publicBegins.add(4 hours) > block.timestamp) , "NOT YOUR TIME BRODAH");
+        require((getStatus() == 0 && whitelist[buyer] && bnbacc < hardcap) || (getStatus() == 1 && bnbacc < hardcap) || (getStatus() == 1 && publicBegins.add(2 hours) > block.timestamp) , "NOT YOUR TIME BRODAH");
 
         uint globalToReceive = 0;
 
