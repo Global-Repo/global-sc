@@ -3,13 +3,12 @@ pragma solidity >= 0.6.12;
 
 import "./IFactory.sol";
 import "./Tokens/Pair.sol";
+import 'hardhat/console.sol';
 
 contract Factory is IFactory {
-    // bytes32 public constant INIT_CODE_PAIR_HASH = keccak256(abi.encodePacked(type(Pair).creationCode));
-
     address public override feeTo;
-    address public override feeToSetter;
-
+    address public override feeSetter;
+    // bytes32 public constant INIT_CODE_PAIR_HASH = keccak256(abi.encodePacked(type(Pair).creationCode));
 
     mapping(address => mapping(address => address)) public override getPair;
     address[] public override allPairs;
@@ -17,7 +16,7 @@ contract Factory is IFactory {
     event PairCreated(address indexed token0, address indexed token1, address pair, uint);
 
     constructor(address _feeSetter) public {
-        feeToSetter = _feeSetter;
+        feeSetter = _feeSetter;
     }
 
     function INIT_CODE_PAIR_HASH() external override view returns (bytes32) {
@@ -46,12 +45,23 @@ contract Factory is IFactory {
     }
 
     function setFeeTo(address _feeTo) external override {
-        require(msg.sender == feeToSetter, 'Pancake: FORBIDDEN');
+        require(msg.sender == feeSetter, 'GlobalFactory: FORBIDDEN');
         feeTo = _feeTo;
     }
 
-    function setFeeToSetter(address _feeToSetter) external override {
-        require(msg.sender == feeToSetter, 'Pancake: FORBIDDEN');
-        feeToSetter = _feeToSetter;
+    function setFeeSetter(address _feeSetter) external override {
+        require(msg.sender == feeSetter, 'GlobalFactory: FORBIDDEN');
+        feeSetter = _feeSetter;
+    }
+
+    function setDevFee(address _pair, uint8 _devFee) external {
+        require(msg.sender == feeSetter, 'GlobalFactory: FORBIDDEN');
+        require(_devFee > 0, 'GlobalFactory: FORBIDDEN_FEE');
+        IPair(_pair).setDevFee(_devFee);
+    }
+
+    function setSwapFee(address _pair, uint32 _swapFee) external {
+        require(msg.sender == feeSetter, 'GlobalFactory: FORBIDDEN');
+        IPair(_pair).setSwapFee(_swapFee);
     }
 }

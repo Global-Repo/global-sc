@@ -83,6 +83,7 @@ beforeEach(async function () {
     const NativeToken = await ethers.getContractFactory("NativeToken");
     nativeToken = await NativeToken.deploy();
     await nativeToken.deployed();
+    await nativeToken.openTrading();
 
     const TokenA = await ethers.getContractFactory("BEP20");
     tokenA = await TokenA.deploy('tokenA', 'AA');
@@ -375,7 +376,9 @@ describe("MasterChef: Fees", function () {
             add(reserves0_final).sub(reserves0).
             add(reserves1_final).sub(reserves1).
             add(devaddr_balance_native).
-            add(devaddr_balance_weth)).equal(-7982);
+            add(devaddr_balance_weth)).equal(-7988);
+            //add(devaddr_balance_weth)).equal(-7988);//original biswap
+            //add(devaddr_balance_weth)).equal(-7982);//original prebiswap
     });
 
     it("Withdraw and partial withdraw with earning fees.", async function() {
@@ -429,8 +432,8 @@ describe("MasterChef: Fees", function () {
             .withArgs(addr1.address, 2, 1000);
         let addr1_final_balancepair = await pair_tkA_weth.balanceOf(addr1.address);
         await expect(addr1_final_balancepair).equal( 91000 );
-        console.log("canHarvest ", (await masterChef.canHarvest(2, addr1.address)).toString());
-        console.log('balance_native_addr1', (await nativeToken.balanceOf(addr1.address)).toString());
+        //console.log("canHarvest ", (await masterChef.canHarvest(2, addr1.address)).toString());
+        //console.log('balance_native_addr1', (await nativeToken.balanceOf(addr1.address)).toString());
 
         expect(await masterChef.connect(addr1).withdraw(2, 1000)).to.emit(masterChef, 'Withdraw')
             .withArgs(addr1.address, 2, 1000);
@@ -438,16 +441,16 @@ describe("MasterChef: Fees", function () {
         await expect(addr1_final_balancepair2).equal( 92000 );
 
         await ethers.provider.send('evm_increaseTime', [(maxWithdrawalInterval)+1]);
-        console.log("pendingAccTokens ", (await masterChef.pendingNativeToken(2, addr1.address)).toString());
-        console.log("canHarvest ", (await masterChef.canHarvest(2, addr1.address)).toString());
-        console.log('balance_native_addr1', (await nativeToken.balanceOf(addr1.address)).toString());
+        //console.log("pendingAccTokens ", (await masterChef.pendingNativeToken(2, addr1.address)).toString());
+        //console.log("canHarvest ", (await masterChef.canHarvest(2, addr1.address)).toString());
+        //console.log('balance_native_addr1', (await nativeToken.balanceOf(addr1.address)).toString());
 
         expect(await masterChef.connect(addr1).withdraw(2, 1000)).to.emit(masterChef, 'Withdraw')
             .withArgs(addr1.address, 2, 1000);
-        console.log("pendingAccTokens ", (await masterChef.pendingNativeToken(2, addr1.address)).toString());
-        console.log("canHarvest ", (await masterChef.canHarvest(2, addr1.address)).toString());
+        //console.log("pendingAccTokens ", (await masterChef.pendingNativeToken(2, addr1.address)).toString());
+        //console.log("canHarvest ", (await masterChef.canHarvest(2, addr1.address)).toString());
 
-        console.log('balance_native_addr1', (await nativeToken.balanceOf(addr1.address)).toString());
+        //console.log('balance_native_addr1', (await nativeToken.balanceOf(addr1.address)).toString());
 
         //TODO test payOrLockupPendingNativeToken
     });
@@ -486,7 +489,7 @@ describe("MasterChef: Fees", function () {
         );
         let pair_tkA_weth = await getTokenPair_helper(tokenA, weth);
         let addr1_initial_balance_pair_tkA_weth = await pair_tkA_weth.balanceOf(addr1.address);
-        console.log('addr1_initial_balance_pair_tkA_weth', addr1_initial_balance_pair_tkA_weth.toString());
+        //console.log('addr1_initial_balance_pair_tkA_weth', addr1_initial_balance_pair_tkA_weth.toString());
         await expect(addr1_initial_balance_pair_tkA_weth).to.equal(100000);
         //try deposit, but needs permission
         let addr1_lp_pool_deposit = BigNumber.from(addr1_initial_balance_pair_tkA_weth).div(10);

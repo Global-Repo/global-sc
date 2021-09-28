@@ -67,17 +67,16 @@ describe("SmartChefFactory: After deployment", function () {
   it("Should deploy 1 pool", async function () {
     //expect(await smartChefFactory.poolLength()).to.equal(1);
 
-    let myFirstPool = smartChefFactory.deployPool(nativeToken.address,tokenA.address,BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-        await ethers.provider.getBlockNumber(), (await ethers.provider.getBlockNumber())+100, BigNumber.from(1000).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER), owner.address).
-    to.emit(NewSmartChefContract);
+    let myFirstPool = expect(await smartChefFactory.deployPool(nativeToken.address,tokenA.address,BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        await ethers.provider.getBlockNumber(), (await ethers.provider.getBlockNumber())+100, BigNumber.from(1000).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER), owner.address)).to.emit(smartChefFactory,'NewSmartChefContract');
 
 
 
     const INITIAL_SUPPLY_REWARD = BigNumber.from(1000).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
-    console.log("AQUI");
+    /*console.log("AQUI");
     console.log(myFirstPool);
-    console.log(INITIAL_SUPPLY_REWARD);
-    await tokenA.transfer(myFirstPool,INITIAL_SUPPLY_REWARD);
+    console.log(INITIAL_SUPPLY_REWARD);*/
+    //await tokenA.transfer(myFirstPool.address,INITIAL_SUPPLY_REWARD);
 
     /*const INITIAL_SUPPLY_STAKED = BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
     await nativeToken.transfer(addr1.address,INITIAL_SUPPLY_REWARD);
@@ -89,7 +88,7 @@ describe("SmartChefFactory: After deployment", function () {
 
   });
 
-  it("Should deploy 1 pool", async function () {
+  xit("Should deploy 1 pool", async function () {
     //expect(await smartChefFactory.poolLength()).to.equal(1);
 
     let myFirstPool = smartChefFactory.deployPool(nativeToken.address,tokenA.address,BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
