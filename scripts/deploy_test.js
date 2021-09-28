@@ -76,6 +76,7 @@ let vaultStakedToGlobal;
 let vaultCake;
 let vaultCakeWbnbLP;
 let vaultBunny;
+let smartChefFactory;
 
 let setUpVaultDistribution = async function (owner) {
     console.log("-- Vault distribution set up start");
@@ -157,7 +158,7 @@ async function main() {
     feeSetterAddress = owner.address;
     masterChefStartBlock = CURRENT_BLOCK + 1;
     vaultBunnyPoolId = 0; // TODO: buscar
-
+/*
     const Cake = await hre.ethers.getContractFactory("BEP20");
     const cake = await Cake.deploy("Cake", "CAKE");
     await cake.deployed();
@@ -169,6 +170,8 @@ async function main() {
     console.log("Global token deployed to:", globalToken.address);
     await globalToken.connect(owner).openTrading();
     console.log("Global token launched");
+    await globalToken.connect(owner).mint(BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+    console.log("Minted 100 globals to owner:", owner.address);
 
     factory = await deployFactory(feeSetterAddress);
     console.log("Factory deployed to:", factory.address);
@@ -181,6 +184,8 @@ async function main() {
 
     await tokenAddresses.addToken(tokenAddresses.GLOBAL(), globalToken.address);
     console.log("Added Global to TokenAddresses with address:", globalToken.address);
+    await tokenAddresses.addToken(tokenAddresses.BNB(), wethAddress);
+    console.log("Added BNB to TokenAddresses with address:", wethAddress);
     await tokenAddresses.addToken(tokenAddresses.WBNB(), wethAddress);
     console.log("Added WBNB to TokenAddresses with address:", wethAddress);
     await tokenAddresses.addToken(tokenAddresses.BUSD(), busdAddress);
@@ -196,7 +201,7 @@ async function main() {
     console.log("PathFinder deployed to:", pathFinder.address);
 
     const MasterChefInternal = await ethers.getContractFactory("MasterChefInternal");
-    masterChefInternal = await MasterChefInternal.deploy(tokenAddresses.address);
+    masterChefInternal = await MasterChefInternal.deploy(tokenAddresses.address, pathFinder.address);
     await masterChefInternal.deployed();
     console.log("Masterchef Internal deployed to:", masterChefInternal.address);
 
@@ -206,7 +211,8 @@ async function main() {
         globalToken.address,
         NATIVE_TOKEN_PER_BLOCK,
         masterChefStartBlock,
-        router.address,
+        //router.address,
+        "0x7eA058e2640f66D16c0ee7De1449edbfB6011214",
         tokenAddresses.address,
         pathFinder.address
     );
@@ -218,30 +224,42 @@ async function main() {
     // TODO: remove only for local
     cakeMasterChefAddress = masterChef.address;
 
-    //smartChefFactory = await deploySmartChefFactory();
+    smartChefFactory = await deploySmartChefFactory();
+    console.log("SmartChefFactory deployed to:", smartChefFactory.address);
 
-
-    await pathFinder.transferOwnership(masterChef.address);
+    await masterChefInternal.transferOwnership(masterChef.address);
+    console.log("Masterchef internal ownership to masterchef:", masterChef.address);
+    await pathFinder.transferOwnership(masterChefInternal.address);
+    console.log("Path finder ownership to masterchef internal:", masterChefInternal.address);
     await globalToken.transferOwnership(masterChef.address);
+    console.log("Global ownership to masterchef:", masterChef.address);
+
     mintNotifier = await deployMintNotifier();
+    console.log("Deployed mint notifier: ", mintNotifier.address);
     await masterChef.setMintNotifier(mintNotifier.address);
-/*
-    vaultDistribution = await deployVaultDistribution(wethAddress, globalToken.address);
+*/
+
+    //vaultDistribution = await deployVaultDistribution(wethAddress, globalToken.address);
+    vaultDistribution = await deployVaultDistribution(wethAddress, "0xe5eEb81e563aF8e92FBbeDD868500958f3D5f720");
     console.log("Vault distribution deployed to:", vaultDistribution.address);
 
-    vaultLocked = await deployVaultLocked(globalToken.address, wethAddress, masterChef.address, VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL);
+    //vaultLocked = await deployVaultLocked(globalToken.address, wethAddress, masterChef.address, VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL);
+    vaultLocked = await deployVaultLocked("0xe5eEb81e563aF8e92FBbeDD868500958f3D5f720", wethAddress, "0xD412d85B75410bE2d01C3503bE580274c27c3B69", VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL);
     console.log("Vault locked deployed to:", vaultLocked.address);
 
-    vaultVested = await deployVaultVested(globalToken.address, wethAddress, masterChef.address, vaultLocked.address);
+    //vaultVested = await deployVaultVested(globalToken.address, wethAddress, masterChef.address, vaultLocked.address);
+    vaultVested = await deployVaultVested("0xe5eEb81e563aF8e92FBbeDD868500958f3D5f720", wethAddress, "0xD412d85B75410bE2d01C3503bE580274c27c3B69", vaultLocked.address);
     console.log("Vault vested deployed to:", vaultVested.address);
 
-    vaultStaked = await deployVaultStaked(globalToken.address, wethAddress, masterChef.address);
+    //vaultStaked = await deployVaultStaked(globalToken.address, wethAddress, masterChef.address);
+    vaultStaked = await deployVaultStaked("0xe5eEb81e563aF8e92FBbeDD868500958f3D5f720", wethAddress, "0xD412d85B75410bE2d01C3503bE580274c27c3B69");
     console.log("Vault staked deployed to:", vaultStaked.address);
 
-    vaultStakedToGlobal = await deployVaultStakedToGlobal(globalToken.address, wethAddress, masterChef.address, router.address);
+    //vaultStakedToGlobal = await deployVaultStakedToGlobal(globalToken.address, wethAddress, masterChef.address, router.address);
+    vaultStakedToGlobal = await deployVaultStakedToGlobal("0xe5eEb81e563aF8e92FBbeDD868500958f3D5f720", wethAddress, "0xD412d85B75410bE2d01C3503bE580274c27c3B69", "0x7eA058e2640f66D16c0ee7De1449edbfB6011214");
     console.log("Vault staked to global deployed to:", vaultStakedToGlobal.address);
 
-    vaultCake = await deployVaultCake(
+    /*vaultCake = await deployVaultCake(
         cakeAddress,
         globalToken.address,
         cakeMasterChefAddress,
@@ -251,9 +269,20 @@ async function main() {
         pathFinder.address,
         vaultDistribution.address,
         vaultVested.address
+    );*/
+    vaultCake = await deployVaultCake(
+        "0xa0bb66f240a93849c24Fa43d5d8a791FC94eb21a",
+        "0xe5eEb81e563aF8e92FBbeDD868500958f3D5f720",
+        "0xD412d85B75410bE2d01C3503bE580274c27c3B69", // global MC instead of cake MC for testing
+        OPERATIONS_ADDRESS,
+        "0x98fA7d9C31877e95B7896C04D8f9729803c3D69b",
+        "0x7eA058e2640f66D16c0ee7De1449edbfB6011214",
+        "0xFA58471aaE36f98536AF7a94EfD78e8b6fBF4234",
+        vaultDistribution.address,
+        vaultVested.address
     );
     console.log("Vault CAKE deployed to:", vaultCake.address);
-*/
+
     /*
     const VaultBunny = await hre.ethers.getContractFactory("VaultBunny");
     vaultBunny = await VaultBunny.deploy(
@@ -303,9 +332,21 @@ async function main() {
     await globalToken.transferOwnership(masterChef.address);
     console.log("Masterchef is now the Global token's owner.");
 */
-    //await setUpVaultDistribution(owner);
-    //await setUpVaultVested(owner);
-    //await setUpVaultLocked(owner);
+    await setUpVaultDistribution(owner);
+    await setUpVaultVested(owner);
+    await setUpVaultLocked(owner);
+
+    masterChef.addAddressToWhitelist(vaultLocked.address);
+    console.log('Added vault locked into MC whitelist');
+
+    masterChef.addAddressToWhitelist(vaultVested.address);
+    console.log('Added vault vested into MC whitelist');
+
+    masterChef.addAddressToWhitelist(vaultStaked.address);
+    console.log('Added vault staked into MC whitelist');
+
+    masterChef.addAddressToWhitelist(vaultStakedToGlobal.address);
+    console.log('Added vault stakedToGlobal into MC whitelist');
 }
 
 // We recommend this pattern to be able to use async/await everywhere

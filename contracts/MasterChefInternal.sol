@@ -5,16 +5,35 @@ import './Tokens/IBEP20.sol';
 import "./Helpers/TokenAddresses.sol";
 import "./Helpers/IPathFinder.sol";
 import './Tokens/IPair.sol';
+import './Modifiers/Ownable.sol';
 
 // MC owner of MCInternal
-contract MasterChefInternal {
+contract MasterChefInternal is Ownable {
     TokenAddresses public tokenAddresses;
+    IPathFinder public pathFinder;
 
-    constructor(address _tokenAddresses) public {
+    constructor(address _tokenAddresses, address _pathFinder) public {
         tokenAddresses = TokenAddresses(_tokenAddresses);
+        pathFinder = IPathFinder(_pathFinder);
     }
 
-    function checkTokensRoutes(IPathFinder pathFinder, IBEP20 _lpToken) public returns (bool bothConnected)
+    function setInternalPathFinder(address _pathFinder) public onlyOwner {
+        pathFinder = IPathFinder(_pathFinder);
+    }
+
+    function addRouteToPathFinder(
+        address _token, address _tokenRoute, bool _directBNB
+    ) public onlyOwner {
+        pathFinder.addRouteInfo(_token,_tokenRoute, _directBNB);
+    }
+
+    function removeRouteToPathFinder(
+        address _token
+    ) public onlyOwner {
+        pathFinder.removeRouteInfo(_token);
+    }
+
+    function checkTokensRoutes(IBEP20 _lpToken) public returns (bool bothConnected)
     {
         address WBNB = tokenAddresses.findByName(tokenAddresses.BNB());
         IPair pair = IPair(address(_lpToken));
