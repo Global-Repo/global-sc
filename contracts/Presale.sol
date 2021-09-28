@@ -1,7 +1,5 @@
 pragma solidity 0.6.12;
 
-
-import "hardhat/console.sol";
 import "./Modifiers/Ownable.sol";
 import "./Modifiers/Trusted.sol";
 import "./Libraries/SafeMath.sol";
@@ -33,7 +31,7 @@ contract Presale is Ownable, Trusted{
         nativeToken = _token;
 
         whitelistBegins = _whitelistBegins;
-        whitelistEnds = whitelistBegins.add(2 days);
+        whitelistEnds = whitelistBegins.add(5 days);
 
         publicBegins = _publicBegins;
         publicEnds = publicBegins.add(2 days);
@@ -41,7 +39,7 @@ contract Presale is Ownable, Trusted{
 
     function changeWhitelistBegins(uint _whitelistBegins) public onlyOwner{
         whitelistBegins = _whitelistBegins;
-        whitelistEnds = whitelistBegins.add(2 days);
+        whitelistEnds = whitelistBegins.add(5 days);
     }
 
     function changePublicBegins(uint _publicBegins) public onlyOwner{
@@ -64,13 +62,10 @@ contract Presale is Ownable, Trusted{
     function buyTokens(uint256 quantity, address buyer) public onlyHuman{
         require((getStatus() == 0 && whitelist[buyer] && bnbacc < hardcap) || (getStatus() == 1 && bnbacc < hardcap) || (getStatus() == 1 && publicBegins.add(4 hours) > block.timestamp) , "NOT YOUR TIME BRODAH");
 
-        console.log("[buyTokens]");
-        console.log("   Buyer: ", buyer);
-        console.log("   Quantity: ", quantity);
         uint globalToReceive = 0;
 
         if (getStatus() == 0 && whitelist[buyer] && bnbacc < hardcap){
-            globalToReceive = quantity.mul(5300);
+            globalToReceive = quantity.mul(4700);
             nativeToken.transfer(buyer, globalToReceive);
             bnbacc = bnbacc.add(quantity);
             quantityBought[buyer] = quantityBought[buyer].add(quantity);
@@ -78,13 +73,13 @@ contract Presale is Ownable, Trusted{
         }
         else if(getStatus() == 1 && bnbacc < hardcap)
         {
-            globalToReceive = quantity.mul(4400);
+            globalToReceive = quantity.mul(4350);
             nativeToken.transfer(buyer, globalToReceive);
             bnbacc = bnbacc.add(quantity);
             quantityBought[buyer] = quantityBought[buyer].add(quantity);
             emit TokensBought(buyer, quantity, globalToReceive, bnbacc);
         }
-        else if(getStatus() == 1 && publicBegins.add(4 hours) > block.timestamp)
+        else if(getStatus() == 1 && publicBegins.add(2 hours) > block.timestamp)
         {
             globalToReceive = quantity.mul(4100);
             nativeToken.transfer(buyer, globalToReceive);
