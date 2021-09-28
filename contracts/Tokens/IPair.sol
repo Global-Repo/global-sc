@@ -24,6 +24,8 @@ interface IPair is IPancakeERC20 {
     function price0CumulativeLast() external view returns (uint);
     function price1CumulativeLast() external view returns (uint);
     function kLast() external view returns (uint);
+    function swapFee() external view returns (uint32);
+    function devFee() external view returns (uint32);
 
     function mint(address to) external returns (uint liquidity);
     function burn(address to) external returns (uint amount0, uint amount1);
@@ -32,4 +34,6 @@ interface IPair is IPancakeERC20 {
     function sync() external;
 
     function initialize(address, address) external;
+    function setSwapFee(uint32) external;
+    function setDevFee(uint32) external;
 }
