@@ -27,8 +27,9 @@ contract Presale is Ownable, Trusted{
     event TokensBought(address buyer, uint256 amountBNB, uint256 globalAmount, uint256 bnb_Acc);
     event AdminTokenRecovery(address tokenRecovered, uint256 amount);
 
-    constructor(NativeToken _token, uint _whitelistBegins, uint _publicBegins) public {
-        nativeToken = _token;
+    constructor(address _token, uint _whitelistBegins, uint _publicBegins) public {
+        nativeToken = NativeToken(_token);
+        //nativeToken = _token;
 
         whitelistBegins = _whitelistBegins;
         whitelistEnds = whitelistBegins.add(5 days);
@@ -59,7 +60,7 @@ contract Presale is Ownable, Trusted{
         return 2;
     }
 
-    function buyTokens(uint256 quantity, address buyer) public onlyHuman{
+    function buyTokens(uint256 quantity, address buyer) private onlyHuman{
         require((getStatus() == 0 && whitelist[buyer] && bnbacc < hardcap) || (getStatus() == 1 && bnbacc < hardcap) || (getStatus() == 1 && publicBegins.add(2 hours) > block.timestamp) , "NOT YOUR TIME BRODAH");
 
         uint globalToReceive = 0;
