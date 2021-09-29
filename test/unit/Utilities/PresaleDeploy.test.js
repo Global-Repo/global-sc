@@ -1,22 +1,20 @@
 const ethers = require("hardhat").ethers;
 const { expect } = require("chai");
 const { BigNumber } = require("@ethersproject/bignumber");
+const {timestampNDays, timestampNow} = require("../../helpers/utils");
 
 const TOKEN_DECIMALS = 18;
 const BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER = BigNumber.from(10).pow(TOKEN_DECIMALS);
+const INITIAL_SUPPLY = BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+const INITIAL_SUPPLY_ADDR1 = BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
 const NATIVE_TOKEN_PER_BLOCK = BigNumber.from(40).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
 const DAY_IN_SECONDS = 86400;
 
 let startBlock = null;
 
 let nativeToken;
-let factory;
-let router;
-let tokenA;
-let tokenB;
+let presale;
 let weth;
-let masterChef;
-let masterChefInternal;
 
 beforeEach(async function () {
   [owner, addr1, lockedVault, ...addrs] = await ethers.getSigners();
@@ -28,65 +26,34 @@ beforeEach(async function () {
   nativeToken = await NativeToken.deploy();
   await nativeToken.deployed();
 
-  const TokenA = await ethers.getContractFactory("BEP20");
-  tokenA = await TokenA.deploy('tokenA', 'AA');
-  await tokenA.deployed();
-
-  const TokenB = await ethers.getContractFactory("BEP20");
-  tokenB = await TokenB.deploy('tokenB', 'BB');
-  await tokenB.deployed();
-
-  const Factory = await ethers.getContractFactory("Factory");
-  factory = await Factory.deploy(owner.address);
-  await factory.deployed();
-
-  // TODO: should be same contract as mainet or BEP20 is okay?
-  // TODO: https://bscscan.com/address/0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c#code
   const Weth = await ethers.getContractFactory("BEP20");
   weth = await Weth.deploy('Wrapped BNB', 'WBNB');
   await weth.deployed();
 
-  const Router = await ethers.getContractFactory("Router");
-  router = await Router.deploy(factory.address, weth.address);
-  await router.deployed();
+  const Presale = await ethers.getContractFactory("Presale");
+  presale = await Presale.deploy(nativeToken.address, (await timestampNow()+await timestampNDays(2)), (await timestampNow()+await timestampNDays(9)));
+  await presale.deployed();
 
-  const TokenAddresses = await ethers.getContractFactory("TokenAddresses");
-  tokenAddresses = await TokenAddresses.deploy();
-  await tokenAddresses.deployed();
+  await weth.mint(INITIAL_SUPPLY);
+  await weth.transfer(addr1.address,INITIAL_SUPPLY_ADDR1);
 
-  const PathFinder = await ethers.getContractFactory("PathFinder");
-  pathFinder = await PathFinder.deploy(tokenAddresses.address);
-  await pathFinder.deployed();
-
-  const MasterChefInternal = await ethers.getContractFactory("MasterChefInternal");
-  masterChefInternal = await MasterChefInternal.deploy(tokenAddresses.address);
-  await masterChefInternal.deployed();
-
-  const MasterChef = await ethers.getContractFactory("MasterChef");
-  masterChef = await MasterChef.deploy(
-      masterChefInternal.address,
-      nativeToken.address,
-      NATIVE_TOKEN_PER_BLOCK,
-      startBlock,
-      router.address,
-      tokenAddresses.address,
-      pathFinder.address
-  );
-  await masterChef.deployed();
-
-  await pathFinder.transferOwnership(masterChef.address);
-
-  // Set up scenarios
-  const INITIAL_SUPPLY = BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
-
-  await tokenA.mint(INITIAL_SUPPLY);
-  await tokenB.mint(INITIAL_SUPPLY);
-  await tokenA.approve(router.address, INITIAL_SUPPLY.toHexString());
-  await tokenB.approve(router.address, INITIAL_SUPPLY.toHexString());
+  await nativeToken.transferOwnership(presale.address);
 });
 
-describe("MasterChef: After deployment", function () {
-  it("Should have 1 pool", async function () {
-    expect(await masterChef.poolLength()).to.equal(1);
+describe("Presale", function () {
+  it("Everything should go OK on presale", async function () {
+    console.log(await weth.balanceOf(addr1.address));
+    await weth.connect(addr1).transfer(presale.address,BigNumber.from(3).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+    console.log(await weth.balanceOf(addr1.address));
+
+    //nativeToken.connect(addr1.address).transfer
+    //expect(await presale.poolLength()).to.equal(1);
+  });
+
+  it("Everything should go OK on presale", async function () {
+    const newWhite = (await timestampNow()+await timestampNDays(3));
+    await presale.changeWhitelistBegins(newWhite);
+    const newPublic = (await timestampNow()+await timestampNDays(10));
+    await presale.changePublicBegins(newPublic);
   });
 });
