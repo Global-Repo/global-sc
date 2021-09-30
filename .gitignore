@@ -5,6 +5,7 @@ node_modules
 package-lock.json 
 
 .secret
+.secret_deployer
 
 #Buidler files
 cache
