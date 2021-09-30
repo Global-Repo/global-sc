@@ -19,10 +19,12 @@ contract Presale is Ownable, Trusted{
     uint public publicBegins;
     uint public publicEnds;
 
-    uint hardcap = 7345e18;
+    //uint hardcap = 7345e18;
+    uint hardcap = 1e17;
     uint public bnbacc = 0;
 
     mapping (address => uint) private quantityBought;
+    address[] private buyers;
 
     event TokensBought(address buyer, uint256 amountBNB, uint256 globalAmount, uint256 bnb_Acc);
     event AdminTokenRecovery(address tokenRecovered, uint256 amount);
@@ -70,6 +72,7 @@ contract Presale is Ownable, Trusted{
             nativeToken.transfer(buyer, globalToReceive);
             bnbacc = bnbacc.add(quantity);
             quantityBought[buyer] = quantityBought[buyer].add(quantity);
+            buyers.push(buyer);
             emit TokensBought(buyer, quantity, globalToReceive, bnbacc);
         }
         else if(getStatus() == 1 && bnbacc < hardcap)
@@ -78,6 +81,7 @@ contract Presale is Ownable, Trusted{
             nativeToken.transfer(buyer, globalToReceive);
             bnbacc = bnbacc.add(quantity);
             quantityBought[buyer] = quantityBought[buyer].add(quantity);
+            buyers.push(buyer);
             emit TokensBought(buyer, quantity, globalToReceive, bnbacc);
         }
         else if(getStatus() == 1 && publicBegins.add(2 hours) > block.timestamp)
@@ -86,6 +90,7 @@ contract Presale is Ownable, Trusted{
             nativeToken.transfer(buyer, globalToReceive);
             bnbacc = bnbacc.add(quantity);
             quantityBought[buyer] = quantityBought[buyer].add(quantity);
+            buyers.push(buyer);
             emit TokensBought(buyer, quantity, globalToReceive, bnbacc);
         }
     }
@@ -102,5 +107,20 @@ contract Presale is Ownable, Trusted{
     function recoverWrongTokens(address _tokenAddress, uint256 _tokenAmount) external onlyOwner {
         IBEP20(_tokenAddress).safeTransfer(address(msg.sender), _tokenAmount);
         emit AdminTokenRecovery(_tokenAddress, _tokenAmount);
+    }
+
+    function getQuantityBought(address buyer) external onlyOwner returns(uint)
+    {
+        return quantityBought[buyer];
+    }
+
+    function getBuyer(uint position) external onlyOwner returns(address)
+    {
+        return buyers[position];
+    }
+
+    function getBuyers() external onlyOwner returns(address[] memory)
+    {
+        return buyers;
     }
 }

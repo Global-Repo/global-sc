@@ -9,6 +9,11 @@ const {timestampNDays, timestampNow} = require("../test/helpers/utils");
 let nativeToken;
 let presale;
 
+const TOKEN_DECIMALS = 18;
+const BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER = BigNumber.from(10).pow(TOKEN_DECIMALS);
+
+const NATIVE_TOKEN_TO_MINT = BigNumber.from(1000000).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+
 async function main() {
     [owner, ...addrs] = await hre.ethers.getSigners();
 
@@ -22,8 +27,8 @@ async function main() {
     presale = await Presale.deploy(nativeToken.address, whiteTime, publicTime);
     await presale.deployed();
 
-    await nativeToken.mint(1000000);
-    await nativeToken.transfer(presale.address,1000000);
+    await nativeToken.mint(NATIVE_TOKEN_TO_MINT);
+    await nativeToken.transfer(presale.address,NATIVE_TOKEN_TO_MINT);
     await nativeToken.transferOwnership(presale.address);
 
     console.log("NativeToken deployed to:", nativeToken.address);
