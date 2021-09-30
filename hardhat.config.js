@@ -3,8 +3,10 @@ require("@nomiclabs/hardhat-etherscan");
 
 const fs = require('fs');
 const secrets = fs.readFileSync(".secret").toString().trim().split(/\n/);
+const secretsDeployer = fs.readFileSync(".secret_deployer").toString().trim().split(/\n/);
 const mnemonic = secrets[0].trim();
 const apiKeyBSC = secrets[1].trim();
+const mnemonicDeployer = secretsDeployer[0].trim();
 
 /**
  * @type import('hardhat/config').HardhatUserConfig
@@ -29,7 +31,7 @@ module.exports = {
       url: "https://bsc-dataseed.binance.org/",
       chainId: 56,
       gasPrice: 20000000000,
-      accounts: {mnemonic: mnemonic}
+      accounts: {mnemonic: mnemonicDeployer}
     }
   },
   etherscan: {
