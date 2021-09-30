@@ -22,8 +22,10 @@ async function main() {
     await nativeToken.deployed();
 
     const Presale = await ethers.getContractFactory("Presale");
-    const whiteTime = (await timestampNow()/*+await timestampNDays(2)*/);
-    const publicTime = (await timestampNow()+await timestampNDays(9));
+    //const whiteTime = (await timestampNow()/*+await timestampNDays(2)*/);
+    const whiteTime = (1633118400);
+    //const publicTime = (await timestampNow()+await timestampNDays(9));
+    const publicTime = (1633982400);
     presale = await Presale.deploy(nativeToken.address, whiteTime, publicTime);
     await presale.deployed();
 
