@@ -70,6 +70,8 @@ let vaultBunny;
 let setUpVaultDistribution = async function (owner) {
     console.log("-- Vault distribution set up start");
 
+    //TODO: mintejar 58m de globals abans de moure el ownership de global a MC
+
     // Vault distribution depositories
     await vaultDistribution.connect(owner).setDepositary(vaultCake.address, true);
     console.log("Vault CAKE added as depositary");

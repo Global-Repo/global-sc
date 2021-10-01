@@ -237,7 +237,6 @@ async function main() {
     mintNotifier = await deployMintNotifier();
     console.log("Deployed mint notifier: ", mintNotifier.address);
     await masterChef.setMintNotifier(mintNotifier.address);
-*/
 
     //vaultDistribution = await deployVaultDistribution(wethAddress, globalToken.address);
     vaultDistribution = await deployVaultDistribution(wethAddress, "0xe5eEb81e563aF8e92FBbeDD868500958f3D5f720");
@@ -258,7 +257,7 @@ async function main() {
     //vaultStakedToGlobal = await deployVaultStakedToGlobal(globalToken.address, wethAddress, masterChef.address, router.address);
     vaultStakedToGlobal = await deployVaultStakedToGlobal("0xe5eEb81e563aF8e92FBbeDD868500958f3D5f720", wethAddress, "0xD412d85B75410bE2d01C3503bE580274c27c3B69", "0x7eA058e2640f66D16c0ee7De1449edbfB6011214");
     console.log("Vault staked to global deployed to:", vaultStakedToGlobal.address);
-
+*/
     /*vaultCake = await deployVaultCake(
         cakeAddress,
         globalToken.address,
@@ -331,7 +330,7 @@ async function main() {
 
     await globalToken.transferOwnership(masterChef.address);
     console.log("Masterchef is now the Global token's owner.");
-*/
+
     await setUpVaultDistribution(owner);
     await setUpVaultVested(owner);
     await setUpVaultLocked(owner);
@@ -347,6 +346,7 @@ async function main() {
 
     masterChef.addAddressToWhitelist(vaultStakedToGlobal.address);
     console.log('Added vault stakedToGlobal into MC whitelist');
+ */
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -4,9 +4,9 @@ require("@nomiclabs/hardhat-etherscan");
 const fs = require('fs');
 const secrets = fs.readFileSync(".secret").toString().trim().split(/\n/);
 const secretsDeployer = fs.readFileSync(".secret_deployer").toString().trim().split(/\n/);
-const mnemonic = secrets[0].trim();
-const apiKeyBSC = secrets[1].trim();
+const mnemonicTest = secrets[0].trim();
 const mnemonicDeployer = secretsDeployer[0].trim();
+const apiKeyBSC = secrets[1].trim();
 
 /**
  * @type import('hardhat/config').HardhatUserConfig
@@ -25,7 +25,7 @@ module.exports = {
       url: "https://data-seed-prebsc-1-s1.binance.org:8545",
       chainId: 97,
       gasPrice: 20000000000,
-      accounts: {mnemonic: mnemonic},
+      accounts: {mnemonic: mnemonicTest},
     },
     mainnet: {
       url: "https://bsc-dataseed.binance.org/",

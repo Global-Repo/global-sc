@@ -19,19 +19,22 @@ async function main() {
     await nativeToken.deployed();
     console.log("NativeToken deployed to:", nativeToken.address);
 
-    const Presale = await ethers.getContractFactory("Presale");
     const whiteTime = (1633118400); // Oct 1st 10pm
     const publicTime = (1633982400); // Oct 11th 10pm
+
+    const Presale = await ethers.getContractFactory("Presale");
     presale = await Presale.deploy(nativeToken.address, whiteTime, publicTime);
     await presale.deployed();
+    console.log("Presale deployed to:", presale.address);
+    console.log("Presale whiteTime:", whiteTime);
+    console.log("Presale publicTime:", publicTime);
 
     await nativeToken.mint(NATIVE_TOKEN_TO_MINT);
-    await nativeToken.transfer(presale.address,NATIVE_TOKEN_TO_MINT);
+    console.log("Native tokens minted:", NATIVE_TOKEN_TO_MINT.toString());
+    await nativeToken.transfer(presale.address, NATIVE_TOKEN_TO_MINT);
+    console.log("Native tokens minted transfered to:", presale.address);
     await nativeToken.transferOwnership(presale.address);
-
-    console.log("Presale deployed to:", presale.address);
-    console.log("whiteTime:", whiteTime);
-    console.log("publicTime:", publicTime);
+    console.log("Native token ownership for:", presale.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
