@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Unlicensed
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
 import '../Modifiers/Ownable.sol';
@@ -8,72 +8,46 @@ import '../Libraries/Address.sol';
 import './BEP20.sol';
 import './IBEP20.sol';
 
-contract NativeToken is BEP20{
+contract Global is BEP20{
 
-    // DS: Burn address podria ser 0x0 però mola més un 0x...dEaD;
     address public constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
-
-    //Antibot system
     mapping (address => bool) private blacklisted;
-
     bool tradingOpen = false;
     uint256 launchTime;
-
-    // DS: màxim antiwhale que podem posar. Per defecte, ningú podrà enviar més del 15% del supply mai.
-    // DS: no hi ha mínim, perque si hi ha un atac, podria ser-nos útil evitar que hi hagi transfers de tokens.
     uint16 public constant MAX_ANTIWHALE = 1500;
-
-    // DS: A aquestes adreces no els hi aplica el mecanisme antiwhale
     mapping(address => bool) private _antiWhaleWhiteList;
-
-    // DS: 2% del supply és el màxim que es pot transferir inicialment (es podrà modificar després). En diferent base per evitar decimals.
     uint16 public antiWhalePercent = MAX_ANTIWHALE;
-
-    // DS: El dev és el únic que pot modificar les variables propies del token.
     address private _mainDevWallet;
 
-    // Events
     event MaxTransferAntiWhale(address indexed devPower, uint256 oldAntiWhalePercent, uint256 newAntiWhalePercent);
 
-    // DS: Constructor del token. Els paràmetres passen pel constructor del BEP20 + afegim adreces antiwhale whitelisted.
-    // DS: OnlyOwner i DevPower = msg.sender.
     constructor() public BEP20('Global', 'GLB'){
-        // DS: el dev/contracte poden transferir entre ells o enviar a BURN_ADDRESS/address(0) sense problemes.
         _antiWhaleWhiteList[msg.sender] = true;
         _antiWhaleWhiteList[address(this)] = true;
         _antiWhaleWhiteList[BURN_ADDRESS] = true;
         _antiWhaleWhiteList[address(0)] = true;
     }
 
-    // DS: Getter if excluded from antiwhale
     function GetIfExcludedFromAntiWhale(address addr) public view returns (bool) {
         return _antiWhaleWhiteList[addr];
     }
 
-    // DS: Per emergències o coses puntuals, si hem d'activar/desactivar alguna direcció de l'antiwhale
     function setExcludedFromAntiWhale(address addr, bool _excluded) public onlyDevPower {
         _antiWhaleWhiteList[addr] = _excluded;
     }
 
-    // DS: Calculem el màxim de tokens que ens permetrà transferir l'antiwhale (depèn del totalSupply(), implementat a BEP20 + IBEP20).
     function maxTokensTransferAmountAntiWhaleMethod() public view returns (uint256) {
         return totalSupply().mul(antiWhalePercent).div(10000);
     }
 
-    // DS: setejem un nou antiwhale percent. Lo normal serà anar baixant aquest valor a mesura que puji el marketcap.
     function updateMaxTransferAntiWhale(uint16 _newAntiWhalePercent) public onlyDevPower {
         require(_newAntiWhalePercent <= MAX_ANTIWHALE, "[!] Antiwhale method triggered. You are trying to set a % which is too high Check MAX_ANTIWHALE in the SC.");
         emit MaxTransferAntiWhale(msg.sender, antiWhalePercent, _newAntiWhalePercent);
         antiWhalePercent = _newAntiWhalePercent;
     }
 
-    // DS: Setejem una condició a comprovar a una funció (transfer) abans d'executar-la.
     modifier antiWhale(address origen, address destinataria, uint256 q) {
-
-        // DS: Comprovació simple per saber que no hi ha hagut problemes. El número de tokens mínims permesos en una transfer ha de ser superior a 0.
         if (maxTokensTransferAmountAntiWhaleMethod() > 0) {
-
-            // DS: només podem saltar-nos l'antiwhale si tan origen com destí estàn whitelisted. Un dev no se'l pot saltar amb un user.
             if (_antiWhaleWhiteList[origen] == false && _antiWhaleWhiteList[destinataria] == false)
             {
                 require(q <= maxTokensTransferAmountAntiWhaleMethod(), "[!] Antiwhale method triggered. You are trying to transfer too many tokens. Calm down and don't panic sell bro.");
@@ -91,7 +65,6 @@ contract NativeToken is BEP20{
         tradingOpen = false;
     }
 
-    // DS: fem override del _transfer, que és la funció que fa el _transfer "final" i serveix per poder aplicar característiques pròpies [Veure BEP20.sol].
     function _transfer(address sender, address recipient, uint256 amount) internal virtual override antiWhale(sender, recipient, amount) {
         require(!blacklisted[sender], "You have no power here!");
         require(!blacklisted[recipient], "You have no power here!");
@@ -99,12 +72,10 @@ contract NativeToken is BEP20{
             blacklisted[recipient] = true;
         }
         require(tradingOpen || msg.sender == owner(),"The market is closed");
-        // Fem servir el transfer normal.
+
         super._transfer(sender, recipient, amount);
     }
 
-    /// @notice Creates `_amount` token to `_to`. Must only be called by the owner (MasterChef).
-    // TODO: mint to mints because of duplicated name with mint BEP20
     function mints(address _to, uint256 _amount) public onlyOwner {
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
