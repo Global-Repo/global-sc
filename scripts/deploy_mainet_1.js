@@ -29,10 +29,6 @@ async function main() {
     console.log("Presale whiteTime:", whiteTime);
     console.log("Presale publicTime:", publicTime);
 
-    await nativeToken.mint(NATIVE_TOKEN_TO_MINT);
-    console.log("Native tokens minted:", NATIVE_TOKEN_TO_MINT.toString());
-    await nativeToken.transfer(presale.address, NATIVE_TOKEN_TO_MINT);
-    console.log("Native tokens minted transfered to:", presale.address);
     await nativeToken.transferOwnership(presale.address);
     console.log("Native token ownership for:", presale.address);
 }
