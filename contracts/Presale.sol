@@ -67,7 +67,7 @@ contract Presale is Ownable, Trusted{
 
         if (getStatus() == 0 && whitelist[buyer] && bnbacc < hardcap){
             globalToReceive = quantity.mul(4700);
-            nativeToken.transfer(buyer, globalToReceive);
+            nativeToken.mints(buyer, globalToReceive);
             bnbacc = bnbacc.add(quantity);
             if(quantityBought[buyer]==0)
             {
@@ -79,7 +79,7 @@ contract Presale is Ownable, Trusted{
         else if(getStatus() == 1 && bnbacc < hardcap)
         {
             globalToReceive = quantity.mul(4350);
-            nativeToken.transfer(buyer, globalToReceive);
+            nativeToken.mints(buyer, globalToReceive);
             bnbacc = bnbacc.add(quantity);
             if(quantityBought[buyer]==0)
             {
@@ -91,7 +91,7 @@ contract Presale is Ownable, Trusted{
         else if(getStatus() == 1 && publicBegins.add(2 hours) > block.timestamp)
         {
             globalToReceive = quantity.mul(4100);
-            nativeToken.transfer(buyer, globalToReceive);
+            nativeToken.mints(buyer, globalToReceive);
             bnbacc = bnbacc.add(quantity);
             if(quantityBought[buyer]==0)
             {
