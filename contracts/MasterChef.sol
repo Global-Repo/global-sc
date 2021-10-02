@@ -185,10 +185,9 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         // Aquípodem inicialitzar totes les pools de Native Token ja. //////////////////////////////////////////////////////////////////////
         // tOT I QUE MOLaria més tenir vaults apart on enviem la pasta i que es gestionin de forma independent, així no liem el masterchef... lo únic q aquells contractes no podràn mintar dentrada perque no farem whitelist, només serveixen per repartir tokens
 
-        //TODO check allocation point
         poolInfo.push(PoolInfo({
             lpToken: _nativeToken,
-            allocPoint: 0,  //TODO was 1000
+            allocPoint: 0,
             lastRewardBlock: _startBlock,
             accNativeTokenPerShare: 0,
             harvestInterval: 0,
@@ -198,8 +197,6 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
             performanceFeesOfNativeTokensBurn: 0,
             performanceFeesOfNativeTokensToLockedVault: 0
         }));
-        //TODO added
-        //totalAllocPoint = 1000;
     }
 
     function manageTokens(

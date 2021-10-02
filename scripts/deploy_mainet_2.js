@@ -12,8 +12,9 @@ const {
     deploySmartChefFactory,
     deployVaultLocked,
 } = require("../test/helpers/singleDeploys.js");
+const { timestampNHours, bep20Amount } = require("../test/helpers/utils.js");
 
-let globalToken;
+let globalToken; // TODO: set address here instead of deploy it again
 let factory;
 let router;
 let tokenAddresses;
@@ -24,26 +25,44 @@ let smartChefFactory;
 let mintNotifier;
 let vaultLocked;
 
+let wethAddress;
+let busdAddress;
+let cakeAddress;
+
+let CURRENT_BLOCK;
+let masterChefStartBlock
+
+// Addresses
+let DEV_ADDRESS = null;
+let DEV_TREASURY = null;
+let DEPLOYER_ADDRESS = null;
+
 const TOKEN_DECIMALS = 18;
 const BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER = BigNumber.from(10).pow(TOKEN_DECIMALS);
-const NATIVE_TOKEN_PER_BLOCK = BigNumber.from(40).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+const NATIVE_TOKEN_PER_BLOCK = BigNumber.from(125).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
 const VAULT_LOCKED_MIN_BNB_TO_DISTRIBUTE = bep20Amount(1); // 1 BNB
-const VAULT_LOCKED_MIN_GLOBAL_TO_DISTRIBUTE = bep20Amount(1); // 1 BNB
+const VAULT_LOCKED_MIN_GLOBAL_TO_DISTRIBUTE = bep20Amount(5000); // 5000 GLB
 const VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL = timestampNHours(12); // 12h, Hours to distribute Globals from last distribution event.
 
 async function main() {
     [owner, ...addrs] = await hre.ethers.getSigners();
 
-    const CURRENT_BLOCK = await ethers.provider.getBlockNumber();
+    CURRENT_BLOCK = await ethers.provider.getBlockNumber();
     console.log("Current block is:", CURRENT_BLOCK);
 
     // Setup
-    const wethAddress = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
-    const busdAddress = "0xe9e7cea3dedca5984780bafc599bd69add087d56";
-    const cakeAddress = "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82";
+    // TODO change to real dev address in mainet
+    DEV_ADDRESS = owner.address;
 
-    const feeSetterAddress = owner.address;
-    const masterChefStartBlock = CURRENT_BLOCK + 1;
+    // TODO: canviar en deploy real
+    DEV_TREASURY = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63";
+
+    wethAddress = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
+    busdAddress = "0xe9e7cea3dedca5984780bafc599bd69add087d56";
+    cakeAddress = "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82";
+
+    const feeSetterAddress = DEV_ADDRESS;
+    masterChefStartBlock = CURRENT_BLOCK + 1;
 
     // Deploy
     // TODO native token only for mainet testing purposes
@@ -54,8 +73,12 @@ async function main() {
     await globalToken.connect(owner).mint(BigNumber.from(1000000).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
     console.log("Minted 1000000 globals to owner:", owner.address);
 
+    // TODO: deploy router and factory en un primer pas per afegir liquidesa i validar
     factory = await deployFactory(feeSetterAddress);
     console.log("Factory deployed to:", factory.address);
+
+    await factory.setFeeTo(DEV_TREASURY);
+    console.log("FeeTo from factory set to treasury:", DEV_TREASURY);
 
     router = await deployRouter(factory.address, wethAddress);
     console.log("Router deployed to:", router.address);
@@ -113,10 +136,6 @@ async function main() {
     //await globalToken.transferOwnership(masterChef.address);
     //console.log("Global ownership to masterchef:", masterChef.address);
 
-    mintNotifier = await deployMintNotifier();
-    console.log("Deployed mint notifier: ", mintNotifier.address);
-    await masterChef.setMintNotifier(mintNotifier.address);
-
     vaultLocked = await deployVaultLocked(
         globalToken.address,
         wethAddress,
@@ -124,7 +143,8 @@ async function main() {
         VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL
     );
 
-    setUpVaultLocked(owner);
+    await setUpVaultLocked(owner);
+    await setUpPools(owner);
 
     console.log("Current block is:", CURRENT_BLOCK);
 }
@@ -142,6 +162,46 @@ let setUpVaultLocked = async function (owner) {
     console.log("Reward interval set to:", VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL.toString());
 
     console.log("-- Vault locked set up done");
+}
+
+let setUpPools = async function (owner) {
+    console.log("-- Pools set up start");
+
+    // TODO comptar cuanta pasta i quina emisió
+    smartChefFactory.deployPool(
+        globalToken.address,
+        wethAddress.address,
+        BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        CURRENT_BLOCK,
+        CURRENT_BLOCK + 28800 * 30,
+        BigNumber.from(300).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        DEV_ADDRESS
+    );
+    console.log("SmartChef created for GLB - BNB on:", smartChefFactory.address);
+
+    smartChefFactory.deployPool(
+        globalToken.address,
+        busdAddress.address,
+        BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        CURRENT_BLOCK,
+        CURRENT_BLOCK + 28800 * 30,
+        BigNumber.from(300).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        DEV_ADDRESS
+    );
+    console.log("SmartChef created for GLB - BUSD on:", smartChefFactory.address);
+
+    smartChefFactory.deployPool(
+        globalToken.address,
+        cakeAddress.address,
+        BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        CURRENT_BLOCK,
+        CURRENT_BLOCK + 28800 * 30,
+        BigNumber.from(300).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        DEV_ADDRESS
+    );
+    console.log("SmartChef created for GLB - CAKE on:", smartChefFactory.address);
+
+    console.log("-- Pools set up done");
 }
 
 // We recommend this pattern to be able to use async/await everywhere
