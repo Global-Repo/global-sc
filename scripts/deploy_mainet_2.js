@@ -10,6 +10,7 @@ const {
     deployPathFinder,
     deployMintNotifier,
     deploySmartChefFactory,
+    deployVaultLocked,
 } = require("../test/helpers/singleDeploys.js");
 
 let globalToken;
@@ -21,10 +22,14 @@ let masterChefInternal;
 let masterChef;
 let smartChefFactory;
 let mintNotifier;
+let vaultLocked;
 
 const TOKEN_DECIMALS = 18;
 const BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER = BigNumber.from(10).pow(TOKEN_DECIMALS);
 const NATIVE_TOKEN_PER_BLOCK = BigNumber.from(40).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+const VAULT_LOCKED_MIN_BNB_TO_DISTRIBUTE = bep20Amount(1); // 1 BNB
+const VAULT_LOCKED_MIN_GLOBAL_TO_DISTRIBUTE = bep20Amount(1); // 1 BNB
+const VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL = timestampNHours(12); // 12h, Hours to distribute Globals from last distribution event.
 
 async function main() {
     [owner, ...addrs] = await hre.ethers.getSigners();
@@ -112,7 +117,31 @@ async function main() {
     console.log("Deployed mint notifier: ", mintNotifier.address);
     await masterChef.setMintNotifier(mintNotifier.address);
 
+    vaultLocked = await deployVaultLocked(
+        globalToken.address,
+        wethAddress,
+        masterChef.address,
+        VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL
+    );
+
+    setUpVaultLocked(owner);
+
     console.log("Current block is:", CURRENT_BLOCK);
+}
+
+let setUpVaultLocked = async function (owner) {
+    console.log("-- Vault locked set up start");
+
+    await vaultLocked.connect(owner).setMinTokenAmountToDistribute(VAULT_LOCKED_MIN_BNB_TO_DISTRIBUTE);
+    console.log("Min BNB to distribute set to:", VAULT_LOCKED_MIN_BNB_TO_DISTRIBUTE.toString());
+
+    await vaultLocked.connect(owner).setMinGlobalAmountToDistribute(VAULT_LOCKED_MIN_GLOBAL_TO_DISTRIBUTE);
+    console.log("Min Global to distribute set to:", VAULT_LOCKED_MIN_GLOBAL_TO_DISTRIBUTE.toString());
+
+    await vaultLocked.connect(owner).setRewardInterval(VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL);
+    console.log("Reward interval set to:", VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL.toString());
+
+    console.log("-- Vault locked set up done");
 }
 
 // We recommend this pattern to be able to use async/await everywhere
