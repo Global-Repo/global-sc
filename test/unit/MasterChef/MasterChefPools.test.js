@@ -794,14 +794,16 @@ describe("MasterChef: Deposit", function () {
     let addr1lp_fees = BigNumber.from(addr1_lp_pool_deposit).mul(LPfees).mul(2).div(10000);
     let addr1lp_balance_minus_fees = BigNumber.from(addr1_lp_pool_deposit).sub(addr1lp_fees);
 
-    expect(await masterChef.connect(addr1).emergencyWithdraw(1)).to.emit(masterChef, 'EmergencyWithdraw');
-
-    //await expect(masterChef.connect(addr1).emergencyWithdraw(1)).to.emit(masterChef, 'EmergencyWithdraw')
-    //    .withArgs(addr1.address, 1, addr1_lp_pool_deposit, addr1lp_balance_minus_fees);
+    //expect(await masterChef.connect(addr1).emergencyWithdraw(1)).to.emit(masterChef, 'EmergencyWithdraw');
+    expect(await masterChef.connect(addr1).emergencyWithdraw(1)).to.emit(masterChef, 'EmergencyWithdraw')
+        .withArgs(addr1.address, 1, addr1_lp_pool_deposit, addr1lp_balance_minus_fees);
+    console.log("addr1_lp_pool_deposit: ", addr1_lp_pool_deposit);
+    console.log("addr1lp_balance_minus_fees: ", addr1lp_balance_minus_fees.toString());
+    console.log("LPsOfTreasury: ", (await pair.balanceOf(owner.address)).toString());
 
     // Addr1 removes the LPs inside the pool with the emergency withdraw.
     // Since fees in the MC were 40, 40, we apply a 0.8% fees over the total deposited
-    /*
+
     addr1_balancepair = await pair.balanceOf(addr1.address);
     console.log('addr1 balancepair after emergencywithdraw dels 1000000 LPs de la pool:', addr1_balancepair.toString());
     console.log('Lps deposited in MC per addr1 after withdraw of 1000000 LPs:', ((await masterChef.userInfo(1,addr1.address)).amount).toString());
@@ -812,7 +814,7 @@ describe("MasterChef: Deposit", function () {
     expect((await masterChef.userInfo(1,addr1.address)).nextHarvestUntil).to.equal(0);
     expect((await masterChef.userInfo(1,addr1.address)).withdrawalOrPerformanceFees).to.equal(0);
 
-     */
+
   });
 
 
