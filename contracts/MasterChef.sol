@@ -620,12 +620,6 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
 
         if (finalAmount != _amount)
         {
-            // Fins aquí hem acabat la gestió de l'user. Ara gestionem la comissió. Tenim un LP. El volem desfer i enviar-lo a BURN i a OPERATIONS
-            // Això s'ha de testejar bé perque és molt fàcil que hi hagin errors
-            // Si el router no té permís perque address(this) es gasti els tokens, li donem permís
-            if (IBEP20(pool.lpToken).allowance(address(this), address(routerGlobal)) == 0) {
-                IBEP20(pool.lpToken).safeApprove(address(routerGlobal), uint(- 1));
-            }
 
             IBEP20(pool.lpToken).safeTransfer(treasuryLP, _amount.mul(pool.withDrawalFeeOfLpsBurn.add(pool.withDrawalFeeOfLpsTeam)).div(10000));
             // Fem remove liquidity del LP i rebrem els dos tokens
