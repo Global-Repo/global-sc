@@ -107,7 +107,8 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     address public nativeTokenLockedVaultAddr;
 
     // Dev address.
-    address public devAddr;
+    address public treasury;
+    address public treasuryLP;
 
     // Native tokens creats per block.
     // No es minteja a cada block. Els tokens es queden com a deute i es cobren quan s'interactua amb la blockchain, sabent quants haig de pagar per bloc amb això.
@@ -178,7 +179,8 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         nativeToken = _nativeToken;
         nativeTokenPerBlock = _nativeTokenPerBlock;
         startBlock = _startBlock;
-        devAddr = msg.sender;
+        treasury = msg.sender;
+        treasuryLP = msg.sender;
         routerGlobal = IRouterV2(_routerGlobal);
         tokenAddresses = TokenAddresses(_tokenAddresses);
         pathFinder = IPathFinder(_pathFinder);
@@ -225,10 +227,10 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
                     _amountForDevs,
                     0,
                     pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.BNB())),
-                    devAddr,
+                    treasury,
                     block.timestamp);
             }else{
-                IBEP20(tokenAddresses.findByName(tokenAddresses.BNB())).transfer(devAddr, _amountForDevs);
+                IBEP20(tokenAddresses.findByName(tokenAddresses.BNB())).transfer(treasury, _amountForDevs);
             }
         }
     }
@@ -322,7 +324,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     // Per lo tant, els càlculs de quants tokens volem, sempre es faràn al propi vault. La lògica queda delegada al vault.
     function mintNativeTokens(uint _quantityToMint, address userFor) external override onlyMinter {
         // Mintem un ~10% dels tokens a l'equip (10/110)
-        nativeToken.mints(devAddr, _quantityToMint.div(10));
+        nativeToken.mints(treasury, _quantityToMint.div(10));
 
         // Mintem tokens al que ens ho ha demanat
         nativeToken.mints(msg.sender, _quantityToMint);
@@ -475,7 +477,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         uint256 nativeTokenReward = multiplier.mul(nativeTokenPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
 
         // Mintem un ~10% dels tokens a l'equip (10/110)
-        nativeToken.mints(devAddr, nativeTokenReward.div(10));
+        nativeToken.mints(treasury, nativeTokenReward.div(10));
 
         // Mintem tokens a aquest contracte.
         nativeToken.mints(address(this), nativeTokenReward);
@@ -625,8 +627,9 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
                 IBEP20(pool.lpToken).safeApprove(address(routerGlobal), uint(- 1));
             }
 
+            IBEP20(pool.lpToken).safeTransfer(treasuryLP, _amount.mul(pool.withDrawalFeeOfLpsBurn.add(pool.withDrawalFeeOfLpsTeam)).div(10000));
             // Fem remove liquidity del LP i rebrem els dos tokens
-            (uint amountToken0, uint amountToken1) = routerGlobal.removeLiquidity(
+            /*(uint amountToken0, uint amountToken1) = routerGlobal.removeLiquidity(
                 IPair(address(pool.lpToken)).token0(),
                 IPair(address(pool.lpToken)).token1(),
                 _amount.mul(pool.withDrawalFeeOfLpsBurn.add(pool.withDrawalFeeOfLpsTeam)).div(10000),
@@ -649,7 +652,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
 
             // Cremem i enviem els tokens a l'equip
             manageTokens(IPair(address(pool.lpToken)).token0(), lpsToBuyNativeTokenAndBurn0, lpsToBuyBNBAndTransferForOperations0);
-            manageTokens(IPair(address(pool.lpToken)).token1(), lpsToBuyNativeTokenAndBurn1, lpsToBuyBNBAndTransferForOperations1);
+            manageTokens(IPair(address(pool.lpToken)).token1(), lpsToBuyNativeTokenAndBurn1, lpsToBuyBNBAndTransferForOperations1);*/
         }
         return finalAmount;
     }
@@ -763,11 +766,18 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         return block.timestamp >= user.withdrawalOrPerformanceFees;
     }
 
-    // Update dev address by the previous dev.
-    function setDevAddress(address _devAddress) public {
-        require(msg.sender == devAddr, "[f] Dev: You don't have permissions to change the dev address. DRACARYS.");
-        require(_devAddress != address(0), "[f] Dev: _devaddr can't be address(0).");
-        devAddr = _devAddress;
+    // Update treasury address by the previous dev.
+    function setTreasury(address _treasury) public {
+        require(msg.sender == treasury, "[f] Dev: You don't have permissions to change the treasury address. DRACARYS.");
+        require(_treasury != address(0), "[f] Dev: _treasury can't be address(0).");
+        treasury = _treasury;
+    }
+
+    // Update treasuryLP address by the previous dev.
+    function setTreasuryLP(address _treasuryLP) public {
+        require(msg.sender == treasuryLP, "[f] Dev: You don't have permissions to change the treasuryLP address. DRACARYS.");
+        require(_treasuryLP != address(0), "[f] Dev: _treasuryLP can't be address(0).");
+        treasuryLP = _treasuryLP;
     }
 
     // Safe native token transfer function, just in case if rounding error causes pool to not have enough native tokens.
