@@ -49,7 +49,6 @@ var afegirPool = async function (token0, token1, liquidity, allocPointMCpool=100
       allocPointMCpool,
       pairaddr,
       _harvestInterval,
-      true,
       _maxWithdrawalInterval,
       _withDrawalFeeOfLps,
       _withDrawalFeeOfLps,
@@ -166,7 +165,6 @@ describe("MasterChef: Pools", function () {
         100,
         pairAddress,
         DAY_IN_SECONDS * 3,
-        false,
         DAY_IN_SECONDS * 3,
         50,
         50,
@@ -251,7 +249,6 @@ describe("MasterChef: Pools", function () {
     await masterChef.setPool(1,
         allocPointMCpool2,
         harvestInterval2,
-        true,
         maxWithdrawalInterval2,
         withDrawalFeeOfLps2,
         withDrawalFeeOfLps2,
@@ -319,22 +316,22 @@ describe("MasterChef: Pools", function () {
     //)).to.be.revertedWith("[f] Add: invalid harvest interval");
 
     //  require(_harvestInterval <= MAX_INTERVAL, "[f] Add: invalid harvest interval");
-    await expect(masterChef.addPool(100, pairAddress, (await masterChef.MAX_INTERVAL())+1, true, DAY_IN_SECONDS * 3,
+    await expect(masterChef.addPool(100, pairAddress, (await masterChef.MAX_INTERVAL())+1, DAY_IN_SECONDS * 3,
         0, 0, 0, 0
     )).to.be.revertedWith("[f] Add: invalid harvest interval");
 
     //require(_maxWithdrawalInterval <= MAX_INTERVAL, "[f] Add: invalid withdrawal interval. Owner, there is a limit! Check your numbers.");
-    await expect(masterChef.addPool(100, pairAddress, 0, true, (await masterChef.MAX_INTERVAL())+1,
+    await expect(masterChef.addPool(100, pairAddress, 0, (await masterChef.MAX_INTERVAL())+1,
         0, 0, 0, 0
     )).to.be.revertedWith("[f] Add: invalid withdrawal interval. Owner, there is a limit! Check your numbers.");
 
     //require(_withDrawalFeeOfLpsTeam.add(_withDrawalFeeOfLpsBurn) <= MAX_FEE_LPS, "[f] Add: invalid withdrawal fees. Owner, you are trying to charge way too much! Check your numbers.");
-    await expect(masterChef.addPool(100, pairAddress, 0, true, DAY_IN_SECONDS * 3,
+    await expect(masterChef.addPool(100, pairAddress, 0, DAY_IN_SECONDS * 3,
         (await masterChef.MAX_FEE_LPS())/2, (await masterChef.MAX_FEE_LPS())/2+1, 0, 0
     )).to.be.revertedWith("[f] Add: invalid withdrawal fees. Owner, you are trying to charge way too much! Check your numbers.");
 
     //require(_performanceFeesOfNativeTokensBurn.add(_performanceFeesOfNativeTokensToLockedVault) <= MAX_FEE_PERFORMANCE, "[f] Add: invalid performance fees. Owner, you are trying to charge way too much! Check your numbers.");
-    await expect(masterChef.addPool(100, pairAddress, 0, true, DAY_IN_SECONDS * 3,
+    await expect(masterChef.addPool(100, pairAddress, 0, DAY_IN_SECONDS * 3,
         0, 0, (await masterChef.MAX_FEE_PERFORMANCE())/2, (await masterChef.MAX_FEE_PERFORMANCE())/2+1
     )).to.be.revertedWith("[f] Add: invalid performance fees. Owner, you are trying to charge way too much! Check your numbers.");
 
@@ -358,7 +355,7 @@ describe("MasterChef: Pools", function () {
     const pairAddress2 = await factory.getPair(tokenA.address, nativeToken.address);
 
     //require(CheckTokensRoutes(_lpToken), "[f] Add: token/s not connected to WBNB");
-    await expect(masterChef.addPool(100, pairAddress2, 0, true, DAY_IN_SECONDS * 3,
+    await expect(masterChef.addPool(100, pairAddress2, 0, DAY_IN_SECONDS * 3,
         0, 0, 0, 0
     )).to.be.revertedWith("[f] Add: token/s not connected to WBNB");
 
@@ -382,7 +379,6 @@ describe("MasterChef: Pools", function () {
         100,
         pair3.address,
         0,
-        true,
         DAY_IN_SECONDS * 3,
         0,
         0,
@@ -392,7 +388,7 @@ describe("MasterChef: Pools", function () {
     expect (await masterChef.poolLength()).to.equal(2);
 
     //ara amb la nove pool hauriem de tenir path fins a weth
-    await masterChef.addPool(100, pairAddress2, 0, true, DAY_IN_SECONDS * 3,
+    await masterChef.addPool(100, pairAddress2, 0, DAY_IN_SECONDS * 3,
         0, 0, 0, 0
     );
     expect (await masterChef.poolLength()).to.equal(3);
@@ -423,7 +419,6 @@ describe("MasterChef: Pools", function () {
         100,
         pairAddress,
         0,
-        true,
         DAY_IN_SECONDS * 3,
         0,
         0,
@@ -432,22 +427,22 @@ describe("MasterChef: Pools", function () {
     );
 
     //require(_harvestInterval <= MAX_INTERVAL, "[f] Set: invalid harvest interval");
-    await expect(masterChef.setPool(1, 100, (await masterChef.MAX_INTERVAL())+1, true, DAY_IN_SECONDS * 3,
+    await expect(masterChef.setPool(1, 100, (await masterChef.MAX_INTERVAL())+1, DAY_IN_SECONDS * 3,
         0, 0, 0, 0
     )).to.be.revertedWith("[f] Set: invalid harvest interval");
 
     //require(_maxWithdrawalInterval <= MAX_INTERVAL, "[f] Set: invalid withdrawal interval. Owner, there is a limit! Check your numbers.");
-    await expect(masterChef.setPool(1, 100, 0, true, (await masterChef.MAX_INTERVAL())+1,
+    await expect(masterChef.setPool(1, 100, 0, (await masterChef.MAX_INTERVAL())+1,
         0, 0, 0, 0
     )).to.be.revertedWith("[f] Set: invalid withdrawal interval. Owner, there is a limit! Check your numbers.");
 
     //require(_withDrawalFeeOfLpsTeam.add(_withDrawalFeeOfLpsBurn) <= MAX_FEE_LPS, "[f] Set: invalid withdrawal fees. Owner, you are trying to charge way too much! Check your numbers.");
-    await expect(masterChef.setPool(1, 100, 0, true, DAY_IN_SECONDS * 3,
+    await expect(masterChef.setPool(1, 100, 0, DAY_IN_SECONDS * 3,
         (await masterChef.MAX_FEE_LPS())/2, (await masterChef.MAX_FEE_LPS())/2+1, 0, 0
     )).to.be.revertedWith("[f] Set: invalid withdrawal fees. Owner, you are trying to charge way too much! Check your numbers.");
 
     //require(_performanceFeesOfNativeTokensBurn.add(_performanceFeesOfNativeTokensToLockedVault) <= MAX_FEE_PERFORMANCE, "[f] Set: invalid performance fees. Owner, you are trying to charge way too much! Check your numbers.");
-    await expect(masterChef.setPool(1, 100, 0, true, DAY_IN_SECONDS * 3,
+    await expect(masterChef.setPool(1, 100, 0, DAY_IN_SECONDS * 3,
         0, 0, (await masterChef.MAX_FEE_PERFORMANCE())/2, (await masterChef.MAX_FEE_PERFORMANCE())/2+1
     )).to.be.revertedWith("[f] Set: invalid performance fees. Owner, you are trying to charge way too much! Check your numbers.");
   });
@@ -477,7 +472,6 @@ describe("MasterChef: Pools", function () {
         100,
         pairAddress,
         0,
-        true,
         DAY_IN_SECONDS * 3,
         0,
         0,
@@ -568,7 +562,6 @@ describe("MasterChef: Deposit", function () {
         100,
         pairA.address,
         0,
-        false,
         DAY_IN_SECONDS * 3,
         0,
         0,
@@ -579,7 +572,6 @@ describe("MasterChef: Deposit", function () {
         100,
         pairB.address,
         0,
-        false,
         DAY_IN_SECONDS * 3,
         0,
         0,
@@ -630,7 +622,6 @@ describe("MasterChef: Deposit", function () {
         100,
         pair.address,
         DAY_IN_SECONDS,       //harvestinterval, cada quant pots fer claim rewards. Si no ha passat el harvest interval no pots fer claim
-        true,                 //update les dades de totes les pools quan fas update de la pool
         DAY_IN_SECONDS * 3,   //abans de tres dies cobraras fees sobre el diposit, a partir de 3 dies cobres fees sobre els rewards
         40, //a: sobre 10000
         40, //b: sobre 10000
@@ -695,7 +686,6 @@ describe("MasterChef: Deposit", function () {
         100,
         pair.address,
         DAY_IN_SECONDS,
-        true,
         DAY_IN_SECONDS * 3,
         40,
         40,
@@ -761,7 +751,6 @@ describe("MasterChef: Deposit", function () {
         100,
         pair.address,
         DAY_IN_SECONDS,
-        true,
         DAY_IN_SECONDS * 3,
         LPfees,
         LPfees,
@@ -847,7 +836,6 @@ describe("MasterChef: Deposit", function () {
         100,
         pair.address,
         DAY_IN_SECONDS,
-        true,
         DAY_IN_SECONDS * 3,
         LPfees,
         LPfees,
@@ -917,7 +905,6 @@ describe("MasterChef: Deposit", function () {
         100,
         pairAddress,
         0,    //harvestinterval, cada quant pots fer claim rewards. Si no ha passat el harvest interval no pots fer claim
-        true, //update les dades de totes les pools quan fas update de la pool
         DAY_IN_SECONDS * 3,   //abans de tres dies cobraras fees sobre el diposit, a partir de 3 dies cobres fees sobre els rewards
         0, //a: sobre 10000
         0, //b: sobre 10000
@@ -989,7 +976,6 @@ describe("MasterChef: Deposit", function () {
         100,
         pairAddress,
         0,
-        true,
         DAY_IN_SECONDS * 3,
         0,
         0,
@@ -1048,7 +1034,6 @@ describe("MasterChef: Deposit", function () {
     await masterChef.setPool(1,
         100,
         3600,
-        true,
         DAY_IN_SECONDS * 3,
         0,
         0,

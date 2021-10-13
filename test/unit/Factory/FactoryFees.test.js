@@ -132,7 +132,6 @@ describe("Factory: Fees", function () {
             100,
             pairAddress,
             DAY_IN_SECONDS * 3,
-            false,
             DAY_IN_SECONDS * 3,
             50,
             50,

@@ -317,7 +317,6 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         uint256 _allocPoint,
         IBEP20 _lpToken,
         uint256 _harvestInterval,
-        bool _withUpdate,
         uint256 _maxWithdrawalInterval,
         uint16 _withDrawalFeeOfLpsBurn,
         uint16 _withDrawalFeeOfLpsTeam,
@@ -330,9 +329,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         require(_performanceFeesOfNativeTokensBurn.add(_performanceFeesOfNativeTokensToLockedVault) <= MAX_FEE_PERFORMANCE, "[f] Add: invalid performance fees. Owner, you are trying to charge way too much! Check your numbers.");
         require(masterChefInternal.checkTokensRoutes(_lpToken), "[f] Add: token/s not connected to WBNB");
 
-        if (_withUpdate) {
-            massUpdatePools();
-        }
+        massUpdatePools();
 
         uint256 lastRewardBlock = block.number > startBlock ? block.number : startBlock;
         totalAllocPoint = totalAllocPoint.add(_allocPoint);
@@ -357,7 +354,6 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         uint256 _pid,
         uint256 _allocPoint,
         uint256 _harvestInterval,
-        bool _withUpdate,
         uint256 _maxWithdrawalInterval,
         uint16 _withDrawalFeeOfLpsBurn,
         uint16 _withDrawalFeeOfLpsTeam,
@@ -369,9 +365,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         require(_withDrawalFeeOfLpsTeam.add(_withDrawalFeeOfLpsBurn) <= MAX_FEE_LPS, "[f] Set: invalid withdrawal fees. Owner, you are trying to charge way too much! Check your numbers.");
         require(_performanceFeesOfNativeTokensBurn.add(_performanceFeesOfNativeTokensToLockedVault) <= MAX_FEE_PERFORMANCE, "[f] Set: invalid performance fees. Owner, you are trying to charge way too much! Check your numbers.");
 
-        if (_withUpdate) {
-            massUpdatePools();
-        }
+        massUpdatePools();
 
         totalAllocPoint = totalAllocPoint.sub(poolInfo[_pid].allocPoint).add(_allocPoint);
         poolInfo[_pid].allocPoint = _allocPoint;

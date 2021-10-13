@@ -40,7 +40,6 @@ var afegirPool = async function (token0, token1)
       BigNumber.from(40).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
       await factory.getPair(token0.address, token1.address),
       DAY_IN_SECONDS * 3,
-      false,
       DAY_IN_SECONDS * 3,
       50,
       50,
