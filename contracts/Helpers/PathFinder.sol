@@ -7,10 +7,10 @@ import '../Modifiers/Ownable.sol';
 import './TokenAddresses.sol';
 
 contract PathFinder is IPathFinder, Ownable {
-    TokenAddresses private tokenAddresses;
+    TokenAddresses public tokenAddresses;
 
     // relació de cada token amb el token que li fa d'intermediari per arribar a WBNB
-    mapping (address => RouteInfo) private routeInfos;
+    mapping (address => RouteInfo) public routeInfos;
 
     struct RouteInfo {
         bool directBNB;
