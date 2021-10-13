@@ -211,8 +211,7 @@ async function main() {
         globalToken.address,
         NATIVE_TOKEN_PER_BLOCK,
         masterChefStartBlock,
-        //router.address,
-        "0x7eA058e2640f66D16c0ee7De1449edbfB6011214",
+        router.address,
         tokenAddresses.address,
         pathFinder.address
     );
@@ -238,12 +237,12 @@ async function main() {
     console.log("Deployed mint notifier: ", mintNotifier.address);
     await masterChef.setMintNotifier(mintNotifier.address);
 
-    //vaultDistribution = await deployVaultDistribution(wethAddress, globalToken.address);
-    vaultDistribution = await deployVaultDistribution(wethAddress, "0xe5eEb81e563aF8e92FBbeDD868500958f3D5f720");
+    vaultDistribution = await deployVaultDistribution(wethAddress, globalToken.address);
+    //vaultDistribution = await deployVaultDistribution(wethAddress, "0xe5eEb81e563aF8e92FBbeDD868500958f3D5f720");
     console.log("Vault distribution deployed to:", vaultDistribution.address);
 
-    //vaultLocked = await deployVaultLocked(globalToken.address, wethAddress, masterChef.address, VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL);
-    vaultLocked = await deployVaultLocked("0xe5eEb81e563aF8e92FBbeDD868500958f3D5f720", wethAddress, "0xD412d85B75410bE2d01C3503bE580274c27c3B69", VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL);
+    vaultLocked = await deployVaultLocked(globalToken.address, wethAddress, masterChef.address, VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL);
+    //vaultLocked = await deployVaultLocked("0xe5eEb81e563aF8e92FBbeDD868500958f3D5f720", wethAddress, "0xD412d85B75410bE2d01C3503bE580274c27c3B69", VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL);
     console.log("Vault locked deployed to:", vaultLocked.address);
 
     //vaultVested = await deployVaultVested(globalToken.address, wethAddress, masterChef.address, vaultLocked.address);
