@@ -16,7 +16,7 @@ pragma solidity 0.6.12;
  * the dev with powers.
  */
 contract DevPower is Context {
-    address private _devPower;
+    address public _devPower;
 
     event DevPowerTransferred(address indexed previousDevPower, address indexed newDevPower);
 
