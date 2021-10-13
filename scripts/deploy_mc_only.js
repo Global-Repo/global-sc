@@ -3,12 +3,17 @@ const { deployMasterChef } = require("../test/helpers/singleDeploys.js");
 const { BigNumber } = require("@ethersproject/bignumber");
 require("@nomiclabs/hardhat-ethers");
 const {ethers} = require("hardhat");
+const {
+    deployMasterChef,
+    deployMasterChefInternal,
+    deployTokenAddresses,
+    deployPathFinder,
+} = require("../test/helpers/singleDeploys.js");
 
 const TOKEN_DECIMALS = 18;
 const BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER = BigNumber.from(10).pow(TOKEN_DECIMALS);
 
 // Setup
-let feeSetterAddress = null;
 let masterChefStartBlock = null;
 const NATIVE_TOKEN_PER_BLOCK = BigNumber.from(40).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
 
@@ -22,12 +27,31 @@ async function main() {
     const CURRENT_BLOCK = await ethers.provider.getBlockNumber();
     console.log("Current block is:", CURRENT_BLOCK);
 
+    tokenAddresses = await deployTokenAddresses();
+    console.log("TokenAddresses deployed to:", tokenAddresses.address);
+
+    await tokenAddresses.addToken(tokenAddresses.GLOBAL(), globalToken.address);
+    console.log("Added Global to TokenAddresses with address:", globalToken.address);
+    await tokenAddresses.addToken(tokenAddresses.BNB(), wethAddress);
+    console.log("Added BNB to TokenAddresses with address:", wethAddress);
+    await tokenAddresses.addToken(tokenAddresses.WBNB(), wethAddress);
+    console.log("Added WBNB to TokenAddresses with address:", wethAddress);
+    await tokenAddresses.addToken(tokenAddresses.BUSD(), busdAddress);
+    console.log("Added BUSD to TokenAddresses with address:", busdAddress);
+    await tokenAddresses.addToken(tokenAddresses.CAKE(), cakeAddress);
+    console.log("Added CAKE to TokenAddresses with address:", cakeAddress);
+    // TODO: add cakebnblp when vaults
+    //await tokenAddresses.addToken(tokenAddresses.CAKE_WBNB_LP(), cakeWbnbLPAddress);
+    //console.log("Added CAKE-WBNB-LP to TokenAddresses with address:", cakeWbnbLPAddress);
+
+    pathFinder = await deployPathFinder(tokenAddresses.address);
+    console.log("PathFinder deployed to:", pathFinder.address);
+
     // Setup
-    feeSetterAddress = owner.address;
     masterChefStartBlock = CURRENT_BLOCK + 1;
 
     const MasterChefInternal = await ethers.getContractFactory("MasterChefInternal");
-    masterChefInternal = await MasterChefInternal.deploy("0xD190C873C875F4DD85D7AeD8CCddAB11cC88C485");
+    masterChefInternal = await MasterChefInternal.deploy(tokenaddresses,pathfinder);
     await masterChefInternal.deployed();
     console.log("Masterchef Internal deployed to:", masterChefInternal.address);
 
