@@ -217,6 +217,7 @@ contract SmartChef is Ownable, ReentrancyGuard {
      * @dev Only callable by owner
      */
     function stopReward() external onlyOwner {
+        require(bonusEndBlock > block.number, "Can't be stopped");
         bonusEndBlock = block.number;
     }
 
