@@ -101,7 +101,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     TokenAddresses public tokenAddresses;
 
     // En cas d'exploit, deixem sortir a la gent per l'emergency sense pagar LP fees. Not safu = no LPs fees in emergencywithdraw
-    public bool safu = true;
+    bool safu = true;
 
     // Vault where locked tokens are
     address public nativeTokenLockedVaultAddr;
