@@ -34,15 +34,6 @@ contract Trusted is Context, Ownable {
     }
 
     /**
-     * @dev Throws if called by any account that's not human and not whitelisted.
-     */
-    modifier onlyHumanOrWhitelisted() {
-        require(whitelist[msg.sender] || (msg.sender == tx.origin && !isContract(msg.sender)), 'You are not trusted: you are not human and not in the whitelist');
-        _;
-    }
-
-
-    /**
      * @dev checks address extcodesize
      * @param account address
      * @return success true if the size is bigger than 0,
@@ -63,7 +54,7 @@ contract Trusted is Context, Ownable {
      * @dev Throws if called by any account that's not whitelisted.
      */
     modifier onlyWhitelistedOrHuman() {
-        require(whitelist[msg.sender]);
+        require(whitelist[msg.sender] || (msg.sender == tx.origin && !isContract(msg.sender)), 'You are not trusted: you are not human and not in the whitelist');
         _;
     }
 
