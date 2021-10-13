@@ -88,6 +88,7 @@ contract SmartChef is Ownable, ReentrancyGuard {
     ) external {
         require(!isInitialized, "Already initialized");
         require(msg.sender == SMART_CHEF_FACTORY, "Not factory");
+        require(_startBlock < _bonusEndBlock, "Start block must be before than bonus end block");
 
         // Make this contract initialized
         isInitialized = true;
@@ -216,6 +217,7 @@ contract SmartChef is Ownable, ReentrancyGuard {
      * @dev Only callable by owner
      */
     function stopReward() external onlyOwner {
+        require(bonusEndBlock > block.number, "Can't be stopped");
         bonusEndBlock = block.number;
     }
 
@@ -314,12 +316,10 @@ contract SmartChef is Ownable, ReentrancyGuard {
      * @param _to: block to finish
      */
     function _getMultiplier(uint256 _from, uint256 _to) internal view returns (uint256) {
-        if (_to <= bonusEndBlock) {
-            return _to.sub(_from);
-        } else if (_from >= bonusEndBlock) {
-            return 0;
-        } else {
-            return bonusEndBlock.sub(_from);
-        }
+        if (_from > startBlock && _to < bonusEndBlock) return _to.sub(_from);
+        if (_from <= startBlock && _to >= bonusEndBlock) return bonusEndBlock.sub(startBlock);
+        if (_from > startBlock && _from < bonusEndBlock && _to >= bonusEndBlock) return bonusEndBlock.sub(_from);
+        if (_to > startBlock && _to < bonusEndBlock && _from <= startBlock) return _to.sub(startBlock);
+        else return 0;
     }
 }
