@@ -383,6 +383,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
 
     // View function to see pending native tokens on frontend.
     function pendingNativeToken(uint256 _pid, address _user) external view returns (uint256) {
+        if (_pid == 0) return 0;
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
         uint256 accNativeTokenPerShare = pool.accNativeTokenPerShare;
@@ -419,6 +420,9 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     // Actualitzem accNativeTokenPerShare i el número de tokens a mintar per cada bloc
     // Això, en principi només per LP, no per l'optimiser
     function updatePool(uint256 _pid) public {
+        // We do not want to update pool 0
+        if (_pid == 0) return;
+
         PoolInfo storage pool = poolInfo[_pid];
 
         // Si ja tenim la data actualitzada fins l'últim block, no cal fer res més
