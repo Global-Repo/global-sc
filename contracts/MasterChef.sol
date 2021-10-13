@@ -166,6 +166,12 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     event EmissionRateUpdated(address indexed caller, uint256 previousAmount, uint256 newAmount);
     event RewardLockedUp(address indexed user, uint256 indexed pid, uint256 amountLockedUp);
 
+    mapping(IBEP20 => bool) public poolExistence;
+    modifier nonDuplicated(IBEP20 _lpToken) {
+        require(poolExistence[_lpToken] == false, "nonDuplicated: duplicated");
+        _;
+    }
+
     constructor(
         address _masterChefInternal,
         NativeToken _nativeToken,
@@ -317,7 +323,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         uint16 _withDrawalFeeOfLpsTeam,
         uint16 _performanceFeesOfNativeTokensBurn,
         uint16 _performanceFeesOfNativeTokensToLockedVault
-    ) public onlyOwner {
+    ) public onlyOwner nonDuplicated(_lpToken) {
         require(_harvestInterval <= MAX_INTERVAL, "[f] Add: invalid harvest interval");
         require(_maxWithdrawalInterval <= MAX_INTERVAL, "[f] Add: invalid withdrawal interval. Owner, there is a limit! Check your numbers.");
         require(_withDrawalFeeOfLpsTeam.add(_withDrawalFeeOfLpsBurn) <= MAX_FEE_LPS, "[f] Add: invalid withdrawal fees. Owner, you are trying to charge way too much! Check your numbers.");
@@ -330,6 +336,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
 
         uint256 lastRewardBlock = block.number > startBlock ? block.number : startBlock;
         totalAllocPoint = totalAllocPoint.add(_allocPoint);
+        poolExistence[_lpToken] = true;
 
         poolInfo.push(PoolInfo({
         lpToken: _lpToken,
