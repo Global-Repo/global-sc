@@ -66,7 +66,7 @@ contract PathFinder is IPathFinder, Ownable {
         address WBNB = tokenAddresses.findByName(tokenAddresses.BNB());
 
         address[] memory path;
-        if((infoFrom.tokenRoute != address(0) && infoFrom.directBNB) || (infoTo.tokenRoute != address(0) && infoFrom.directBNB))
+        if((infoFrom.tokenRoute != address(0) && infoFrom.directBNB) || (infoTo.tokenRoute != address(0) && infoTo.directBNB))
         {
             path = new address[](0);
         } else if ((_tokenFrom == WBNB && infoTo.directBNB) || (_tokenTo == WBNB && infoFrom.directBNB)) {
