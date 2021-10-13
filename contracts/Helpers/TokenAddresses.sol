@@ -10,6 +10,7 @@ contract TokenAddresses is Ownable {
     string public constant WBNB = "WBNB";
     string public constant BUSD = "BUSD";
     string public constant CAKE_WBNB_LP = "CAKE-WBNB-LP";
+    string public constant BUNNY = "BUNNY";
 
     mapping (string => address) private tokens;
 
