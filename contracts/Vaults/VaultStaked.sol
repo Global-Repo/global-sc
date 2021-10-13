@@ -13,19 +13,19 @@ contract VaultStaked is IDistributable, ReentrancyGuard, RewarderRestriction {
     using SafeMath for uint;
     using SafeMath for uint16;
 
-    IBEP20 private global;
-    IBEP20 private bnb;
-    IGlobalMasterChef private globalMasterChef;
+    IBEP20 public global;
+    IBEP20 public bnb;
+    IGlobalMasterChef public globalMasterChef;
 
-    uint private constant DUST = 1000;
+    uint public constant DUST = 1000;
 
     uint256 public pid;
     uint public minTokenAmountToDistribute;
     address[] public users;
-    mapping (address => uint) private principal;
-    mapping (address => uint) private bnbEarned;
+    mapping (address => uint) public principal;
+    mapping (address => uint) public bnbEarned;
     uint public totalSupply;
-    uint private bnbBalance;
+    uint public bnbBalance;
 
     event Deposited(address indexed _user, uint _amount);
     event Withdrawn(address indexed _user, uint _amount);

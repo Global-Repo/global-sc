@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: Unlicensed
-//this version of the router dates 1.8.2021
 pragma solidity >=0.6.6;
 
 import "./Libraries/SafeMath.sol";

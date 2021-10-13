@@ -18,26 +18,26 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
     using SafeMath for uint;
     using SafeMath for uint16;
 
-    IBEP20 private lpToken;
-    IBEP20 private global;
-    ICakeMasterChef private cakeMasterChef;
-    IRouterV2 private cakeRouter;
-    IMinter private minter;
-    address private treasury;
-    address private keeper;
-    IRouterV2 private globalRouter;
-    IPathFinder private pathFinder;
-    TokenAddresses private tokenAddresses;
+    IBEP20 public lpToken;
+    IBEP20 public global;
+    ICakeMasterChef public cakeMasterChef;
+    IRouterV2 public cakeRouter;
+    IMinter public minter;
+    address public treasury;
+    address public keeper;
+    IRouterV2 public globalRouter;
+    IPathFinder public pathFinder;
+    TokenAddresses public tokenAddresses;
 
     uint16 public constant MAX_WITHDRAWAL_FEES = 100; // 1%
-    uint private constant DUST = 1000;
-    address private constant GLOBAL_BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
+    uint public constant DUST = 1000;
+    address public constant GLOBAL_BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     uint256 public pid;
     uint public totalShares;
-    mapping (address => uint) private _shares;
-    mapping (address => uint) private _principal;
-    mapping (address => uint) private _depositedAt;
+    mapping (address => uint) public _shares;
+    mapping (address => uint) public _principal;
+    mapping (address => uint) public _depositedAt;
 
     struct WithdrawalFees {
         uint16 burn;      // % to burn (in Global)

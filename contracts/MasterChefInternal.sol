@@ -37,7 +37,6 @@ contract MasterChefInternal is Ownable {
     {
         address WBNB = tokenAddresses.findByName(tokenAddresses.BNB());
         IPair pair = IPair(address(_lpToken));
-        //TODO remove both connected
         bothConnected = false;
         if(pair.token0()==WBNB)
         {

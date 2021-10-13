@@ -23,9 +23,9 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
     mapping (address=>DepositInfo[]) public depositInfo;
     address[] public users;
 
-    IBEP20 private global;
-    IBEP20 private bnb;
-    IGlobalMasterChef private globalMasterChef;
+    IBEP20 public global;
+    IBEP20 public bnb;
+    IGlobalMasterChef public globalMasterChef;
 
     uint public constant DUST = 1000;
     uint256 public constant LOCKUP = 7776000; //default lockup of 90 days
@@ -33,13 +33,13 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
     uint256 public pid;
     uint public minTokenAmountToDistribute;
     uint public minGlobalAmountToDistribute;
-    mapping (address => uint) private bnbEarned;
-    mapping (address => uint) private globalEarned;
+    mapping (address => uint) public bnbEarned;
+    mapping (address => uint) public globalEarned;
     uint public totalSupply;
     uint256 public lastRewardEvent;
     uint256 public rewardInterval;
-    uint private bnbBalance;
-    uint private globalBalance;
+    uint public bnbBalance;
+    uint public globalBalance;
 
     event RewardsDeposited(address indexed _account, uint _amount);
     event Deposited(address indexed _user, uint _amount);

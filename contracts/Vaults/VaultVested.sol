@@ -22,19 +22,19 @@ contract VaultVested is IDistributable, ReentrancyGuard, DepositoryRestriction, 
 
     mapping (address => DepositInfo[]) public depositInfo;
 
-    IBEP20 private global;
-    IBEP20 private bnb;
-    IGlobalMasterChef private globalMasterChef;
-    VaultLocked private vaultLocked;
+    IBEP20 public global;
+    IBEP20 public bnb;
+    IGlobalMasterChef public globalMasterChef;
+    VaultLocked public vaultLocked;
 
-    uint private constant DUST = 1000;
+    uint public constant DUST = 1000;
     uint256 public pid;
 
     uint public minTokenAmountToDistribute;
-    uint private bnbBalance;
+    uint public bnbBalance;
 
     address[] public users;
-    mapping (address => uint) private bnbEarned;
+    mapping (address => uint) public bnbEarned;
     uint public totalSupply;
 
     struct PenaltyFees {

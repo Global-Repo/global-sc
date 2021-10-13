@@ -98,10 +98,10 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     // Burn address podria ser 0x0 però mola més un 0x...dEaD;
     address public constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
-    TokenAddresses private tokenAddresses;
+    TokenAddresses public tokenAddresses;
 
     // En cas d'exploit, deixem sortir a la gent per l'emergency sense pagar LP fees. Not safu = no LPs fees in emergencywithdraw
-    bool safu = true;
+    public bool safu = true;
 
     // Vault where locked tokens are
     address public nativeTokenLockedVaultAddr;
@@ -153,11 +153,11 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     // Rewards locked de tots els usuaris.
     uint256 public totalLockedUpRewards;
     // Llistat de pools que poden demanar tokens natius
-    mapping(address => bool) private _minters;
+    mapping(address => bool) public _minters;
 
     IPathFinder public pathFinder;
     IMintNotifier public mintNotifier;
-    MasterChefInternal private masterChefInternal;
+    MasterChefInternal public masterChefInternal;
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);

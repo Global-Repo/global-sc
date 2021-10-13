@@ -14,20 +14,20 @@ contract VaultStakedToGlobal is IDistributable, ReentrancyGuard, RewarderRestric
     using SafeMath for uint;
     using SafeMath for uint16;
 
-    IBEP20 private global;
-    IBEP20 private wbnb;
-    IGlobalMasterChef private globalMasterChef;
-    IRouterV2 private globalRouter;
+    IBEP20 public global;
+    IBEP20 public wbnb;
+    IGlobalMasterChef public globalMasterChef;
+    IRouterV2 public globalRouter;
 
-    uint private constant DUST = 1000;
+    uint public constant DUST = 1000;
 
     uint256 public pid;
     uint public minTokenAmountToDistribute;
     address[] public users;
-    mapping (address => uint) private principal;
-    mapping (address => uint) private wbnbEarned;
+    mapping (address => uint) public principal;
+    mapping (address => uint) public wbnbEarned;
     uint public totalSupply;
-    uint private wbnbBalance;
+    uint public wbnbBalance;
 
     event Deposited(address indexed _user, uint _amount);
     event Withdrawn(address indexed _user, uint _amount);
