@@ -88,6 +88,7 @@ contract SmartChef is Ownable, ReentrancyGuard {
     ) external {
         require(!isInitialized, "Already initialized");
         require(msg.sender == SMART_CHEF_FACTORY, "Not factory");
+        require(_startBlock < _bonusEndBlock, "Start block must be before than bonus end block");
 
         // Make this contract initialized
         isInitialized = true;
