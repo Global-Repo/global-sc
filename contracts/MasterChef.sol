@@ -497,13 +497,12 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
                     // Tocarà fer una transfer, augmentem el comptador
                     counterForTransfers++;
 
-                    // Rewards que finalment rebrà l'usuari: total rewards - feesTaken
-                    //TODO, perque no guardar aixo en una var, i despres restarlo a on toca?
-                    totalRewards = totalRewards.sub(totalRewards.mul(pool.performanceFeesOfNativeTokensBurn.add(pool.performanceFeesOfNativeTokensToLockedVault)).div(10000));
-
                     // Fees que cremarem i fees que enviarem per fer boost dels locked. Les acumulem a l'espera d'enviarles quan toquin
                     totalFeesToBurn = totalFeesToBurn.add(totalRewards.mul(pool.performanceFeesOfNativeTokensBurn.div(10000)));
                     totalFeesToBoostLocked = totalFeesToBoostLocked.add(totalRewards.mul(pool.performanceFeesOfNativeTokensToLockedVault.div(10000)));
+
+                    // Rewards que finalment rebrà l'usuari: total rewards - feesTaken
+                    totalRewards = totalRewards.sub(totalRewards.mul(pool.performanceFeesOfNativeTokensBurn.add(pool.performanceFeesOfNativeTokensToLockedVault)).div(10000));
 
                     // Si ja hem fet més de 25 transaccions, ja hem acumulat suficient per tractar-les
                     if (counterForTransfers > 25){
