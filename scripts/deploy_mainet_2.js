@@ -33,9 +33,11 @@ let CURRENT_BLOCK;
 let masterChefStartBlock
 
 // Addresses
-let DEV_ADDRESS = null;
-let DEV_TREASURY = null;
 let DEPLOYER_ADDRESS = null;
+let TREASURY_ADDRESS = null;
+let TREASURY_LP_ADDRESS = null; // To send MC LP fees
+let DEV_ADDRESS = null;
+let DEV_POWER_ADDRESS = null;
 
 const TOKEN_DECIMALS = 18;
 const BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER = BigNumber.from(10).pow(TOKEN_DECIMALS);
@@ -52,10 +54,13 @@ async function main() {
 
     // Setup
     // TODO change to real dev address in mainet
+    DEPLOYER_ADDRESS = owner.address;
+
     DEV_ADDRESS = owner.address;
 
-    // TODO: canviar en deploy real
-    DEV_TREASURY = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63";
+    // TODO: canviar en deploy real (els dos)
+    TREASURY_ADDRESS = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63";
+    TREASURY_LP_ADDRESS = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63";
 
     wethAddress = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
     busdAddress = "0xe9e7cea3dedca5984780bafc599bd69add087d56";
@@ -77,8 +82,8 @@ async function main() {
     factory = await deployFactory(feeSetterAddress);
     console.log("Factory deployed to:", factory.address);
 
-    await factory.setFeeTo(DEV_TREASURY);
-    console.log("FeeTo from factory set to treasury:", DEV_TREASURY);
+    await factory.setFeeTo(TREASURY_ADDRESS);
+    console.log("FeeTo from factory set to treasury:", TREASURY_ADDRESS);
 
     router = await deployRouter(factory.address, wethAddress);
     console.log("Router deployed to:", router.address);
@@ -124,6 +129,9 @@ async function main() {
     console.log("Globals per block: ", NATIVE_TOKEN_PER_BLOCK.toString());
     console.log("Start block", CURRENT_BLOCK + 1);
 
+    await masterChef.setTreasury(TREASURY_LP_ADDRESS);
+    console.log("Start block", CURRENT_BLOCK + 1);
+
     smartChefFactory = await deploySmartChefFactory();
     console.log("SmartChefFactory deployed to:", smartChefFactory.address);
 
@@ -131,6 +139,10 @@ async function main() {
     console.log("Masterchef internal ownership to masterchef:", masterChef.address);
     await pathFinder.transferOwnership(masterChefInternal.address);
     console.log("Path finder ownership to masterchef internal:", masterChefInternal.address);
+    await masterChef.transferDevPower(DEV_POWER_ADDRESS);
+    console.log("Masterchef dev power set to:", masterChefInternal.address);
+    await masterChef.setLockedVaultAddress(vaultLocked.address);
+    console.log("Masterchef set locked vault address to :", vaultLocked.address);
 
     // TODO: this must not be executed on mainet until we are done with global stuff
     //await globalToken.transferOwnership(masterChef.address);
@@ -142,6 +154,7 @@ async function main() {
         masterChef.address,
         VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL
     );
+    console.log("VaultLocked deployed to :", vaultLocked.address);
 
     await setUpVaultLocked(owner);
     await setUpPools(owner);
