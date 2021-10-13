@@ -5,6 +5,7 @@ import "../Tokens/IPair.sol";
 import "./IPathFinder.sol";
 import '../Modifiers/Ownable.sol';
 import './TokenAddresses.sol';
+import 'hardhat/console.sol';
 
 contract PathFinder is IPathFinder, Ownable {
     TokenAddresses public tokenAddresses;
@@ -66,10 +67,7 @@ contract PathFinder is IPathFinder, Ownable {
         address WBNB = tokenAddresses.findByName(tokenAddresses.BNB());
 
         address[] memory path;
-        if((infoFrom.tokenRoute != address(0) && infoFrom.directBNB) || (infoTo.tokenRoute != address(0) && infoFrom.directBNB))
-        {
-            path = new address[](0);
-        } else if ((_tokenFrom == WBNB && infoTo.directBNB) || (_tokenTo == WBNB && infoFrom.directBNB)) {
+        if ((_tokenFrom == WBNB && infoTo.directBNB) || (_tokenTo == WBNB && infoFrom.directBNB)) {
             // [WBNB, BUNNY] or [BUNNY, WBNB] casos en que no hi ha intermedi i un dels tokens es directament el WBNB
             path = new address[](2);
             path[0] = _tokenFrom;
@@ -120,6 +118,10 @@ contract PathFinder is IPathFinder, Ownable {
             path[2] = WBNB;
             path[3] = infoTo.tokenRoute;
             path[4] = _tokenTo;
+        }
+        else
+        {
+            path = new address[](0);
         }
         return path;
     }

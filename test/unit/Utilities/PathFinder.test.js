@@ -98,19 +98,23 @@ beforeEach(async function () {
   pathFinder = await PathFinder.deploy(tokenAddresses.address);
   await pathFinder.deployed();
 
+  const MasterChefInternal = await ethers.getContractFactory("MasterChefInternal");
+  masterChefInternal = await MasterChefInternal.deploy(tokenAddresses.address,pathFinder.address);
+  await masterChefInternal.deployed();
+
   const MasterChef = await ethers.getContractFactory("MasterChef");
   masterChef = await MasterChef.deploy(
+      masterChefInternal.address,
       nativeToken.address,
       NATIVE_TOKEN_PER_BLOCK,
       startBlock,
-      lockedVault.address,
       router.address,
       tokenAddresses.address,
       pathFinder.address
   );
   await masterChef.deployed();
-
-  await pathFinder.transferOwnership(masterChef.address);
+  await masterChefInternal.transferOwnership(masterChef.address);
+  await pathFinder.transferOwnership(masterChefInternal.address);
 
   // Set up scenarios
   const INITIAL_SUPPLY = BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
@@ -140,8 +144,13 @@ describe("PathFinder", function () {
     expect(await pathFinder.findPath(tokenA.address,tokenD.address)).to.eql([tokenA.address,tokenB.address,WBNB.address,tokenC.address,tokenD.address]);
     expect(await pathFinder.findPath(tokenA.address,tokenC.address)).to.eql([tokenA.address,tokenB.address,WBNB.address,tokenC.address]);
     expect(await pathFinder.findPath(tokenD.address,tokenA.address)).to.eql([tokenD.address,tokenC.address,WBNB.address,tokenB.address,tokenA.address]);
+    expect(await pathFinder.findPath(tokenC.address,tokenA.address)).to.eql([tokenC.address,WBNB.address,tokenB.address,tokenA.address]);
     expect(await pathFinder.findPath(WBNB.address,tokenD.address)).to.eql([WBNB.address,tokenC.address,tokenD.address]);
     expect(await pathFinder.findPath(tokenD.address,WBNB.address)).to.eql([tokenD.address,tokenC.address,WBNB.address]);
+    expect(await pathFinder.findPath(WBNB.address,tokenB.address)).to.eql([WBNB.address,tokenB.address]);
+    expect(await pathFinder.findPath(tokenB.address,WBNB.address)).to.eql([tokenB.address,WBNB.address]);
+    expect(await pathFinder.findPath(WBNB.address,tokenC.address)).to.eql([WBNB.address,tokenC.address]);
+    expect(await pathFinder.findPath(tokenC.address,WBNB.address)).to.eql([tokenC.address,WBNB.address]);
     expect(await pathFinder.findPath(tokenA.address,tokenB.address)).to.eql([tokenA.address,tokenB.address]);
     expect(await pathFinder.findPath(tokenD.address,tokenC.address)).to.eql([tokenD.address,tokenC.address]);
   });
