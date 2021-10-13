@@ -35,6 +35,7 @@ let masterChefStartBlock
 // Addresses
 let DEPLOYER_ADDRESS = null;
 let TREASURY_ADDRESS = null;
+let TREASURY_LP_ADDRESS = null; // To send MC LP fees
 let DEV_ADDRESS = null;
 let DEV_POWER_ADDRESS = null;
 
@@ -57,8 +58,9 @@ async function main() {
 
     DEV_ADDRESS = owner.address;
 
-    // TODO: canviar en deploy real
+    // TODO: canviar en deploy real (els dos)
     TREASURY_ADDRESS = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63";
+    TREASURY_LP_ADDRESS = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63";
 
     wethAddress = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
     busdAddress = "0xe9e7cea3dedca5984780bafc599bd69add087d56";
@@ -125,6 +127,9 @@ async function main() {
 
     console.log("Masterchef deployed to:", masterChef.address);
     console.log("Globals per block: ", NATIVE_TOKEN_PER_BLOCK.toString());
+    console.log("Start block", CURRENT_BLOCK + 1);
+
+    await masterChef.setTreasury(TREASURY_LP_ADDRESS);
     console.log("Start block", CURRENT_BLOCK + 1);
 
     smartChefFactory = await deploySmartChefFactory();
