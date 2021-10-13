@@ -201,41 +201,6 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         }));
     }
 
-    function manageTokens(
-        address _token,
-        uint256 _amountToBurn,
-        uint256 _amountForDevs
-    ) private {
-        //burn
-        {
-            if(_token != address(nativeToken)){
-                routerGlobal.swapExactTokensForTokensSupportingFeeOnTransferTokens(
-                    _amountToBurn,
-                    0,
-                    pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.GLOBAL())),
-                    BURN_ADDRESS,
-                    block.timestamp);
-            }else{
-                IBEP20(tokenAddresses.findByName(tokenAddresses.GLOBAL())).transfer(BURN_ADDRESS, _amountToBurn);
-            }
-        }
-        //devfees. ATTENTION, we do not unwrap weth to eth here
-        {
-            if(_token != tokenAddresses.findByName(tokenAddresses.BNB())) // passem a WETH
-            {
-                routerGlobal.swapExactTokensForTokensSupportingFeeOnTransferTokens(
-                    _amountForDevs,
-                    0,
-                    pathFinder.findPath(_token, tokenAddresses.findByName(tokenAddresses.BNB())),
-                    treasury,
-                    block.timestamp);
-            }else{
-                IBEP20(tokenAddresses.findByName(tokenAddresses.BNB())).transfer(treasury, _amountForDevs);
-            }
-        }
-    }
-
-
     function setRouter(address _router) public onlyOwner {
         routerGlobal = IRouterV2(_router);
     }
@@ -620,40 +585,9 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
 
         if (finalAmount != _amount)
         {
-            // Fins aquí hem acabat la gestió de l'user. Ara gestionem la comissió. Tenim un LP. El volem desfer i enviar-lo a BURN i a OPERATIONS
-            // Això s'ha de testejar bé perque és molt fàcil que hi hagin errors
-            // Si el router no té permís perque address(this) es gasti els tokens, li donem permís
-            if (IBEP20(pool.lpToken).allowance(address(this), address(routerGlobal)) == 0) {
-                IBEP20(pool.lpToken).safeApprove(address(routerGlobal), uint(- 1));
-            }
-
             IBEP20(pool.lpToken).safeTransfer(treasuryLP, _amount.mul(pool.withDrawalFeeOfLpsBurn.add(pool.withDrawalFeeOfLpsTeam)).div(10000));
-            // Fem remove liquidity del LP i rebrem els dos tokens
-            /*(uint amountToken0, uint amountToken1) = routerGlobal.removeLiquidity(
-                IPair(address(pool.lpToken)).token0(),
-                IPair(address(pool.lpToken)).token1(),
-                _amount.mul(pool.withDrawalFeeOfLpsBurn.add(pool.withDrawalFeeOfLpsTeam)).div(10000),
-                0, 0, address(this), block.timestamp);
-
-            // Ens assegurem que podem gastar els dos tokens i així els passem a BNB/Global i fem burn/team
-            if (IBEP20(IPair(address(pool.lpToken)).token0()).allowance(address(this), address(routerGlobal)) == 0) {
-                IBEP20(IPair(address(pool.lpToken)).token0()).safeApprove(address(routerGlobal), uint(- 1));
-            }
-            if (IBEP20(IPair(address(pool.lpToken)).token1()).allowance(address(this), address(routerGlobal)) == 0) {
-                IBEP20(IPair(address(pool.lpToken)).token1()).safeApprove(address(routerGlobal), uint(- 1));
-            }
-
-            // Agafem el que cremem i el que enviem al equip per cada token rebut després de cremar LPs
-            uint256 totalsplit = pool.withDrawalFeeOfLpsBurn.add(pool.withDrawalFeeOfLpsTeam);
-            uint256 lpsToBuyNativeTokenAndBurn0 = amountToken0.mul(pool.withDrawalFeeOfLpsBurn).div( totalsplit );
-            uint256 lpsToBuyNativeTokenAndBurn1 = amountToken1.mul(pool.withDrawalFeeOfLpsBurn).div( totalsplit);
-            uint256 lpsToBuyBNBAndTransferForOperations0 = amountToken0.sub(lpsToBuyNativeTokenAndBurn0);
-            uint256 lpsToBuyBNBAndTransferForOperations1 = amountToken1.sub(lpsToBuyNativeTokenAndBurn1);
-
-            // Cremem i enviem els tokens a l'equip
-            manageTokens(IPair(address(pool.lpToken)).token0(), lpsToBuyNativeTokenAndBurn0, lpsToBuyBNBAndTransferForOperations0);
-            manageTokens(IPair(address(pool.lpToken)).token1(), lpsToBuyNativeTokenAndBurn1, lpsToBuyBNBAndTransferForOperations1);*/
         }
+
         return finalAmount;
     }
 
