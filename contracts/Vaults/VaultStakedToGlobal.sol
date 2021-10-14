@@ -166,7 +166,7 @@ contract VaultStakedToGlobal is IDistributable, ReentrancyGuard, RewarderRestric
     }
 
     function _deleteUser(address _account) private {
-        for (uint8 i = 0; i < users.length; i++) {
+        for (uint i = 0; i < users.length; i++) {
             if (users[i] == _account) {
                 delete users[i];
             }
