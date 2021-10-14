@@ -236,7 +236,7 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         uint deadline = block.timestamp;
 
         address[] memory pathToBunny = pathFinder.findPath(
-            tokenAddresses.findByName(tokenAddresses.BNB()),
+            tokenAddresses.findByName(tokenAddresses.WBNB()),
             tokenAddresses.findByName(tokenAddresses.BUNNY())
         );
 
