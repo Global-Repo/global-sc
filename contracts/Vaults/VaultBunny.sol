@@ -237,9 +237,9 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         // TODO: ensure reward of pool is in WBNB and not BUNNY
         uint deadline = block.timestamp;
 
-        address[] memory pathToBunny = new address[](2);// = [tokenAddresses.findByName(tokenAddresses.WBNB()),tokenAddresses.findByName(tokenAddresses.BUNNY())];
-        pathToBunny[0]=tokenAddresses.findByName(tokenAddresses.WBNB());
-        pathToBunny[1]=tokenAddresses.findByName(tokenAddresses.BUNNY());
+        address[] memory pathToBunny = new address[](2);
+        pathToBunny[0]=tokenAddresses.findByName(tokenAddresses.BUNNY());
+        pathToBunny[1]=tokenAddresses.findByName(tokenAddresses.WBNB());
 
         uint[] memory amountsPredicted = router.getAmountsOut(wbnb.balanceOf(address(this)), pathToBunny);
         uint[] memory amounts = router.swapExactTokensForTokens(wbnb.balanceOf(address(this)),
