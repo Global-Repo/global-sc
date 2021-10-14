@@ -217,15 +217,15 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         uint principal = principalOf(msg.sender);
         uint profit = amount > principal ? amount.sub(principal) : 0;
 
-        totalShares = totalShares.sub(_shares[msg.sender]);
-        delete _shares[msg.sender];
-        delete _principal[msg.sender];
-        delete _depositedAt[msg.sender];
-
         pool.withdraw(amount);
 
         handleWithdrawalFees(principal);
         handleRewards(profit);
+
+        totalShares = totalShares.sub(_shares[msg.sender]);
+        delete _shares[msg.sender];
+        delete _principal[msg.sender];
+        delete _depositedAt[msg.sender];
     }
 
     // TODO: modifier onlyKeeper in vault bunny
