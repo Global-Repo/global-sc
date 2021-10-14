@@ -192,7 +192,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     }
 
     function stakingToken() external view returns (address) {
-        return address(global);
+        return address(cake);
     }
 
     function rewardsToken() external view override returns (address) {
