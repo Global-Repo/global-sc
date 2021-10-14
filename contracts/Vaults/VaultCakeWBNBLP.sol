@@ -205,11 +205,9 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
 
     function deposit(uint _amount) public override onlyNonContract {
         _deposit(_amount, msg.sender);
-
-        if (isWhitelist(msg.sender) == false) {
-            _principal[msg.sender] = _principal[msg.sender].add(_amount);
-            _depositedAt[msg.sender] = block.timestamp;
-        }
+        
+        _principal[msg.sender] = _principal[msg.sender].add(_amount);
+        _depositedAt[msg.sender] = block.timestamp;
     }
 
     function depositAll() external override onlyNonContract {
