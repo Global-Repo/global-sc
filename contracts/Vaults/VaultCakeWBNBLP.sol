@@ -12,6 +12,7 @@ import "../Tokens/IPair.sol";
 import "../IRouterV2.sol";
 import "./Interfaces/IStrategy.sol";
 import "./Externals/ICakeMasterChef.sol";
+import "./VaultVested.sol";
 
 contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     using SafeBEP20 for IBEP20;
