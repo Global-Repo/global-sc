@@ -104,7 +104,7 @@ contract VaultDistribution is Ownable, DepositoryRestriction {
 
         uint totalBeneficiaryTokens = 0;
         for (uint8 i = 0; i < beneficiaries.length; i++) {
-            totalBeneficiaryTokens = totalBeneficiaryTokens + beneficiaryToken.balanceOf(beneficiaries[i]);
+            totalBeneficiaryTokens = totalBeneficiaryTokens.add(beneficiaryToken.balanceOf(beneficiaries[i]));
         }
 
         for (uint8 i = 0; i < beneficiaries.length; i++) {
