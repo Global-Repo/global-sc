@@ -379,8 +379,8 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
             global.safeTransfer(keeper, amountGlobalBought); // To keeper as cake vault
 
             uint amountToMintGlobal = amountGlobalBought.mul(rewards.toMintGlobal).div(10000);
-            minter.mintNativeTokens(amountToMintGlobal, msg.sender);
-            global.safeTransfer(keeper, amountToMintGlobal); // TODO to keeper as user and not as cake vault
+            minter.mintNativeTokens(amountToMintGlobal,  address(this));
+            VaultVested(keeper).deposit(amountToMintGlobal, msg.sender);
         }
 
         lpToken.safeTransfer(msg.sender, amountToUser);
