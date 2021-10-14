@@ -64,4 +64,26 @@ describe("SmartChefFactory: After deployment", function () {
         owner.address
     )).to.be.revertedWith("Start block must be before than bonus end block");
   });
+
+  it("Stop reward input validation", async function () {
+    const startBlock = await ethers.provider.getBlockNumber();
+    const endBlock = await ethers.provider.getBlockNumber() + 100;
+
+    const tx = await smartChefFactory.deployPool(
+        nativeToken.address,
+        tokenA.address,
+        BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        startBlock,
+        endBlock,
+        BigNumber.from(1000).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        owner.address
+    );
+
+    const result = await tx.wait();
+    const smartChefAddress = result.events[2].args[0];
+
+    const smartChefContract = await ethers.getContractFactory("SmartChef");
+    const smartChef = await smartChefContract.attach(smartChefAddress);
+    expect(smartChef.stopReward()).to.be.revertedWith("Can't be stopped");
+  });
 });
