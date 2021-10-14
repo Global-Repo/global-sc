@@ -216,12 +216,11 @@ contract VaultVested is IDistributable, ReentrancyGuard, DepositoryRestriction, 
 
     // Withdraw the part without withdrawal fees.
     function withdrawWithoutFees() external nonReentrant {
-        uint amount = amountOfUser(msg.sender);
         uint amountWithoutFees = availableForWithdraw(block.timestamp, msg.sender);
         require(amountWithoutFees > 0, "VaultVested: No tokens to withdraw without fees");
         uint earned = earned(msg.sender);
 
-        globalMasterChef.leaveStaking(amount);
+        globalMasterChef.leaveStaking(amountWithoutFees);
 
         handlePenaltyFees(0, amountWithoutFees);
         handleRewards(earned);
