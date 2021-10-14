@@ -20,6 +20,7 @@ contract VaultStakedToGlobal is IDistributable, ReentrancyGuard, RewarderRestric
     IRouterV2 public globalRouter;
 
     uint public constant DUST = 1000;
+    uint private constant SLIPPAGE = 9500;
 
     uint256 public pid;
     uint public minTokenAmountToDistribute;
@@ -152,7 +153,9 @@ contract VaultStakedToGlobal is IDistributable, ReentrancyGuard, RewarderRestric
         path[0] = address(wbnb);
         path[1] = address(global);
 
-        uint[] memory amounts = globalRouter.swapExactTokensForTokens(_earned, 0, path, msg.sender, block.timestamp);
+        uint[] memory amountsPredicted = globalRouter.getAmountsOut(_earned, path);
+        uint[] memory amounts = globalRouter.swapExactTokensForTokens(_earned, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+            path, msg.sender, block.timestamp);
 
         //uint tokensToSend = amounts[amounts.length-1];
         //global.safeTransfer(msg.sender, tokensToSend);
