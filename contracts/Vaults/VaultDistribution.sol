@@ -66,7 +66,14 @@ contract VaultDistribution is Ownable, DepositoryRestriction {
     function removeBeneficiary(address _beneficiary) external onlyOwner {
         for (uint8 i = 0; i < beneficiaries.length; i++) {
             if (beneficiaries[i] == _beneficiary) {
-                delete beneficiaries[i];
+                for (uint j = i; j<beneficiaries.length-1; j++)
+                {
+                    beneficiaries[j] = beneficiaries[j+1];
+                }
+                beneficiaries.pop();
+
+                //delete beneficiaries[i];
+                //EnumerableSet.remove(beneficiaries,i);
             }
         }
     }
