@@ -11,6 +11,7 @@ import "../Modifiers/WhitelistUpgradeable.sol";
 import "../IRouterV2.sol";
 import "./Interfaces/IStrategy.sol";
 import "./Externals/IBunnyPoolStrategy.sol";
+import "./VaultVested.sol";
 
 contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     using SafeBEP20 for IBEP20;
@@ -30,6 +31,7 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
 
     uint16 public constant MAX_WITHDRAWAL_FEES = 100; // 1%
     uint private constant DUST = 1000;
+    uint private constant SLIPPAGE = 9500;
     address private constant GLOBAL_BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     uint public totalShares;
@@ -235,12 +237,13 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         // TODO: ensure reward of pool is in WBNB and not BUNNY
         uint deadline = block.timestamp;
 
-        address[] memory pathToBunny = pathFinder.findPath(
-            tokenAddresses.findByName(tokenAddresses.WBNB()),
-            tokenAddresses.findByName(tokenAddresses.BUNNY())
-        );
+        address[] memory pathToBunny = new address[](2);// = [tokenAddresses.findByName(tokenAddresses.WBNB()),tokenAddresses.findByName(tokenAddresses.BUNNY())];
+        pathToBunny[0]=tokenAddresses.findByName(tokenAddresses.WBNB());
+        pathToBunny[1]=tokenAddresses.findByName(tokenAddresses.BUNNY());
 
-        uint[] memory amounts = router.swapExactTokensForTokens(wbnb.balanceOf(address(this)), 0, pathToBunny, address(this), deadline);
+        uint[] memory amountsPredicted = router.getAmountsOut(wbnb.balanceOf(address(this)), pathToBunny);
+        uint[] memory amounts = router.swapExactTokensForTokens(wbnb.balanceOf(address(this)),
+            (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000), pathToBunny, address(this), deadline);
 
         uint harvested = amounts[amounts.length-1];
         emit Harvested(harvested);
@@ -313,13 +316,18 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         if (amountToBurn < DUST) {
             amountToUser = amountToUser.add(amountToBurn);
         } else {
-            router.swapExactTokensForTokens(amountToBurn, 0, pathToGlobal, GLOBAL_BURN_ADDRESS, deadline);
+            uint[] memory amountsPredicted = router.getAmountsOut(amountToBurn, pathToGlobal);
+            router.swapExactTokensForTokens(amountToBurn, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                pathToGlobal, GLOBAL_BURN_ADDRESS, deadline);
         }
 
         if (amountToTeam < DUST) {
             amountToUser = amountToUser.add(amountToTeam);
         } else {
-            router.swapExactTokensForTokens(amountToTeam, 0, pathToBusd, treasury, deadline);
+
+            uint[] memory amountsPredicted = router.getAmountsOut(amountToTeam, pathToBusd);
+            router.swapExactTokensForTokens(amountToTeam, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                pathToBusd, treasury, deadline);
         }
 
         bunny.safeTransfer(msg.sender, amountToUser);
@@ -355,19 +363,25 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         if (amountToOperations < DUST) {
             amountToUser = amountToUser.add(amountToOperations);
         } else {
-            router.swapExactTokensForTokens(amountToOperations, 0, pathToBusd, treasury, deadline);
+            uint[] memory amountsPredicted = router.getAmountsOut(amountToOperations, pathToBusd);
+            router.swapExactTokensForTokens(amountToOperations, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                pathToBusd, treasury, deadline);
         }
 
         if (amountToBuyBNB < DUST) {
             amountToUser = amountToUser.add(amountToBuyBNB);
         } else {
-            router.swapExactTokensForTokens(amountToBuyBNB, 0, pathToBnb, keeper, deadline);
+            uint[] memory amountsPredicted = router.getAmountsOut(amountToBuyBNB, pathToBnb);
+            router.swapExactTokensForTokens(amountToBuyBNB, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                pathToBnb, keeper, deadline);
         }
 
         if (amountToBuyGlobal < DUST) {
             amountToUser = amountToUser.add(amountToBuyGlobal);
         } else {
-            uint[] memory amounts = router.swapExactTokensForTokens(amountToBuyGlobal, 0, pathToGlobal, address(this), deadline);
+            uint[] memory amountsPredicted = router.getAmountsOut(amountToBuyGlobal, pathToGlobal);
+            uint[] memory amounts = router.swapExactTokensForTokens(amountToBuyGlobal, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                pathToGlobal, address(this), deadline);
             uint amountGlobalBought = amounts[amounts.length-1];
 
             global.safeTransfer(keeper, amountGlobalBought); // To keeper as bunny vault
