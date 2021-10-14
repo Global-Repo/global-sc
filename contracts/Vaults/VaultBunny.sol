@@ -196,7 +196,7 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     }
 
     function stakingToken() external view returns (address) {
-        return address(global);
+        return address(bunny);
     }
 
     function rewardsToken() external view override returns (address) {
