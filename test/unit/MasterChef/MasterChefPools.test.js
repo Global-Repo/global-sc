@@ -144,6 +144,28 @@ beforeEach(async function () {
 });
 
 describe("MasterChef: Pools", function () {
+  it("Non duplicated modifier in addPool", async function () {
+    let date = new Date();
+    const deadline = date.setTime(date.getTime() + 2 * 3600); // +2 hours
+
+    await router.addLiquidity(
+        tokenA.address,
+        weth.address,
+        BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        owner.address,
+        deadline
+    );
+
+    const pairAddress = await factory.getPair(tokenA.address, weth.address);
+
+    await masterChef.addPool(100, pairAddress, DAY_IN_SECONDS * 3, DAY_IN_SECONDS * 3, 50, 50, 100, 100);
+    await expect(masterChef.addPool(100, pairAddress, DAY_IN_SECONDS * 3, DAY_IN_SECONDS * 3, 50, 50, 100, 100))
+        .to.be.revertedWith("nonDuplicated: duplicated");
+  });
+
   it("Should to add a new liquidity provider (LP) pool", async function () {
     let date = new Date();
     const deadline = date.setTime(date.getTime() + 2 * 3600); // +2 hours
