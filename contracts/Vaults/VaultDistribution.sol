@@ -51,7 +51,7 @@ contract VaultDistribution is Ownable, DepositoryRestriction {
     }
 
     function addBeneficiary(address _beneficiary) external onlyOwner {
-        for (uint8 i = 0; i < beneficiaries.length; i++) {
+        for (uint i = 0; i < beneficiaries.length; i++) {
             if (beneficiaries[i] == _beneficiary) {
                 // Beneficiary exists already.
                 return;
@@ -64,7 +64,7 @@ contract VaultDistribution is Ownable, DepositoryRestriction {
     }
 
     function removeBeneficiary(address _beneficiary) external onlyOwner {
-        for (uint8 i = 0; i < beneficiaries.length; i++) {
+        for (uint i = 0; i < beneficiaries.length; i++) {
             if (beneficiaries[i] == _beneficiary) {
                 for (uint j = i; j<beneficiaries.length-1; j++)
                 {
@@ -79,7 +79,7 @@ contract VaultDistribution is Ownable, DepositoryRestriction {
     }
 
     function isBeneficiary(address _beneficiary) external view returns (bool) {
-        for (uint8 i = 0; i < beneficiaries.length; i++) {
+        for (uint i = 0; i < beneficiaries.length; i++) {
             if (beneficiaries[i] == _beneficiary) {
                 return true;
             }
@@ -110,11 +110,11 @@ contract VaultDistribution is Ownable, DepositoryRestriction {
         uint totalDistributionTokenAmountToDistribute = currentDistributionTokenAmount.mul(distributionPercentage).div(10000);
 
         uint totalBeneficiaryTokens = 0;
-        for (uint8 i = 0; i < beneficiaries.length; i++) {
+        for (uint i = 0; i < beneficiaries.length; i++) {
             totalBeneficiaryTokens = totalBeneficiaryTokens.add(beneficiaryToken.balanceOf(beneficiaries[i]));
         }
 
-        for (uint8 i = 0; i < beneficiaries.length; i++) {
+        for (uint i = 0; i < beneficiaries.length; i++) {
             uint beneficiaryDistributionPercentage = beneficiaryToken.balanceOf(beneficiaries[i]).mul(100).div(totalBeneficiaryTokens);
             uint amountForBeneficiary = totalDistributionTokenAmountToDistribute.mul(beneficiaryDistributionPercentage).div(100);
             distributionToken.safeTransfer(beneficiaries[i], amountForBeneficiary);
