@@ -34,6 +34,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
 
     uint16 public constant MAX_WITHDRAWAL_FEES = 100; // 1%
     uint public constant DUST = 1000;
+    uint private constant SLIPPAGE = 9500;
     address public constant GLOBAL_BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     uint256 public pid;
@@ -296,13 +297,16 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         if (amountToBurn < DUST) {
             amountToUser = amountToUser.add(amountToBurn);
         } else {
-            router.swapExactTokensForTokens(amountToBurn, 0, pathToGlobal, GLOBAL_BURN_ADDRESS, deadline);
+            uint[] memory amountsPredicted = router.getAmountsOut(amountToBurn, pathToGlobal);
+            router.swapExactTokensForTokens(amountToBurn, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                pathToGlobal, GLOBAL_BURN_ADDRESS, deadline);
         }
 
         if (amountToTeam < DUST) {
             amountToUser = amountToUser.add(amountToTeam);
         } else {
-            router.swapExactTokensForTokens(amountToTeam, 0, pathToBusd, treasury, deadline);
+            uint[] memory amountsPredicted = router.getAmountsOut(amountToTeam, pathToBusd);
+            router.swapExactTokensForTokens(amountToTeam, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000), pathToBusd, treasury, deadline);
         }
 
         cake.safeTransfer(msg.sender, amountToUser);
@@ -327,13 +331,16 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         if (amountToOperations < DUST) {
             amountToUser = amountToUser.add(amountToOperations);
         } else {
-            router.swapExactTokensForTokens(amountToOperations, 0, pathToBusd, treasury, deadline);
+            uint[] memory amountsPredicted = router.getAmountsOut(amountToOperations, pathToBusd);
+            router.swapExactTokensForTokens(amountToOperations, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000), pathToBusd, treasury, deadline);
         }
 
         if (amountToBuyBNB < DUST) {
             amountToUser = amountToUser.add(amountToBuyBNB);
         } else {
-            uint[] memory amounts = router.swapExactTokensForTokens(amountToBuyBNB, 0, pathToBnb, address(this), deadline);
+            uint[] memory amountsPredicted = router.getAmountsOut(amountToBuyBNB, pathToBnb);
+            uint[] memory amounts = router.swapExactTokensForTokens(amountToBuyBNB, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                pathToBnb, address(this), deadline);
             // TODO: mejor esto que el allowance ~0 en el constructor?
             //wbnb.approve(address(vaultDistribution), amounts[amounts.length-1]);
             vaultDistribution.deposit(amounts[amounts.length-1]);
@@ -342,7 +349,9 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         if (amountToBuyGlobal < DUST) {
             amountToUser = amountToUser.add(amountToBuyGlobal);
         } else {
-            uint[] memory amountsGLOBAL = router.swapExactTokensForTokens(amountToBuyGlobal, 0, pathToGlobal, address(this), deadline);
+            uint[] memory amountsPredicted = router.getAmountsOut(amountToBuyGlobal, pathToGlobal);
+            uint[] memory amountsGLOBAL = router.swapExactTokensForTokens(amountToBuyGlobal, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                pathToGlobal, address(this), deadline);
             uint amountGlobalBought = amountsGLOBAL[amountsGLOBAL.length-1];
 
             vaultVested.deposit(amountGlobalBought, address(this));
