@@ -196,7 +196,7 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
     }
 
     function stakingToken() external view returns (address) {
-        return address(global);
+        return address(lpToken);
     }
 
     function rewardsToken() external view override returns (address) {
