@@ -242,6 +242,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
 
         totalShares = totalShares.sub(shares);
         _shares[msg.sender] = _shares[msg.sender].sub(shares);
+        _principal[msg.sender] = _principal[msg.sender].sub(amount);
 
         _harvest(cakeHarvested);
     }
