@@ -33,6 +33,7 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
 
     uint16 public constant MAX_WITHDRAWAL_FEES = 100; // 1%
     uint public constant DUST = 1000;
+    uint private constant SLIPPAGE = 9500;
     address public constant GLOBAL_BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     uint256 public pid;
@@ -311,13 +312,17 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
         if (amountToBurn < DUST) {
             amountToUser = amountToUser.add(amountToBurn);
         } else {
-            globalRouter.swapExactTokensForTokens(amountToBurn, 0, pathToGlobal, GLOBAL_BURN_ADDRESS, deadline);
+            uint[] memory amountsPredicted = globalRouter.getAmountsOut(amountToBurn, pathToGlobal);
+            globalRouter.swapExactTokensForTokens(amountToBurn, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000), pathToGlobal,
+                GLOBAL_BURN_ADDRESS, deadline);
         }
 
         if (amountToTeam < DUST) {
             amountToUser = amountToUser.add(amountToTeam);
         } else {
-            globalRouter.swapExactTokensForTokens(amountToTeam, 0, pathToBusd, treasury, deadline);
+            uint[] memory amountsPredicted = globalRouter.getAmountsOut(amountToTeam, pathToBusd);
+            globalRouter.swapExactTokensForTokens(amountToTeam, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000), pathToBusd,
+                treasury, deadline);
         }
 
         lpToken.safeTransfer(msg.sender, amountToUser);
@@ -337,7 +342,9 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
         uint amountFinal;
 
         (amountWBNB, amountCake) = cakeRouter.removeLiquidity(WBNB, CAKE, _amount, 0, 0, address(this), block.timestamp);
-        uint256[] memory wbnbsSwaped = globalRouter.swapExactTokensForTokens(amountWBNB, 0, pathFinder.findPath(WBNB,CAKE), address(this), block.timestamp);
+        uint[] memory amountsPredicted = globalRouter.getAmountsOut(amountWBNB, pathFinder.findPath(WBNB,CAKE));
+        uint256[] memory wbnbsSwaped = globalRouter.swapExactTokensForTokens(amountWBNB, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+            pathFinder.findPath(WBNB,CAKE), address(this), block.timestamp);
         amountFinal = amountCake.add(wbnbsSwaped[wbnbsSwaped.length-1]);
 
         uint deadline = block.timestamp;
@@ -365,19 +372,25 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
         if (amountToOperations < DUST) {
             amountToUser = amountToUser.add(amountToOperations);
         } else {
-            globalRouter.swapExactTokensForTokens(amountToOperations, 0, pathToBusd, treasury, deadline);
+            uint[] memory amountsPredicted = globalRouter.getAmountsOut(amountToOperations, pathToBusd);
+            globalRouter.swapExactTokensForTokens(amountToOperations, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                pathToBusd, treasury, deadline);
         }
 
         if (amountToBuyWBNB < DUST) {
             amountToUser = amountToUser.add(amountToBuyWBNB);
         } else {
-            globalRouter.swapExactTokensForTokens(amountToBuyWBNB, 0, pathToWbnb, keeper, deadline);
+            uint[] memory amountsPredicted = globalRouter.getAmountsOut(amountToBuyWBNB, pathToWbnb);
+            globalRouter.swapExactTokensForTokens(amountToBuyWBNB, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000), pathToWbnb,
+                keeper, deadline);
         }
 
         if (amountToBuyGlobal < DUST) {
             amountToUser = amountToUser.add(amountToBuyGlobal);
         } else {
-            uint[] memory amounts = globalRouter.swapExactTokensForTokens(amountToBuyGlobal, 0, pathToGlobal, address(this), deadline);
+            uint[] memory amountsPredicted = globalRouter.getAmountsOut(amountToBuyGlobal, pathToGlobal);
+            uint[] memory amounts = globalRouter.swapExactTokensForTokens(amountToBuyGlobal, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                pathToGlobal, address(this), deadline);
             uint amountGlobalBought = amounts[amounts.length-1];
 
             global.safeTransfer(keeper, amountGlobalBought); // To keeper as cake vault
