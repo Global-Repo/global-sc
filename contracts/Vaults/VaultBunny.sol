@@ -200,7 +200,7 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     }
 
     function rewardsToken() external view override returns (address) {
-        return address(bunny);
+        return address(wbnb);
     }
 
     function deposit(uint _amount) public override onlyNonContract {
