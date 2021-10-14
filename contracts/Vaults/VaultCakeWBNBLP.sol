@@ -110,7 +110,7 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
     }
 
     // init minter
-    function setMinter(address _minter) external {
+    function setMinter(address _minter) external onlyOwner {
         require(IMinter(_minter).isMinter(address(this)) == true, "This vault must be a minter in minter's contract");
         lpToken.safeApprove(_minter, 0);
         lpToken.safeApprove(_minter, uint(~0));
