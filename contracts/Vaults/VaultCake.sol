@@ -107,7 +107,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     }
 
     // init minter
-    function setMinter(address _minter) external {
+    function setMinter(address _minter) external onlyOwner {
         require(IMinter(_minter).isMinter(address(this)) == true, "This vault must be a minter in minter's contract");
         minter = IMinter(_minter);
         _allowance(cake, _minter);
