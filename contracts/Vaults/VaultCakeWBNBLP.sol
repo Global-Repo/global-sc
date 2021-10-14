@@ -21,6 +21,7 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
 
     IBEP20 public lpToken;
     IBEP20 public global;
+    IBEP20 public cake;
     ICakeMasterChef public cakeMasterChef;
     IRouterV2 public cakeRouter;
     IMinter public minter;
@@ -72,6 +73,7 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
         uint256 _pid,
         address _lpToken,
         address _global,
+        address _cake,
         address _cakeMasterChef,
         address _cakeRouter,
         address _treasury,
@@ -83,6 +85,7 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
         pid = _pid;
         lpToken = IBEP20(_lpToken);
         global = IBEP20(_global);
+        cake = IBEP20(_cake);
         cakeMasterChef = ICakeMasterChef(_cakeMasterChef);
         cakeRouter = IRouterV2(_cakeRouter);
         treasury = _treasury;
@@ -201,7 +204,7 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
     }
 
     function rewardsToken() external view override returns (address) {
-        return address(lpToken);
+        return address(cake);
     }
 
     function deposit(uint _amount) public override onlyNonContract {
