@@ -266,7 +266,13 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
     function _deleteUser(address _account) private {
         for (uint i = 0; i < users.length; i++) {
             if (users[i] == _account) {
-                delete users[i];
+                for (uint j = i; j<users.length-1; j++)
+                {
+                    users[j] = users[j+1];
+                }
+                users.pop();
+
+                //delete users[i];
             }
         }
     }

@@ -73,7 +73,6 @@ contract VaultDistribution is Ownable, DepositoryRestriction {
                 beneficiaries.pop();
 
                 //delete beneficiaries[i];
-                //EnumerableSet.remove(beneficiaries,i);
             }
         }
     }
