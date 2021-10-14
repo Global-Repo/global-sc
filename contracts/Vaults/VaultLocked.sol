@@ -67,7 +67,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
 
         // Es repartirà 1bnb com a mínim. En cas contrari, no repartirem.
         minTokenAmountToDistribute = 1e18; // 1 BEP20 Token
-        minGlobalAmountToDistribute = 100e18; // 1 BEP20 Token
+        minGlobalAmountToDistribute = 100e18; // 100 BEP20 Token
 
         bnbBalance = 0;
         globalBalance = 0;
