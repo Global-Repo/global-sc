@@ -30,6 +30,7 @@ let deployGlobal = async function () {
     const nativeToken = await NativeToken.deploy();
     await nativeToken.deployed();
     deployedGlobalAddress = nativeToken.address;
+    await nativeToken.openTrading();
     return nativeToken;
 };
 

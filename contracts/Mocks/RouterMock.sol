@@ -36,4 +36,14 @@ contract RouterMock {
         amounts = new uint[](1);
         amounts[0] = amountOutMin;
     }
+
+    function getAmountsOut(uint amountIn, address[] memory path)
+    public
+    view
+    virtual
+    returns (uint[] memory amounts) {
+        amounts = new uint[](path.length);
+        amounts[0] = amountIn;
+        amounts[1] = amountIn;
+    }
 }

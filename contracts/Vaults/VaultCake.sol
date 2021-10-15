@@ -94,8 +94,8 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         vaultDistribution = VaultDistribution(_vaultDistribution);
 
         _allowance(cake, _cakeMasterChef);
-        _allowance(wbnb, _vaultDistribution);
-        _allowance(global, _vaultVested);
+        //_allowance(wbnb, _vaultDistribution);
+        //_allowance(global, _vaultVested);
 
         __PausableUpgradeable_init();
         __WhitelistUpgradeable_init();
@@ -293,19 +293,32 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         address[] memory pathToGlobal = pathFinder.findPath(address(cake), address(global));
         address[] memory pathToBusd = pathFinder.findPath(address(cake), address(busd));
 
+        // Swaps CAKE for GLOBAL and burns GLOBALS.
         if (amountToBurn < DUST) {
             amountToUser = amountToUser.add(amountToBurn);
         } else {
             uint[] memory amountsPredicted = router.getAmountsOut(amountToBurn, pathToGlobal);
-            router.swapExactTokensForTokens(amountToBurn, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
-                pathToGlobal, GLOBAL_BURN_ADDRESS, deadline);
+            router.swapExactTokensForTokens(
+                amountToBurn,
+                (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                pathToGlobal,
+                GLOBAL_BURN_ADDRESS,
+                deadline
+            );
         }
 
+        // Swaps CAKE for BUSD and sends BUSD to treasury.
         if (amountToTeam < DUST) {
             amountToUser = amountToUser.add(amountToTeam);
         } else {
             uint[] memory amountsPredicted = router.getAmountsOut(amountToTeam, pathToBusd);
-            router.swapExactTokensForTokens(amountToTeam, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000), pathToBusd, treasury, deadline);
+            router.swapExactTokensForTokens(
+                amountToTeam,
+                (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                pathToBusd,
+                treasury,
+                deadline
+            );
         }
 
         cake.safeTransfer(msg.sender, amountToUser);
@@ -327,37 +340,59 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         address[] memory pathToBusd = pathFinder.findPath(address(cake), address(busd));
         address[] memory pathToBnb = pathFinder.findPath(address(cake), address(wbnb));
 
+        // Swaps CAKE for BUSD and sends BUSD to treasury
         if (amountToOperations < DUST) {
             amountToUser = amountToUser.add(amountToOperations);
         } else {
             uint[] memory amountsPredicted = router.getAmountsOut(amountToOperations, pathToBusd);
-            router.swapExactTokensForTokens(amountToOperations, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000), pathToBusd, treasury, deadline);
+            router.swapExactTokensForTokens(
+                amountToOperations,
+                (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                pathToBusd,
+                treasury,
+                deadline
+            );
         }
 
+        // Swaps CAKE for BNB and sends BNB to distribution vault
         if (amountToBuyBNB < DUST) {
             amountToUser = amountToUser.add(amountToBuyBNB);
         } else {
             uint[] memory amountsPredicted = router.getAmountsOut(amountToBuyBNB, pathToBnb);
-            uint[] memory amounts = router.swapExactTokensForTokens(amountToBuyBNB, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
-                pathToBnb, address(this), deadline);
-            // TODO: mejor esto que el allowance ~0 en el constructor?
-            //wbnb.approve(address(vaultDistribution), amounts[amounts.length-1]);
-            vaultDistribution.deposit(amounts[amounts.length-1]);
+            uint[] memory amounts = router.swapExactTokensForTokens(
+                amountToBuyBNB,
+                (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                pathToBnb,
+                address(this),
+                deadline
+            );
+
+            uint amountBNBSwapped = amounts[amounts.length-1];
+            wbnb.approve(address(vaultDistribution), amountBNBSwapped);
+            vaultDistribution.deposit(amountBNBSwapped);
         }
 
+        // Swaps CAKE for GLOBAL and sends GLOBAL to vested vault (as cake vault)
+        // Mints GLOBAL and sends GLOBAL to vested vault (as user)
         if (amountToBuyGlobal < DUST) {
             amountToUser = amountToUser.add(amountToBuyGlobal);
         } else {
             uint[] memory amountsPredicted = router.getAmountsOut(amountToBuyGlobal, pathToGlobal);
-            uint[] memory amountsGLOBAL = router.swapExactTokensForTokens(amountToBuyGlobal, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
-                pathToGlobal, address(this), deadline);
-            uint amountGlobalBought = amountsGLOBAL[amountsGLOBAL.length-1];
+            uint[] memory amountsGlobal = router.swapExactTokensForTokens(
+                amountToBuyGlobal,
+                (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                pathToGlobal,
+                address(this),
+                deadline
+            );
 
+            uint amountGlobalBought = amountsGlobal[amountsGlobal.length-1];
+            global.approve(address(vaultVested), amountGlobalBought);
             vaultVested.deposit(amountGlobalBought, address(this));
 
             uint amountToMintGlobal = amountGlobalBought.mul(rewards.toMintGlobal).div(10000);
             minter.mintNativeTokens(amountToMintGlobal, address(this));
-
+            global.approve(address(vaultVested), amountToMintGlobal);
             vaultVested.deposit(amountToMintGlobal, msg.sender);
         }
 
