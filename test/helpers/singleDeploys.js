@@ -93,12 +93,13 @@ let deployMasterChef = async function (global, router, tokenAddresses, pathFinde
     const CURRENT_BLOCK = await ethers.provider.getBlockNumber();
     const startBlock = CURRENT_BLOCK + 1;
 
-    /*if (deployedGlobalAddress === undefined) {
-        deployedGlobalAddress = await deployGlobal();
-    }*/
+    const MasterChefInternal = await ethers.getContractFactory("MasterChefInternal");
+    const masterChefInternal = await MasterChefInternal.deploy(tokenAddresses, pathFinder);
+    await masterChefInternal.deployed();
 
     const MasterChef = await ethers.getContractFactory("MasterChef");
     const mc = await MasterChef.deploy(
+        masterChefInternal.address,
         global,
         NATIVE_TOKEN_PER_BLOCK,
         startBlock,

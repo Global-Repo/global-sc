@@ -34,7 +34,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
 
     uint16 public constant MAX_WITHDRAWAL_FEES = 100; // 1%
     uint public constant DUST = 1000;
-    uint private constant SLIPPAGE = 9500;
+    uint private constant SLIPPAGE = 9500; // Swaps slippage of 95%
     address public constant GLOBAL_BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     uint256 public pid;
@@ -202,7 +202,6 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
 
     function deposit(uint _amount) public override onlyNonContract {
         _deposit(_amount, msg.sender);
-
         _principal[msg.sender] = _principal[msg.sender].add(_amount);
         _depositedAt[msg.sender] = block.timestamp;
     }

@@ -52,6 +52,12 @@ let deploy = async function () {
         pathFinderMock.address
     );
 
+    await tokenAddresses.addToken(tokenAddresses.BNB(), weth.address);
+    await tokenAddresses.addToken(tokenAddresses.WBNB(), weth.address);
+    await tokenAddresses.addToken(tokenAddresses.GLOBAL(), nativeToken.address);
+    await tokenAddresses.addToken(tokenAddresses.CAKE(), cakeToken.address);
+    await tokenAddresses.addToken(tokenAddresses.BUSD(), busd.address);
+
     vaultVested = await deployVaultVested(
         nativeToken.address,
         weth.address,
@@ -62,11 +68,6 @@ let deploy = async function () {
         routerMock.address,
         pathFinderMock.address,
     );
-
-    await tokenAddresses.addToken(tokenAddresses.BNB(), weth.address);
-    await tokenAddresses.addToken(tokenAddresses.GLOBAL(), nativeToken.address);
-    await tokenAddresses.addToken(tokenAddresses.CAKE(), cakeToken.address);
-    await tokenAddresses.addToken(tokenAddresses.BUSD(), busd.address);
 
     vaultCake = await deployVaultCake(
         cakeToken.address,

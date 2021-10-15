@@ -27,4 +27,19 @@ describe("VaultCake: After deployment", function () {
   it("Balance of account where not shares in vault is always zero", async function () {
     expect(await getVaultCake().balanceOf(user1.address)).to.equal(0);
   });
+
+  it("Set minter: only contract addresses", async function () {
+    await expect(getVaultCake().setMinter(user1.address))
+        .to.be.revertedWith("function call to a non-contract account");
+  });
+
+  it("Set minter: only minters which there are minter in masterChef", async function () {
+    await expect(getVaultCake().setMinter(getGlobalMasterChef().address))
+        .to.be.revertedWith("This vault must be a minter in minter's contract");
+  });
+
+  it("Set minter: MC add vault cake as minter", async function () {
+    await getGlobalMasterChef().setMinter(getVaultCake().address, true);
+    await getVaultCake().setMinter(getGlobalMasterChef().address);
+  });
 });
