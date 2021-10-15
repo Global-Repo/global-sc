@@ -2,6 +2,7 @@ const { expect } = require("chai");
 const {
   deploy,
   getNativeToken,
+  getCakeToken,
   getGlobalMasterChef,
   getVaultCake,
 } = require("../../helpers/vaultCakeDeploy.js");
@@ -14,6 +15,14 @@ beforeEach(async function () {
 describe("VaultCake: After deployment", function () {
   it("Check Cake pool id (pid)", async function () {
     expect(await getVaultCake().pid()).to.equal(0);
+  });
+
+  it("Staking token is cake", async function () {
+    expect(await getVaultCake().stakingToken()).to.equal(getCakeToken().address);
+  });
+
+  it("Reward token is cake", async function () {
+    expect(await getVaultCake().rewardsToken()).to.equal(getCakeToken().address);
   });
 
   it("Vault total supply is zero", async function () {
