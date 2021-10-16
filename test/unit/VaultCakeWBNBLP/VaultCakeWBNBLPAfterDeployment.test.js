@@ -115,11 +115,17 @@ describe("VaultCakeWBNBLP: After deployment", function () {
     expect(await vaultCakeWBNBLP.pid()).to.equal(PID);
   });
 
-  it("VCW-06 -- Wrong staking token information", async function () {
+  it("VCW-06 -- Wrong staking token information. should be CakeWBNBLP", async function () {
     expect(await vaultCakeWBNBLP.stakingToken()).to.equal(cakeWbnbLP.address);
   });
 
-  it("VCW-07 -- Wrong rewards token information", async function () {
+  it("VCW-07 -- Wrong rewards token information. Should be cakeToken", async function () {
     expect(await vaultCakeWBNBLP.rewardsToken()).to.equal(cakeToken.address);
+  });
+
+  it("VCW-04 Missing access restriction Test. Only owner can set minter.", async function () {
+    await minter.setMinter(vaultCakeWBNBLP.address, true);
+    await vaultCakeWBNBLP.setMinter(minter.address);
+    await expect (vaultCakeWBNBLP.connect(addr3).setMinter(minter.address)).to.be.revertedWith("Ownable: caller is not the owner");
   });
 });
