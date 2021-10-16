@@ -34,4 +34,8 @@ describe("TokenAddresses: ", function () {
   it("Token not found", async function () {
     await expect(tokenAddresses.findByName("BUSD")).to.be.revertedWith("Token does not exists.");
   });
+
+  it("TAH-01 Cannot add tokens without being owner", async function () {
+    await expect(tokenAddresses.connect(other).addToken("BUSD", busd.address)).to.be.revertedWith("Ownable: caller is not the owner");
+  });
 });
