@@ -88,4 +88,20 @@ describe("VaultStaked: After deployment", function () {
     expect(await getBnb().balanceOf(user1.address)).to.equal("6500000000000000000");
     expect(await getBnb().balanceOf(user2.address)).to.equal("3500000000000000000");
   });
+
+  it("Check user removal VSV-03", async function () {
+    let vaultStacked = getVaultStaked();
+    expect( await( vaultStacked.getUsersLength() )).to.equal(0);
+    await getNativeToken().connect(user1).approve(getVaultStaked().address, bep20Amount(5));
+    expect(await getVaultStaked().connect(user1).deposit(bep20Amount(5))).to.emit(getVaultStaked(), "Deposited")
+        .withArgs(user1.address, bep20Amount(5));
+    await getNativeToken().connect(user2).approve(getVaultStaked().address, bep20Amount(5));
+    expect(await getVaultStaked().connect(user2).deposit(bep20Amount(5))).to.emit(getVaultStaked(), "Deposited")
+        .withArgs(user2.address, bep20Amount(5));
+    expect( await( vaultStacked.getUsersLength() )).to.equal(2);
+    await getVaultStaked().connect(user1).withdraw()
+    expect( await( vaultStacked.getUsersLength() )).to.equal(1);
+    await getVaultStaked().connect(user2).withdraw()
+    expect( await( vaultStacked.getUsersLength() )).to.equal(0);
+  });
 });

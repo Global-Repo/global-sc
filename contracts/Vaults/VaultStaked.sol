@@ -82,6 +82,10 @@ contract VaultStaked is IDistributable, ReentrancyGuard, RewarderRestriction {
         }
     }
 
+    function getUsersLength() public view returns (uint256) {
+        return users.length;
+    }
+
     function stakingToken() external view returns (address) {
         return address(global);
     }
@@ -164,8 +168,6 @@ contract VaultStaked is IDistributable, ReentrancyGuard, RewarderRestriction {
                     users[j] = users[j+1];
                 }
                 users.pop();
-
-                //delete users[i];
             }
         }
     }
