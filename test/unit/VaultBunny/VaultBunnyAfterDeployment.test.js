@@ -19,6 +19,8 @@ let tokenAddresses;
 let routerMock;
 let routerPathFinder;
 let vaultBunny;
+let pathFinder;
+let masterChefInternal;
 
 beforeEach(async function () {
   [owner, treasury, keeper, addr3, ...addrs] = await ethers.getSigners();
@@ -54,12 +56,16 @@ beforeEach(async function () {
   pathFinder = await PathFinder.deploy(tokenAddresses.address);
   await pathFinder.deployed();
 
+  const MasterChefInternal = await ethers.getContractFactory("MasterChefInternal");
+  masterChefInternal = await MasterChefInternal.deploy(tokenAddresses.address, pathFinder.address);
+  await masterChefInternal.deployed();
+
   const Minter = await ethers.getContractFactory("MasterChef");
   minter = await Minter.deploy(
+      masterChefInternal.address,
       nativeToken.address,
       NATIVE_TOKEN_PER_BLOCK,
       startBlock,
-      keeper.address,
       router.address,
       tokenAddresses.address,
       pathFinder.address
@@ -94,5 +100,7 @@ beforeEach(async function () {
 });
 
 describe("VaultBunny: After deployment", function () {
-
+  it("Staking token is cake", async function () {
+    expect(await vaultBunny.stakingToken()).to.equal(bunnyToken.address);
+  });
 });
