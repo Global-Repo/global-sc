@@ -21,7 +21,6 @@ beforeEach(async function () {
 describe("VaultLocked: After deployment", function () {
   it("Check Global pool id (pid)", async function () {
     expect(await getVaultLocked().pid()).to.equal(0);
-
   });
 
   it("Check deposit mapping", async function () {
@@ -48,47 +47,46 @@ describe("VaultLocked: After deployment", function () {
 
     expect(await vaultLocked.availableForWithdraw(await timestampNow(),user1.address)).to.equal(bep20Amount(0));
     expect(await vaultLocked.availableForWithdraw(await timestampNow(),user2.address)).to.equal(bep20Amount(0));
-    expect(await vaultLocked.availableForWithdraw(await timestampNow()+timestampNDays(31),user1.address)).to.equal(bep20Amount(13));
-    expect(await vaultLocked.availableForWithdraw(await timestampNow()+timestampNDays(31),user2.address)).to.equal(bep20Amount(7));
+    expect(await vaultLocked.availableForWithdraw(await timestampNow()+timestampNDays(99),user1.address)).to.equal(bep20Amount(13));
+    expect(await vaultLocked.availableForWithdraw(await timestampNow()+timestampNDays(99),user2.address)).to.equal(bep20Amount(7));
 
+    // Day 10
     await ethers.provider.send('evm_increaseTime', [timestampNDays(10)]);
 
     await getNativeToken().connect(user2).approve(getVaultLocked().address, bep20Amount(8));
     expect(await vaultLocked.connect(user2).deposit(bep20Amount(8))).to.emit(vaultLocked,"Deposited")
         .withArgs(user2.address,bep20Amount(8));
     expect(await vaultLocked.availableForWithdraw(await timestampNow(),user2.address)).to.equal(bep20Amount(0));
-    expect(await vaultLocked.availableForWithdraw(await timestampNow()+timestampNDays(21),user2.address)).to.equal(bep20Amount(7));
-    expect(await vaultLocked.availableForWithdraw(await timestampNow()+timestampNDays(31),user2.address)).to.equal(bep20Amount(15));
+    expect(await vaultLocked.availableForWithdraw(await timestampNow()+timestampNDays(89),user2.address)).to.equal(bep20Amount(7));
+    expect(await vaultLocked.availableForWithdraw(await timestampNow()+timestampNDays(99),user2.address)).to.equal(bep20Amount(15));
 
     await expect(vaultLocked.connect(user1).withdraw()).to.be.revertedWith("VaultLocked: you have no tokens to withdraw!");
     await expect(vaultLocked.connect(user2).withdraw()).to.be.revertedWith("VaultLocked: you have no tokens to withdraw!");
 
-    await ethers.provider.send('evm_increaseTime', [timestampNDays(21)]);
+    // Day 99
+    await ethers.provider.send('evm_increaseTime', [timestampNDays(89)]);
 
     expect(await vaultLocked.connect(user1).withdraw()).to.emit(vaultLocked,"Withdrawn").withArgs(user1.address,bep20Amount(13));
     expect(await vaultLocked.connect(user2).withdraw()).to.emit(vaultLocked,"Withdrawn").withArgs(user2.address,bep20Amount(7));
 
+    // Day 109
     await ethers.provider.send('evm_increaseTime', [timestampNDays(10)]);
 
     await expect(vaultLocked.connect(user1).withdraw()).to.be.revertedWith("VaultLocked: you have no tokens to withdraw!");
     expect(await vaultLocked.connect(user2).withdraw()).to.emit(vaultLocked,"Withdrawn").withArgs(user2.address,bep20Amount(8));
 
-    /*console.log((await getNativeToken().balanceOf(user1.address)).toString());
-    console.log((await getNativeToken().balanceOf(user2.address)).toString());*/
-    //Estem al dia 41
     expect(await vaultLocked.availableForWithdraw(await timestampNow(),user1.address)).to.equal(bep20Amount(0));
     expect(await vaultLocked.availableForWithdraw(await timestampNow(),user2.address)).to.equal(bep20Amount(0));
+
     await getNativeToken().connect(user1).approve(getVaultLocked().address, bep20Amount(11));
     expect(await vaultLocked.connect(user1).deposit(bep20Amount(11))).to.emit(vaultLocked,"Deposited")
         .withArgs(user1.address,bep20Amount(11));
     await getNativeToken().connect(user2).approve(getVaultLocked().address, bep20Amount(12));
     expect(await vaultLocked.connect(user2).deposit(bep20Amount(12))).to.emit(vaultLocked,"Deposited")
         .withArgs(user2.address,bep20Amount(12));
-    expect(await vaultLocked.availableForWithdraw(await timestampNow(),user1.address)).to.equal(bep20Amount(0));
-    expect(await vaultLocked.availableForWithdraw(await timestampNow(),user2.address)).to.equal(bep20Amount(0));
+
     await expect(vaultLocked.connect(user1).withdraw()).to.be.revertedWith("VaultLocked: you have no tokens to withdraw!");
     await expect(vaultLocked.connect(user2).withdraw()).to.be.revertedWith("VaultLocked: you have no tokens to withdraw!");
-
   });
 
   it("Check deposit info removal VLV-03", async function () {
