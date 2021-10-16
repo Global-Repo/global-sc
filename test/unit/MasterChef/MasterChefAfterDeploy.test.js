@@ -59,7 +59,7 @@ beforeEach(async function () {
   await pathFinder.deployed();
 
   const MasterChefInternal = await ethers.getContractFactory("MasterChefInternal");
-  masterChefInternal = await MasterChefInternal.deploy(tokenAddresses.address);
+  masterChefInternal = await MasterChefInternal.deploy(tokenAddresses.address, pathFinder.address);
   await masterChefInternal.deployed();
 
   const MasterChef = await ethers.getContractFactory("MasterChef");

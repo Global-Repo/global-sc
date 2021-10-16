@@ -122,7 +122,7 @@ beforeEach(async function () {
     await pathFinder.deployed();
 
     const MasterChefInternal = await ethers.getContractFactory("MasterChefInternal");
-    masterChefInternal = await MasterChefInternal.deploy(tokenAddresses.address);
+    masterChefInternal = await MasterChefInternal.deploy(tokenAddresses.address, pathFinder.address);
     await masterChefInternal.deployed();
 
     const MasterChef = await ethers.getContractFactory("MasterChef");
@@ -269,7 +269,8 @@ describe("MasterChef: Fees", function () {
         let date = new Date();
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
         //set dev address
-        await masterChef.setDevAddress(devaddress.address);
+        await masterChef.setTreasury(devaddress.address);
+        await masterChef.setTreasuryLP(devaddress.address);
         print("Eth (or BNB) addr", weth.address);
         print("tokenA addr", tokenA.address);
         print("nativeToken addr", nativeToken.address);
@@ -386,7 +387,9 @@ describe("MasterChef: Fees", function () {
         let date = new Date();
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
         //set dev address
-        await masterChef.setDevAddress(devaddress.address);
+        //await masterChef.setDevAddress(devaddress.address);
+        await masterChef.setTreasury(devaddress.address);
+        await masterChef.setTreasuryLP(devaddress.address);
         //Pools vars
         let allocPointMCpool=1000;
         let harvestInterval = DAY_IN_SECONDS * 3;
@@ -457,7 +460,9 @@ describe("MasterChef: Fees", function () {
         let date = new Date();
         const deadline = date.setTime(date.getTime() + 2 * 86400000); // +2 days
         //set dev address
-        await masterChef.setDevAddress(devaddress.address);
+        //await masterChef.setDevAddress(devaddress.address);
+        await masterChef.setTreasury(devaddress.address);
+        await masterChef.setTreasuryLP(devaddress.address);
         //Pools vars
         let allocPointMCpool=1000;
         let harvestInterval = DAY_IN_SECONDS * 4;
