@@ -35,6 +35,10 @@ contract VaultDistribution is Ownable, DepositoryRestriction {
         lastDistributedEvent = block.timestamp;
     }
 
+    function getBeneficiariesLength() public view returns(uint) {
+        return beneficiaries.length;
+    }
+
     function setMinTokenAmountToDistribute(uint _newAmount) external onlyOwner {
         require(_newAmount >= 0, "Min token amount to distribute must be greater than 0");
         minTokenAmountToDistribute = _newAmount;
@@ -71,8 +75,6 @@ contract VaultDistribution is Ownable, DepositoryRestriction {
                     beneficiaries[j] = beneficiaries[j+1];
                 }
                 beneficiaries.pop();
-
-                //delete beneficiaries[i];
             }
         }
     }
