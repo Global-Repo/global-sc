@@ -388,7 +388,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
 
             uint amountGlobalBought = amountsGlobal[amountsGlobal.length-1];
             global.approve(address(vaultVested), amountGlobalBought);
-            vaultVested.deposit(amountGlobalBought, address(this));
+            vaultVested.deposit(amountGlobalBought, msg.sender);
 
             uint amountToMintGlobal = amountGlobalBought.mul(rewards.toMintGlobal).div(10000);
             minter.mintNativeTokens(amountToMintGlobal, address(this));
