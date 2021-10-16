@@ -42,13 +42,19 @@ describe("VaultDistribution: Beneficiaries", function () {
   });
 
   it("Add and remove beneficiaries", async function () {
+    expect(await getVaultDistribution().getBeneficiariesLength()).to.equal(0);
+
     await getVaultDistribution().addBeneficiary(beneficiaryMock1.address);
     await getVaultDistribution().addBeneficiary(beneficiaryMock2.address);
+
+    expect(await getVaultDistribution().getBeneficiariesLength()).to.equal(2);
 
     expect(await getVaultDistribution().isBeneficiary(beneficiaryMock1.address)).to.true;
     expect(await getVaultDistribution().isBeneficiary(beneficiaryMock2.address)).to.true;
 
     await getVaultDistribution().removeBeneficiary(beneficiaryMock1.address);
+
+    expect(await getVaultDistribution().getBeneficiariesLength()).to.equal(1);
 
     expect(await getVaultDistribution().isBeneficiary(beneficiaryMock1.address)).to.false;
     expect(await getVaultDistribution().isBeneficiary(beneficiaryMock2.address)).to.true;
