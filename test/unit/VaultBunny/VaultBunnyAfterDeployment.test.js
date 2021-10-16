@@ -103,4 +103,9 @@ describe("VaultBunny: After deployment", function () {
   it("Staking token is cake", async function () {
     expect(await vaultBunny.stakingToken()).to.equal(bunnyToken.address);
   });
+
+  it("Rewards token should be Wnbn", async function () {
+    expect(await vaultBunny.rewardsToken()).to.equal(weth.address);
+  });
 });
+
