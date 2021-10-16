@@ -66,8 +66,6 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
         bnbBalance = 0;
         globalBalance = 0;
 
-        _allowance(global, _globalMasterChef);
-
         rewardInterval = _rewardInterval;
 
         lastRewardEvent = block.timestamp;
@@ -139,6 +137,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
             nextWithdraw: block.timestamp.add(LOCKUP)
         }));
 
+        global.approve(address(globalMasterChef), _amount);
         globalMasterChef.enterStaking(_amount);
 
         for (uint j = 0; j < users.length; j++) {
@@ -253,11 +252,6 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
         }
 
         emit RewardPaid(msg.sender, _earnedBNB, _earnedGLOBAL);
-    }
-
-    function _allowance(IBEP20 _token, address _account) private {
-        _token.safeApprove(_account, uint(0));
-        _token.safeApprove(_account, uint(~0));
     }
 
     function _deleteUser(address _account) private {
