@@ -19,9 +19,9 @@ let cakeMasterChefMock;
 let tokenAddresses;
 let routerMock;
 let pathFinder;
-let vaultCake;
 let vaultCakeWBNBLP;
 let masterChefInternal;
+let cakeWbnbLP;
 
 beforeEach(async function () {
   [owner, treasury, keeper, addr3, ...addrs] = await ethers.getSigners();
@@ -45,6 +45,10 @@ beforeEach(async function () {
   weth = await Weth.deploy('Wrapped BNB', 'WBNB');
   await weth.deployed();
 
+  const CakeWbnbLP = await ethers.getContractFactory("BEP20");
+  cakeWbnbLP = await CakeWbnbLP.deploy('CakeWbnbLP', 'LP');
+  await cakeWbnbLP.deployed();
+
   const Router = await ethers.getContractFactory("Router");
   router = await Router.deploy(factory.address, weth.address);
   await router.deployed();
@@ -52,7 +56,7 @@ beforeEach(async function () {
   const TokenAddresses = await ethers.getContractFactory("TokenAddresses");
   tokenAddresses = await TokenAddresses.deploy();
   await tokenAddresses.deployed();
-  await tokenAddresses.addToken(tokenAddresses.CAKE_WBNB_LP(), weth.address);
+  await tokenAddresses.addToken(tokenAddresses.CAKE_WBNB_LP(), cakeWbnbLP.address);
   await tokenAddresses.addToken(tokenAddresses.CAKE(), cakeToken.address);
   await tokenAddresses.addToken(tokenAddresses.GLOBAL(), nativeToken.address);
   await tokenAddresses.addToken(tokenAddresses.WBNB(), weth.address);
@@ -78,7 +82,6 @@ beforeEach(async function () {
   await minter.deployed();
   await pathFinder.transferOwnership(minter.address);
 
-
   const CakeMasterChefMock = await ethers.getContractFactory("CakeMasterChefMock");
   cakeMasterChefMock = await CakeMasterChefMock.deploy(cakeToken.address);
   await cakeMasterChefMock.deployed();
@@ -90,7 +93,7 @@ beforeEach(async function () {
   const VaultCakeWBNBLP = await ethers.getContractFactory("VaultCakeWBNBLP");
   vaultCakeWBNBLP = await VaultCakeWBNBLP.deploy(
       PID,
-      weth.address,       //simulating LP BEP20 token
+      cakeWbnbLP.address,       //simulating LP BEP20 token
       nativeToken.address,
       cakeToken.address,
       cakeMasterChefMock.address,
@@ -105,21 +108,18 @@ beforeEach(async function () {
 
   // Set up scenarios
   await nativeToken.transferOwnership(minter.address);
-
-
 });
 
 describe("VaultCakeWBNBLP: After deployment", function () {
-  //xit("Check Cake pool id (pid)", async function () {
-  //  expect(await vaultCake.pid()).to.equal(PID);
-  //});
+  it("Check Cake pool id (pid)", async function () {
+    expect(await vaultCakeWBNBLP.pid()).to.equal(PID);
+  });
 
   it("VCW-06 -- Wrong staking token information", async function () {
-    expect(await vaultCakeWBNBLP.stakingToken()).to.equal(weth.address);
+    expect(await vaultCakeWBNBLP.stakingToken()).to.equal(cakeWbnbLP.address);
   });
 
   it("VCW-07 -- Wrong rewards token information", async function () {
     expect(await vaultCakeWBNBLP.rewardsToken()).to.equal(cakeToken.address);
   });
-
 });
