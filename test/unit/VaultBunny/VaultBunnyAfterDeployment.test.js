@@ -107,5 +107,11 @@ describe("VaultBunny: After deployment", function () {
   it("Rewards token should be Wnbn", async function () {
     expect(await vaultBunny.rewardsToken()).to.equal(weth.address);
   });
+
+  it("VBV-02 Missing access restriction. ", async function () {
+    await minter.setMinter(vaultBunny.address, true);
+    await vaultBunny.setMinter(minter.address);
+    await expect (vaultBunny.connect(addr3).setMinter(minter.address)).to.be.revertedWith("Ownable: caller is not the owner");
+  });
 });
 
