@@ -79,6 +79,10 @@ contract VaultStakedToGlobal is IDistributable, ReentrancyGuard, RewarderRestric
         return principal[_account];
     }
 
+    function getUsersLength() public view returns (uint256) {
+        return users.length;
+    }
+
     function earned(address _account) public view returns (uint) {
         if (principalOf(_account) > 0) {
             return wbnbEarned[_account];
@@ -176,8 +180,6 @@ contract VaultStakedToGlobal is IDistributable, ReentrancyGuard, RewarderRestric
                     users[j] = users[j+1];
                 }
                 users.pop();
-
-                //delete users[i];
             }
         }
     }
