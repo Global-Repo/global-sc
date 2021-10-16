@@ -45,8 +45,6 @@ contract VaultStaked is IDistributable, ReentrancyGuard, RewarderRestriction {
         globalMasterChef = IGlobalMasterChef(_globalMasterChef);
 
         minTokenAmountToDistribute = 1e18; // 1 BEP20 Token
-
-        _allowance(global, _globalMasterChef);
     }
 
     function triggerDistribute(uint _amount) external nonReentrant onlyRewarders override {
@@ -93,6 +91,7 @@ contract VaultStaked is IDistributable, ReentrancyGuard, RewarderRestriction {
         bool userExists = false;
         global.safeTransferFrom(msg.sender, address(this), _amount);
 
+        global.approve(address(globalMasterChef), _amount);
         globalMasterChef.enterStaking(_amount);
 
         for (uint j = 0; j < users.length; j++) {
@@ -146,11 +145,6 @@ contract VaultStaked is IDistributable, ReentrancyGuard, RewarderRestriction {
         bnb.safeTransfer(msg.sender, _earned);
 
         emit RewardPaid(msg.sender, _earned);
-    }
-
-    function _allowance(IBEP20 _token, address _account) private {
-        _token.safeApprove(_account, uint(0));
-        _token.safeApprove(_account, uint(~0));
     }
 
     function _deleteUser(address _account) private {
