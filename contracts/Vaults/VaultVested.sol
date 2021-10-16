@@ -76,6 +76,10 @@ contract VaultVested is IDistributable, ReentrancyGuard, DepositoryRestriction, 
         _distribute();
     }
 
+    function getUsersLength() public view returns (uint256) {
+        return users.length;
+    }
+
     function setMinTokenAmountToDistribute(uint _newAmount) external onlyOwner {
         require(_newAmount >= 0, "Min token amount to distribute must be greater than 0");
         minTokenAmountToDistribute = _newAmount;
@@ -153,12 +157,6 @@ contract VaultVested is IDistributable, ReentrancyGuard, DepositoryRestriction, 
     function removeAllDeposits(address user) private
     {
         delete depositInfo[user];
-        /*
-        while(depositInfo[user].length > 0)
-        {
-            depositInfo[user].pop();
-        }
-        */
     }
 
     // Deposit globals.
