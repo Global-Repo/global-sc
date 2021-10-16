@@ -40,20 +40,14 @@ contract VaultStakedToGlobal is IDistributable, ReentrancyGuard, RewarderRestric
         address _globalMasterChef,
         address _globalRouter
     ) public {
-        // Pid del vault.
         pid = 0;
 
-        // Li passem el address de global
         global = IBEP20(_global);
-
-        // Li passem el address de wbnb
         wbnb = IBEP20(_wbnb);
         wbnbBalance = 0;
 
-        // Li passem el address del masterchef a on es depositaràn els GLOBALs
         globalMasterChef = IGlobalMasterChef(_globalMasterChef);
 
-        // Es repartirà 1 wbnb com a mínim. En cas contrari, no repartirem.
         minTokenAmountToDistribute = 1e18; // 1 BEP20 Token
 
         globalRouter = IRouterV2(_globalRouter);
@@ -153,16 +147,19 @@ contract VaultStakedToGlobal is IDistributable, ReentrancyGuard, RewarderRestric
             return; // No rewards
         }
 
-        address[] memory path = new address[](2);
-        path[0] = address(wbnb);
-        path[1] = address(global);
+        address[] memory pathToGlobal = new address[](2);
+        pathToGlobal[0] = address(wbnb);
+        pathToGlobal[1] = address(global);
 
-        uint[] memory amountsPredicted = globalRouter.getAmountsOut(_earned, path);
-        uint[] memory amounts = globalRouter.swapExactTokensForTokens(_earned, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
-            path, msg.sender, block.timestamp);
-
-        //uint tokensToSend = amounts[amounts.length-1];
-        //global.safeTransfer(msg.sender, tokensToSend);
+        // Swaps BNB to GLOBAL and sends to user
+        uint[] memory amountsPredicted = globalRouter.getAmountsOut(_earned, pathToGlobal);
+        uint[] memory amounts = globalRouter.swapExactTokensForTokens(
+            _earned,
+            (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+            pathToGlobal,
+            msg.sender,
+            block.timestamp
+        );
 
         emit RewardPaid(msg.sender, amounts[amounts.length-1]);
     }

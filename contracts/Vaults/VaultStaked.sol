@@ -36,20 +36,14 @@ contract VaultStaked is IDistributable, ReentrancyGuard, RewarderRestriction {
         address _bnb,
         address _globalMasterChef
     ) public {
-        // Pid del vault.
         pid = 0;
 
-        // Li passem el address de global
         global = IBEP20(_global);
-
-        // Li passem el address de bnb
         bnb = IBEP20(_bnb);
         bnbBalance = 0;
 
-        // Li passem el address del masterchef a on es depositaràn els GLOBALs
         globalMasterChef = IGlobalMasterChef(_globalMasterChef);
 
-        // Es repartirà 1bnb com a mínim. En cas contrari, no repartirem.
         minTokenAmountToDistribute = 1e18; // 1 BEP20 Token
 
         _allowance(global, _globalMasterChef);
@@ -100,7 +94,6 @@ contract VaultStaked is IDistributable, ReentrancyGuard, RewarderRestriction {
         global.safeTransferFrom(msg.sender, address(this), _amount);
 
         globalMasterChef.enterStaking(_amount);
-
 
         for (uint j = 0; j < users.length; j++) {
             if (users[j] == msg.sender)
