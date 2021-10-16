@@ -68,7 +68,6 @@ contract VaultVested is IDistributable, ReentrancyGuard, DepositoryRestriction, 
         penaltyFees.interval = 99 days;
 
         _allowance(global, _globalMasterChef);
-        _allowance(global, _vaultLocked);
     }
 
     function triggerDistribute(uint _amount) external nonReentrant onlyRewarders override {
@@ -260,6 +259,7 @@ contract VaultVested is IDistributable, ReentrancyGuard, DepositoryRestriction, 
             if (amountToVaultLocked < DUST) {
                 amountToUser = amountToUser.add(amountToVaultLocked);
             } else {
+                global.approve(address(vaultLocked), amountToVaultLocked);
                 vaultLocked.depositRewards(amountToVaultLocked);
             }
 
@@ -295,8 +295,6 @@ contract VaultVested is IDistributable, ReentrancyGuard, DepositoryRestriction, 
                     users[j] = users[j+1];
                 }
                 users.pop();
-
-                //delete users[i];
             }
         }
     }
