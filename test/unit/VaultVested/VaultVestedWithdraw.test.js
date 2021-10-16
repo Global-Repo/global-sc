@@ -227,4 +227,27 @@ describe("VaultVested: Withdraw", function () {
     // Locked vault receives 1% of deposit as penalty fee.
     expect(await getNativeToken().balanceOf(getVaultLocked().address)).to.equal(0);
   });
+
+  it("Test user removal VVV-03", async function () {
+    let vaultVested = getVaultVested();
+    const depositAmount = bep20Amount(2);
+    expect( await( vaultVested.getUsersLength() )).to.equal(0);
+    await getVaultVested().setPenaltyFees(100, timestampNDays(30));
+    await getNativeToken().connect(owner).transfer(depositary1.address, depositAmount);
+    await getNativeToken().connect(depositary1).approve(getVaultVested().address, depositAmount);
+    await getVaultVested().connect(owner).setDepositary(depositary1.address, true);
+    await getVaultVested().connect(depositary1).deposit(depositAmount.div(2), user1.address);
+    expect( await( vaultVested.getUsersLength() )).to.equal(1);
+    await getVaultVested().setPenaltyFees(100, timestampNDays(30));
+    await getNativeToken().connect(owner).transfer(depositary2.address, depositAmount);
+    await getNativeToken().connect(depositary2).approve(getVaultVested().address, depositAmount);
+    await getVaultVested().connect(owner).setDepositary(depositary2.address, true);
+    await getVaultVested().connect(depositary2).deposit(depositAmount.div(2), user2.address);
+    expect( await( vaultVested.getUsersLength() )).to.equal(2);
+    await ethers.provider.send('evm_increaseTime', [timestampNDays(90)]);
+    await getVaultVested().connect(user1).withdrawWithoutFees();
+    expect( await( vaultVested.getUsersLength() )).to.equal(1);
+    await getVaultVested().connect(user2).withdrawWithoutFees();
+    expect( await( vaultVested.getUsersLength() )).to.equal(0);
+  });
 });
