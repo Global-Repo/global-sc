@@ -93,6 +93,10 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
         minGlobalAmountToDistribute = _minGlobalAmountToDistribute;
     }
 
+    function getDepositInfoLengthForAddress(address addr) public view returns (uint256) {
+        return depositInfo[addr].length;
+    }
+
     function triggerDistribute(uint _amount) external nonReentrant onlyRewarders override {
         bnbBalance = bnbBalance.add(_amount);
 

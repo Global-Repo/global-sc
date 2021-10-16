@@ -95,24 +95,15 @@ describe("VaultLocked: After deployment", function () {
     await getNativeToken().connect(user1).approve(getVaultLocked().address, bep20Amount(1));
     expect(await vaultLocked.connect(user1).deposit(bep20Amount(1))).to.emit(vaultLocked,"Deposited")
         .withArgs(user1.address,bep20Amount(1));
-
     await getNativeToken().connect(user1).approve(getVaultLocked().address, bep20Amount(2));
     expect(await vaultLocked.connect(user1).deposit(bep20Amount(2))).to.emit(vaultLocked,"Deposited")
         .withArgs(user1.address,bep20Amount(2));
-
     await getNativeToken().connect(user1).approve(getVaultLocked().address, bep20Amount(2));
     expect(await vaultLocked.connect(user1).deposit(bep20Amount(2))).to.emit(vaultLocked,"Deposited")
         .withArgs(user1.address,bep20Amount(2));
-
-    console.log('hi');
-    console.log(await vaultLocked.depositInfo.length);
-    console.log(await vaultLocked.users.length);
-
-
-    //console.log('VaultLocked.depositInfo', await( vaultLocked.depositInfo[user1.address][0] )  );
-
-    //print('Lps depositats a masterchef pool 2 per addr1:', ((await masterChef.userInfo(2,
-    //    addr1.address)).amount).toString());
-
+    expect( await( vaultLocked.getDepositInfoLengthForAddress(user1.address)) ).to.equal(3);
+    await ethers.provider.send('evm_increaseTime', [timestampNDays(91)]);
+    expect(await vaultLocked.connect(user1).withdraw()).to.emit(vaultLocked,"Withdrawn").withArgs(user1.address,bep20Amount(5));
+    expect( await( vaultLocked.getDepositInfoLengthForAddress(user1.address))).to.equal(0);
   });
 });
