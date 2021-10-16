@@ -53,26 +53,19 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
         address _globalMasterChef,
         uint256 _rewardInterval
     ) public {
-        // Pid del vault.
         pid = 0;
 
-        // Li passem el address de global
         global = IBEP20(_global);
-
-        // Li passem el address de bnb
         bnb = IBEP20(_bnb);
 
-        // Li passem el address del masterchef a on es depositaràn els GLOBALs
         globalMasterChef = IGlobalMasterChef(_globalMasterChef);
 
-        // Es repartirà 1bnb com a mínim. En cas contrari, no repartirem.
         minTokenAmountToDistribute = 1e18; // 1 BEP20 Token
         minGlobalAmountToDistribute = 100e18; // 100 BEP20 Token
 
         bnbBalance = 0;
         globalBalance = 0;
 
-        // ????????? Cal?????
         _allowance(global, _globalMasterChef);
 
         rewardInterval = _rewardInterval;
@@ -275,8 +268,6 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
                     users[j] = users[j+1];
                 }
                 users.pop();
-
-                //delete users[i];
             }
         }
     }
