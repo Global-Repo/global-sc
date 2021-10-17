@@ -92,8 +92,6 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         vaultVested = VaultVested(_vaultVested);
         vaultDistribution = VaultDistribution(_vaultDistribution);
 
-        _allowance(bunny, _pool);
-
         __PausableUpgradeable_init();
         __WhitelistUpgradeable_init();
 
@@ -246,6 +244,7 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         uint harvested = amounts[amounts.length-1];
         emit Harvested(harvested);
 
+        bunny.approve(address(pool), harvested);
         pool.deposit(harvested);
     }
 
@@ -447,6 +446,7 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         totalShares = totalShares.add(shares);
         _shares[_to] = _shares[_to].add(shares);
 
+        bunny.approve(address(pool), _amount);
         pool.deposit(_amount);
         emit Deposited(_to, _amount);
     }
@@ -457,11 +457,6 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             totalShares = totalShares.sub(shares);
             delete _shares[msg.sender];
         }
-    }
-
-    function _allowance(IBEP20 _token, address _account) private {
-        _token.safeApprove(_account, uint(0));
-        _token.safeApprove(_account, uint(~0));
     }
 
     // SALVAGE PURPOSE ONLY

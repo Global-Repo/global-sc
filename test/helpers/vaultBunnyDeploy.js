@@ -92,6 +92,7 @@ let getVaultVested = function () { return vaultVested }
 let getVaultBunny = function () { return vaultBunny }
 let getBunny = function () { return bunny }
 let getGlobalMasterChef = function () { return globalMasterChef }
+let getBunnyPoolMock = function () { return bunnyPoolMock }
 
 module.exports = {
     deploy,
@@ -102,4 +103,5 @@ module.exports = {
     getVaultDistribution,
     getVaultVested,
     getGlobalMasterChef,
+    getBunnyPoolMock,
 };
