@@ -59,7 +59,7 @@ beforeEach(async function () {
   await pathFinder.deployed();
 
   const MasterChefInternal = await ethers.getContractFactory("MasterChefInternal");
-  masterChefInternal = await MasterChefInternal.deploy(tokenAddresses.address);
+  masterChefInternal = await MasterChefInternal.deploy(tokenAddresses.address, pathFinder.address);
   await masterChefInternal.deployed();
 
   const MasterChef = await ethers.getContractFactory("MasterChef");
@@ -131,7 +131,9 @@ describe("MasterChef: Mint", function () {
     const amountToMint = BigNumber.from(2).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
 
     await masterChef.setMinter(vault.address, true);
-    await masterChef.setDevAddress(devs.address);
+    //await masterChef.setDevAddress(devs.address);
+    await masterChef.setTreasury(devs.address);
+    await masterChef.setTreasuryLP(devs.address);
     await masterChef.connect(vault).mintNativeTokens(amountToMint, vault.address);
 
     // Ensures Masterchef minted an extra 10% for devs.

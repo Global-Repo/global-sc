@@ -86,4 +86,12 @@ describe("SmartChefFactory: After deployment", function () {
     const smartChef = await smartChefContract.attach(smartChefAddress);
     expect(smartChef.stopReward()).to.be.revertedWith("Can't be stopped");
   });
+
+  xit("SCC-04 - GetMultiplier rewards test", async function () {
+    //Note to test this function should we interact directly with the _getMultiplier funciton by changing its
+    //visibility to public and checking it from there?
+  });
+
+
+
 });
