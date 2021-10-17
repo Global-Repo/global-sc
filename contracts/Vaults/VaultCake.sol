@@ -94,8 +94,6 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         vaultDistribution = VaultDistribution(_vaultDistribution);
 
         _allowance(cake, _cakeMasterChef);
-        //_allowance(wbnb, _vaultDistribution);
-        //_allowance(global, _vaultVested);
 
         __PausableUpgradeable_init();
         __WhitelistUpgradeable_init();
@@ -107,7 +105,6 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         pathFinder = IPathFinder(_pathFinder);
     }
 
-    // init minter
     function setMinter(address _minter) external onlyOwner {
         require(IMinter(_minter).isMinter(address(this)) == true, "This vault must be a minter in minter's contract");
         minter = IMinter(_minter);
@@ -372,7 +369,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             vaultDistribution.deposit(amountBNBSwapped);
         }
 
-        // Swaps CAKE for GLOBAL and sends GLOBAL to vested vault (as cake vault)
+        // Swaps CAKE for GLOBAL and sends GLOBAL to vested vault (as user)
         // Mints GLOBAL and sends GLOBAL to vested vault (as user)
         if (amountToBuyGlobal < DUST) {
             amountToUser = amountToUser.add(amountToBuyGlobal);

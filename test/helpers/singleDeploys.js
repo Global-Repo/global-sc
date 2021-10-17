@@ -5,7 +5,7 @@ let deployedGlobalAddress;
 
 let deployToken = async function (name, symbol) {
     const TokenX = await ethers.getContractFactory("BEP20");
-    tokenX = await TokenX.deploy(name, symbol);
+    const tokenX = await TokenX.deploy(name, symbol);
     await tokenX.deployed();
     return tokenX;
 };
@@ -46,6 +46,13 @@ let deployBusd = async function () {
     const busd = await Busd.deploy('Binance USD', 'BUSD');
     await busd.deployed();
     return busd;
+};
+
+let deployBunny = async function () {
+    const Bunny = await ethers.getContractFactory("BEP20");
+    const bunny = await Bunny.deploy('Bunny', 'BUNNY');
+    await bunny.deployed();
+    return bunny;
 };
 
 let deployFactory = async function (feeSetter) {
@@ -178,6 +185,45 @@ let deployVaultVested = async function (
     return vaultVested;
 };
 
+let deployBunnyPoolMock = async function (bunny)
+{
+    const BunnyPoolMock = await ethers.getContractFactory("BunnyPoolMock");
+    const bunnyPoolMock = await BunnyPoolMock.deploy(bunny);
+    await bunnyPoolMock.deployed();
+    return bunnyPoolMock;
+};
+
+let deployVaultBunny = async function (
+    bunny,
+    global,
+    wbnb,
+    pool,
+    treasury,
+    tokenAddresses,
+    globalRouter,
+    pathFinder,
+    vaultDistribution,
+    vaultVested,
+    cakeRouter
+) {
+    const VaultBunny = await ethers.getContractFactory("VaultBunny");
+    const vaultBunny = await VaultBunny.deploy(
+        bunny,
+        global,
+        wbnb,
+        pool,
+        treasury,
+        tokenAddresses,
+        globalRouter,
+        pathFinder,
+        vaultDistribution,
+        vaultVested,
+        cakeRouter
+    );
+    await vaultBunny.deployed();
+    return vaultBunny;
+};
+
 let deployVaultCake = async function (
     cake,
     global,
@@ -242,5 +288,8 @@ module.exports = {
     deployVaultStaked,
     deployVaultStakedToGlobal,
     deployPathFinder,
-    deployMintNotifier
+    deployMintNotifier,
+    deployVaultBunny,
+    deployBunny,
+    deployBunnyPoolMock,
 };

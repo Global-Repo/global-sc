@@ -11,33 +11,37 @@ import "../Modifiers/WhitelistUpgradeable.sol";
 import "../IRouterV2.sol";
 import "./Interfaces/IStrategy.sol";
 import "./Externals/IBunnyPoolStrategy.sol";
-import "./VaultVested.sol";
+import './VaultVested.sol';
+import './VaultDistribution.sol';
 
 contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     using SafeBEP20 for IBEP20;
     using SafeMath for uint;
     using SafeMath for uint16;
 
-    IBEP20 private bunny;
-    IBEP20 private global;
-    IBEP20 private wbnb;
-    IBunnyPoolStrategy private pool;
-    IMinter private minter;
-    address private treasury;
-    address private keeper;
-    IRouterV2 private router;
-    IPathFinder private pathFinder;
-    TokenAddresses private tokenAddresses;
+    IBEP20 public bunny;
+    IBEP20 public global;
+    IBEP20 public wbnb;
+    IBunnyPoolStrategy public pool;
+    IMinter public minter;
+    address public treasury;
+    address public keeper;
+    VaultDistribution public vaultDistribution;
+    VaultVested public vaultVested;
+    IRouterV2 public globalRouter;
+    IRouterV2 public cakeRouter;
+    IPathFinder public pathFinder;
+    TokenAddresses public tokenAddresses;
 
     uint16 public constant MAX_WITHDRAWAL_FEES = 100; // 1%
-    uint private constant DUST = 1000;
-    uint private constant SLIPPAGE = 9500;
-    address private constant GLOBAL_BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
+    uint public constant DUST = 1000;
+    uint public constant SLIPPAGE = 9500;
+    address public constant GLOBAL_BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     uint public totalShares;
-    mapping (address => uint) private _shares;
-    mapping (address => uint) private _principal;
-    mapping (address => uint) private _depositedAt;
+    mapping (address => uint) public _shares;
+    mapping (address => uint) public _principal;
+    mapping (address => uint) public _depositedAt;
 
     struct WithdrawalFees {
         uint16 burn;      // % to burn (in Global)
@@ -55,12 +59,6 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
 
     WithdrawalFees public withdrawalFees;
     Rewards public rewards;
-
-    // TODO: in use?
-    modifier onlyKeeper {
-        require(msg.sender == keeper || msg.sender == owner(), 'VaultController: caller is not the owner or keeper');
-        _;
-    }
 
     modifier onlyNonContract() {
         require(tx.origin == msg.sender);
@@ -80,23 +78,21 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         address _pool,
         address _treasury,
         address _tokenAddresses,
-        address _router,
+        address _globalRouter,
         address _pathFinder,
-        address _keeper
+        address _vaultDistribution,
+        address _vaultVested,
+        address _cakeRouter
     ) public {
-        // BUNNY = 0xC9849E6fdB743d08fAeE3E34dd2D1bc69EA11a51
-        // BUNNY_POOL = 0xCADc8CB26c8C7cB46500E61171b5F27e9bd7889D;
-        // Minter = 0x8cB88701790F650F273c8BB2Cc4c5f439cd65219
-        // WBNB = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c
         bunny = IBEP20(_bunny);
         global = IBEP20(_global);
         wbnb = IBEP20(_wbnb);
         pool = IBunnyPoolStrategy(_pool);
         treasury = _treasury;
-        keeper = _keeper;
+        vaultVested = VaultVested(_vaultVested);
+        vaultDistribution = VaultDistribution(_vaultDistribution);
 
-        bunny.safeApprove(_pool, uint(~0));
-        // TODO approve to vested and distributor
+        _allowance(bunny, _pool);
 
         __PausableUpgradeable_init();
         __WhitelistUpgradeable_init();
@@ -105,11 +101,11 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         setDefaultRewardFees();
 
         tokenAddresses = TokenAddresses(_tokenAddresses);
-        router = IRouterV2(_router);
+        globalRouter = IRouterV2(_globalRouter);
+        cakeRouter = IRouterV2(_cakeRouter);
         pathFinder = IPathFinder(_pathFinder);
     }
 
-    // init minter
     function setMinter(address _minter) external onlyOwner {
         require(IMinter(_minter).isMinter(address(this)) == true, "This vault must be a minter in minter's contract");
         bunny.safeApprove(_minter, 0);
@@ -205,7 +201,6 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
 
     function deposit(uint _amount) public override onlyNonContract {
         _deposit(_amount, msg.sender);
-
         _principal[msg.sender] = _principal[msg.sender].add(_amount);
         _depositedAt[msg.sender] = block.timestamp;
     }
@@ -230,20 +225,23 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         delete _depositedAt[msg.sender];
     }
 
-    // TODO: modifier onlyKeeper in vault bunny
     function harvest() external override onlyNonContract {
         pool.getReward();
 
-        // TODO: ensure reward of pool is in WBNB and not BUNNY
         uint deadline = block.timestamp;
 
-        address[] memory pathToBunny = new address[](2);
-        pathToBunny[0]=tokenAddresses.findByName(tokenAddresses.BUNNY());
-        pathToBunny[1]=tokenAddresses.findByName(tokenAddresses.WBNB());
+        address[] memory pathToBNB = new address[](2);
+        pathToBNB[0]=tokenAddresses.findByName(tokenAddresses.BUNNY());
+        pathToBNB[1]=tokenAddresses.findByName(tokenAddresses.WBNB());
 
-        uint[] memory amountsPredicted = router.getAmountsOut(wbnb.balanceOf(address(this)), pathToBunny);
-        uint[] memory amounts = router.swapExactTokensForTokens(wbnb.balanceOf(address(this)),
-            (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000), pathToBunny, address(this), deadline);
+        uint[] memory amountsPredicted = cakeRouter.getAmountsOut(bunny.balanceOf(address(this)), pathToBNB);
+        uint[] memory amounts = cakeRouter.swapExactTokensForTokens(
+            bunny.balanceOf(address(this)),
+            (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+            pathToBNB,
+            address(this),
+            deadline
+        );
 
         uint harvested = amounts[amounts.length-1];
         emit Harvested(harvested);
@@ -276,7 +274,6 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         handleWithdrawalFees(amount);
     }
 
-    // TODO: nonReentrant modifier
     function getReward() external override onlyNonContract {
         uint amount = earned(msg.sender);
         uint shares = Math.min(amount.mul(totalShares).div(balance()), _shares[msg.sender]);
@@ -313,21 +310,32 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             tokenAddresses.findByName(tokenAddresses.BUSD())
         );
 
+        // TODO: Swaps BUNNY for BNB and BNB for GLOBAL and burns GLOBALS.
         if (amountToBurn < DUST) {
             amountToUser = amountToUser.add(amountToBurn);
         } else {
-            uint[] memory amountsPredicted = router.getAmountsOut(amountToBurn, pathToGlobal);
-            router.swapExactTokensForTokens(amountToBurn, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
-                pathToGlobal, GLOBAL_BURN_ADDRESS, deadline);
+            uint[] memory amountsPredicted = globalRouter.getAmountsOut(amountToBurn, pathToGlobal);
+            globalRouter.swapExactTokensForTokens(
+                amountToBurn,
+                (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                pathToGlobal,
+                GLOBAL_BURN_ADDRESS,
+                deadline
+            );
         }
 
+        // Swaps BUNNY for BUSD and sends BUSD to treasury.
         if (amountToTeam < DUST) {
             amountToUser = amountToUser.add(amountToTeam);
         } else {
-
-            uint[] memory amountsPredicted = router.getAmountsOut(amountToTeam, pathToBusd);
-            router.swapExactTokensForTokens(amountToTeam, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
-                pathToBusd, treasury, deadline);
+            uint[] memory amountsPredicted = cakeRouter.getAmountsOut(amountToTeam, pathToBusd);
+            cakeRouter.swapExactTokensForTokens(
+                amountToTeam,
+                (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                pathToBusd,
+                treasury,
+                deadline
+            );
         }
 
         bunny.safeTransfer(msg.sender, amountToUser);
@@ -345,6 +353,7 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         uint amountToBuyGlobal = _amount.mul(rewards.toBuyGlobal).div(10000);
         uint amountToBuyBNB = _amount.mul(rewards.toBuyBNB).div(10000);
 
+        // TODO: como encontramos la ruta si se swapeará con cakeRouter?
         address[] memory pathToGlobal = pathFinder.findPath(
             tokenAddresses.findByName(tokenAddresses.BUNNY()),
             tokenAddresses.findByName(tokenAddresses.GLOBAL())
@@ -360,38 +369,74 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             tokenAddresses.findByName(tokenAddresses.BNB())
         );
 
+        // Swaps BUNNY for BUSD and sends BUSD to treasury.
         if (amountToOperations < DUST) {
             amountToUser = amountToUser.add(amountToOperations);
         } else {
-            uint[] memory amountsPredicted = router.getAmountsOut(amountToOperations, pathToBusd);
-            router.swapExactTokensForTokens(amountToOperations, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
-                pathToBusd, treasury, deadline);
+            uint[] memory amountsPredicted = cakeRouter.getAmountsOut(amountToOperations, pathToBusd);
+            cakeRouter.swapExactTokensForTokens(
+                amountToOperations,
+                (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                pathToBusd,
+                treasury,
+                deadline
+            );
         }
 
+        // Swaps BUNNY for BNB and sends BNB to distribution vault
         if (amountToBuyBNB < DUST) {
             amountToUser = amountToUser.add(amountToBuyBNB);
         } else {
-            uint[] memory amountsPredicted = router.getAmountsOut(amountToBuyBNB, pathToBnb);
-            router.swapExactTokensForTokens(amountToBuyBNB, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
-                pathToBnb, keeper, deadline);
+            uint[] memory amountsPredicted = cakeRouter.getAmountsOut(amountToBuyBNB, pathToBnb);
+            uint[] memory amounts = cakeRouter.swapExactTokensForTokens(
+                amountToBuyBNB,
+                (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                pathToBnb,
+                address(this),
+                deadline
+            );
+
+            uint amountBNBSwapped = amounts[amounts.length-1];
+            wbnb.approve(address(vaultDistribution), amountBNBSwapped);
+            vaultDistribution.deposit(amountBNBSwapped);
         }
 
+        // TODO: change BUNNY to BNB with pancake router and BNB to GLOBAL with global router
+        // Swaps BUNNY for GLOBAL and sends GLOBAL to vested vault (as user)
+        // Mints GLOBAL and sends GLOBAL to vested vault (as user)
         if (amountToBuyGlobal < DUST) {
             amountToUser = amountToUser.add(amountToBuyGlobal);
         } else {
-            uint[] memory amountsPredicted = router.getAmountsOut(amountToBuyGlobal, pathToGlobal);
-            uint[] memory amounts = router.swapExactTokensForTokens(amountToBuyGlobal, (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
-                pathToGlobal, address(this), deadline);
-            uint amountGlobalBought = amounts[amounts.length-1];
+            uint[] memory amountsPredicted = globalRouter.getAmountsOut(amountToBuyGlobal, pathToGlobal);
+            uint[] memory amounts = globalRouter.swapExactTokensForTokens(
+                amountToBuyGlobal,
+                (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                pathToGlobal,
+                address(this),
+                deadline
+            );
 
-            global.safeTransfer(keeper, amountGlobalBought); // To keeper as bunny vault
+            uint amountGlobalBought = amounts[amounts.length-1];
+            global.approve(address(vaultVested), amountGlobalBought);
+            vaultVested.deposit(amountGlobalBought, msg.sender);
 
             uint amountToMintGlobal = amountGlobalBought.mul(rewards.toMintGlobal).div(10000);
             minter.mintNativeTokens(amountToMintGlobal, address(this));
-            VaultVested(keeper).deposit(amountToMintGlobal, msg.sender);
+            global.approve(address(vaultVested), amountToMintGlobal);
+            vaultVested.deposit(amountToMintGlobal, msg.sender);
         }
 
-        bunny.safeTransfer(msg.sender, amountToUser);
+        // Swaps BUNNY to BNB and sends it to the user.
+        uint[] memory amountsPredicted = cakeRouter.getAmountsOut(amountToUser, pathToBnb);
+        uint[] memory amounts = cakeRouter.swapExactTokensForTokens(
+            amountToUser,
+            (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+            pathToBnb,
+            address(this),
+            deadline
+        );
+
+        wbnb.safeTransfer(msg.sender, amountToUser);
         emit ProfitPaid(msg.sender, amountToUser);
     }
 
@@ -412,6 +457,11 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             totalShares = totalShares.sub(shares);
             delete _shares[msg.sender];
         }
+    }
+
+    function _allowance(IBEP20 _token, address _account) private {
+        _token.safeApprove(_account, uint(0));
+        _token.safeApprove(_account, uint(~0));
     }
 
     // SALVAGE PURPOSE ONLY
