@@ -13,13 +13,13 @@ contract BunnyPoolMock is IBunnyPoolStrategy {
     BEP20 private bunnyToken;
 
     struct UserInfo {
-        uint256 amount; // How many LP tokens the user has provided.
+        uint256 amount;     // How many LP tokens the user has provided.
         uint256 rewardDebt; // Reward debt. See explanation below.
     }
 
     mapping(address => UserInfo) private userInfoInternal;
 
-    uint private defaultReward = 0;
+    uint private defaultReward = 1e18;
 
     constructor(address _bunny) public {
         bunnyToken = BEP20(_bunny);
@@ -43,6 +43,7 @@ contract BunnyPoolMock is IBunnyPoolStrategy {
         UserInfo storage user = userInfoInternal[msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
 
+        bunnyToken.mint(user.rewardDebt);
         bunnyToken.safeTransfer(address(msg.sender), _amount.add(user.rewardDebt));
 
         user.rewardDebt = 0;

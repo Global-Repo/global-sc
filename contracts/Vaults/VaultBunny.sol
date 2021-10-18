@@ -13,6 +13,7 @@ import "./Interfaces/IStrategy.sol";
 import "./Externals/IBunnyPoolStrategy.sol";
 import './VaultVested.sol';
 import './VaultDistribution.sol';
+import 'hardhat/console.sol';
 
 contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     using SafeBEP20 for IBEP20;
@@ -91,6 +92,8 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         treasury = _treasury;
         vaultVested = VaultVested(_vaultVested);
         vaultDistribution = VaultDistribution(_vaultDistribution);
+
+        _allowance(bunny, _pool);
 
         __PausableUpgradeable_init();
         __WhitelistUpgradeable_init();
@@ -210,83 +213,87 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     function withdrawAll() external override onlyNonContract {
         uint amount = balanceOf(msg.sender);
         uint principal = principalOf(msg.sender);
-        uint profit = amount > principal ? amount.sub(principal) : 0;
 
-        pool.withdraw(amount);
+        (uint bunnyHarvested, uint withdrawFromPoolAmount) = _withdrawStakingToken(amount);
 
-        handleWithdrawalFees(principal);
+        uint profit = withdrawFromPoolAmount > principal ? withdrawFromPoolAmount.sub(principal) : 0;
+        uint withdrawAmount = withdrawFromPoolAmount > principal ? withdrawFromPoolAmount.sub(profit) : withdrawFromPoolAmount;
+
+        handleWithdrawalFees(withdrawAmount);
         handleRewards(profit);
 
         totalShares = totalShares.sub(_shares[msg.sender]);
         delete _shares[msg.sender];
         delete _principal[msg.sender];
         delete _depositedAt[msg.sender];
+
+        _harvest(bunnyHarvested);
     }
 
     function harvest() external override onlyNonContract {
-        pool.getReward();
+        (uint bunnyHarvested,) = _withdrawStakingToken(0);
+        _harvest(bunnyHarvested);
+    }
 
-        uint deadline = block.timestamp;
-
-        address[] memory pathToBNB = new address[](2);
-        pathToBNB[0]=tokenAddresses.findByName(tokenAddresses.BUNNY());
-        pathToBNB[1]=tokenAddresses.findByName(tokenAddresses.WBNB());
-
-        uint[] memory amountsPredicted = cakeRouter.getAmountsOut(bunny.balanceOf(address(this)), pathToBNB);
-        uint[] memory amounts = cakeRouter.swapExactTokensForTokens(
-            bunny.balanceOf(address(this)),
-            (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
-            pathToBNB,
-            address(this),
-            deadline
-        );
-
-        uint harvested = amounts[amounts.length-1];
-        emit Harvested(harvested);
-
-        bunny.approve(address(pool), harvested);
-        pool.deposit(harvested);
+    function _harvest(uint _bunnyHarvested) private {
+        if (_bunnyHarvested > 0) {
+            pool.deposit(_bunnyHarvested);
+            emit Harvested(_bunnyHarvested);
+        }
     }
 
     function withdraw(uint shares) external override onlyWhitelisted onlyNonContract {
+        require(balance() > 0, "Nothing to withdraw");
         uint amount = balance().mul(shares).div(totalShares);
+
+        (uint bunnyHarvested, uint withdrawFromPoolAmount) = _withdrawStakingToken(amount);
+
+        handleWithdrawalFees(withdrawFromPoolAmount);
 
         totalShares = totalShares.sub(shares);
         _shares[msg.sender] = _shares[msg.sender].sub(shares);
         _principal[msg.sender] = _principal[msg.sender].sub(amount);
 
-        pool.withdraw(amount);
-
-        handleWithdrawalFees(amount);
+        _harvest(bunnyHarvested);
     }
 
     function withdrawUnderlying(uint _amount) external override onlyNonContract {
+        require(balance() > 0, "Nothing to withdraw");
         uint amount = Math.min(_amount, _principal[msg.sender]);
         uint shares = Math.min(amount.mul(totalShares).div(balance()), _shares[msg.sender]);
+
+        (uint bunnyHarvested, uint withdrawFromPoolAmount) = _withdrawStakingToken(amount);
+
+        handleWithdrawalFees(withdrawFromPoolAmount);
 
         totalShares = totalShares.sub(shares);
         _shares[msg.sender] = _shares[msg.sender].sub(shares);
         _principal[msg.sender] = _principal[msg.sender].sub(amount);
 
-        pool.withdraw(amount);
-
-        handleWithdrawalFees(amount);
+        _harvest(bunnyHarvested);
     }
 
     function getReward() external override onlyNonContract {
         uint amount = earned(msg.sender);
         uint shares = Math.min(amount.mul(totalShares).div(balance()), _shares[msg.sender]);
 
+        (uint bunnyHarvested, uint withdrawFromPoolAmount) = _withdrawStakingToken(amount);
+
+        handleRewards(withdrawFromPoolAmount);
+
         totalShares = totalShares.sub(shares);
         _shares[msg.sender] = _shares[msg.sender].sub(shares);
         _cleanupIfDustShares();
 
-        pool.withdraw(amount);
-
-        handleRewards(amount);
+        _harvest(bunnyHarvested);
     }
 
     function handleWithdrawalFees(uint _amount) private {
+        if (_amount == 0) {
+            emit Withdrawn(msg.sender, _amount, 0);
+            return;
+        }
+
         if (_depositedAt[msg.sender].add(withdrawalFees.interval) < block.timestamp) {
             // No withdrawal fees
             bunny.safeTransfer(msg.sender, _amount);
@@ -294,13 +301,12 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             return;
         }
 
-        uint deadline = block.timestamp.add(2 hours);
         uint amountToBurn = _amount.mul(withdrawalFees.burn).div(10000);
         uint amountToTeam = _amount.mul(withdrawalFees.team).div(10000);
         uint amountToUser = _amount.sub(amountToTeam).sub(amountToBurn);
 
         address[] memory pathToGlobal = pathFinder.findPath(
-            tokenAddresses.findByName(tokenAddresses.BUNNY()),
+            tokenAddresses.findByName(tokenAddresses.BNB()),
             tokenAddresses.findByName(tokenAddresses.GLOBAL())
         );
 
@@ -309,34 +315,61 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             tokenAddresses.findByName(tokenAddresses.BUSD())
         );
 
-        // TODO: Swaps BUNNY for BNB and BNB for GLOBAL and burns GLOBALS.
+        address[] memory pathToBNB = pathFinder.findPath(
+            tokenAddresses.findByName(tokenAddresses.BUNNY()),
+            tokenAddresses.findByName(tokenAddresses.BNB())
+        );
+
         if (amountToBurn < DUST) {
             amountToUser = amountToUser.add(amountToBurn);
         } else {
-            uint[] memory amountsPredicted = globalRouter.getAmountsOut(amountToBurn, pathToGlobal);
-            globalRouter.swapExactTokensForTokens(
+            uint[] memory amountsToBNBPredicted = cakeRouter.getAmountsOut(amountToBurn, pathToBNB);
+            uint[] memory amountsBNB = cakeRouter.swapExactTokensForTokens(
                 amountToBurn,
-                (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                (amountsToBNBPredicted[amountsToBNBPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                pathToBNB,
+                address(this),
+                block.timestamp.add(2 hours)
+            );
+
+            uint amountInBNB = amountsBNB[amountsBNB.length-1];
+
+            uint[] memory amountsToGlobalPredicted = globalRouter.getAmountsOut(amountInBNB, pathToGlobal);
+            globalRouter.swapExactTokensForTokens(
+                amountInBNB,
+                (amountsToGlobalPredicted[amountsToGlobalPredicted.length-1].mul(SLIPPAGE)).div(10000),
                 pathToGlobal,
                 GLOBAL_BURN_ADDRESS,
-                deadline
+                block.timestamp.add(2 hours)
             );
         }
 
-        // Swaps BUNNY for BUSD and sends BUSD to treasury.
+        // Swaps BUNNY for BNB and BNB for BUSD and sends BUSD to treasury.
         if (amountToTeam < DUST) {
             amountToUser = amountToUser.add(amountToTeam);
         } else {
-            uint[] memory amountsPredicted = cakeRouter.getAmountsOut(amountToTeam, pathToBusd);
-            cakeRouter.swapExactTokensForTokens(
+            uint[] memory amountsToBNBPredicted = cakeRouter.getAmountsOut(amountToTeam, pathToBNB);
+            uint[] memory amountsBNB = cakeRouter.swapExactTokensForTokens(
                 amountToTeam,
+                (amountsToBNBPredicted[amountsToBNBPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                pathToBNB,
+                address(this),
+                block.timestamp.add(2 hours)
+            );
+
+            uint amountInBNB = amountsBNB[amountsBNB.length-1];
+
+            uint[] memory amountsPredicted = globalRouter.getAmountsOut(amountInBNB, pathToBusd);
+            globalRouter.swapExactTokensForTokens(
+                amountInBNB,
                 (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
                 pathToBusd,
                 treasury,
-                deadline
+                block.timestamp.add(2 hours)
             );
         }
 
+        // Sends BUNNY to user.
         bunny.safeTransfer(msg.sender, amountToUser);
         emit Withdrawn(msg.sender, amountToUser, 0);
     }
@@ -346,62 +379,61 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             return; // No rewards
         }
 
-        uint deadline = block.timestamp.add(2 hours);
-        uint amountToUser = _amount.mul(rewards.toUser).div(10000);
-        uint amountToOperations = _amount.mul(rewards.toOperations).div(10000);
-        uint amountToBuyGlobal = _amount.mul(rewards.toBuyGlobal).div(10000);
-        uint amountToBuyBNB = _amount.mul(rewards.toBuyBNB).div(10000);
-
-        // TODO: como encontramos la ruta si se swapeará con cakeRouter?
-        address[] memory pathToGlobal = pathFinder.findPath(
-            tokenAddresses.findByName(tokenAddresses.BUNNY()),
-            tokenAddresses.findByName(tokenAddresses.GLOBAL())
-        );
-
-        address[] memory pathToBusd = pathFinder.findPath(
-            tokenAddresses.findByName(tokenAddresses.BUNNY()),
-            tokenAddresses.findByName(tokenAddresses.BUSD())
-        );
-
-        address[] memory pathToBnb = pathFinder.findPath(
+        address[] memory pathToBNB = pathFinder.findPath(
             tokenAddresses.findByName(tokenAddresses.BUNNY()),
             tokenAddresses.findByName(tokenAddresses.BNB())
         );
 
-        // Swaps BUNNY for BUSD and sends BUSD to treasury.
+        // Swaps BUNNY to BNB
+        uint[] memory amountsToBNBPredicted = cakeRouter.getAmountsOut(_amount, pathToBNB);
+        uint[] memory amountsBNB = cakeRouter.swapExactTokensForTokens(
+            _amount,
+            (amountsToBNBPredicted[amountsToBNBPredicted.length-1].mul(SLIPPAGE)).div(10000),
+            pathToBNB,
+            address(this),
+            block.timestamp.add(2 hours)
+        );
+
+        uint amountInBNB = amountsBNB[amountsBNB.length-1];
+
+        uint amountToUser = amountInBNB.mul(rewards.toUser).div(10000);
+        uint amountToOperations = amountInBNB.mul(rewards.toOperations).div(10000);
+        uint amountToBuyGlobal = amountInBNB.mul(rewards.toBuyGlobal).div(10000);
+        uint amountToBuyBNB = amountInBNB.mul(rewards.toBuyBNB).div(10000);
+
+        address[] memory pathToGlobal = pathFinder.findPath(
+            tokenAddresses.findByName(tokenAddresses.BNB()),
+            tokenAddresses.findByName(tokenAddresses.GLOBAL())
+        );
+
+        address[] memory pathToBusd = pathFinder.findPath(
+            tokenAddresses.findByName(tokenAddresses.BNB()),
+            tokenAddresses.findByName(tokenAddresses.BUSD())
+        );
+
+        // Swaps BNB for BUSD and sends BUSD to treasury.
         if (amountToOperations < DUST) {
             amountToUser = amountToUser.add(amountToOperations);
         } else {
-            uint[] memory amountsPredicted = cakeRouter.getAmountsOut(amountToOperations, pathToBusd);
-            cakeRouter.swapExactTokensForTokens(
+            uint[] memory amountsPredicted = globalRouter.getAmountsOut(amountToOperations, pathToBusd);
+            globalRouter.swapExactTokensForTokens(
                 amountToOperations,
                 (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
                 pathToBusd,
                 treasury,
-                deadline
+                block.timestamp.add(2 hours)
             );
         }
 
-        // Swaps BUNNY for BNB and sends BNB to distribution vault
+        // Swaps BNB and sends BNB to distribution vault
         if (amountToBuyBNB < DUST) {
             amountToUser = amountToUser.add(amountToBuyBNB);
         } else {
-            uint[] memory amountsPredicted = cakeRouter.getAmountsOut(amountToBuyBNB, pathToBnb);
-            uint[] memory amounts = cakeRouter.swapExactTokensForTokens(
-                amountToBuyBNB,
-                (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
-                pathToBnb,
-                address(this),
-                deadline
-            );
-
-            uint amountBNBSwapped = amounts[amounts.length-1];
-            wbnb.approve(address(vaultDistribution), amountBNBSwapped);
-            vaultDistribution.deposit(amountBNBSwapped);
+            wbnb.approve(address(vaultDistribution), amountToBuyBNB);
+            vaultDistribution.deposit(amountToBuyBNB);
         }
 
-        // TODO: change BUNNY to BNB with pancake router and BNB to GLOBAL with global router
-        // Swaps BUNNY for GLOBAL and sends GLOBAL to vested vault (as user)
+        // Swaps BNB for GLOBAL and sends GLOBAL to vested vault (as user)
         // Mints GLOBAL and sends GLOBAL to vested vault (as user)
         if (amountToBuyGlobal < DUST) {
             amountToUser = amountToUser.add(amountToBuyGlobal);
@@ -412,7 +444,7 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
                 (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
                 pathToGlobal,
                 address(this),
-                deadline
+                block.timestamp.add(2 hours)
             );
 
             uint amountGlobalBought = amounts[amounts.length-1];
@@ -425,16 +457,7 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             vaultVested.deposit(amountToMintGlobal, msg.sender);
         }
 
-        // Swaps BUNNY to BNB and sends it to the user.
-        uint[] memory amountsPredicted = cakeRouter.getAmountsOut(amountToUser, pathToBnb);
-        uint[] memory amounts = cakeRouter.swapExactTokensForTokens(
-            amountToUser,
-            (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
-            pathToBnb,
-            address(this),
-            deadline
-        );
-
+        // Sends BNB to the user.
         wbnb.safeTransfer(msg.sender, amountToUser);
         emit ProfitPaid(msg.sender, amountToUser);
     }
@@ -446,9 +469,33 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         totalShares = totalShares.add(shares);
         _shares[_to] = _shares[_to].add(shares);
 
-        bunny.approve(address(pool), _amount);
-        pool.deposit(_amount);
+        uint bunnyHarvested = _depositStakingToken(_amount);
         emit Deposited(_to, _amount);
+
+        _harvest(bunnyHarvested);
+    }
+
+    function _depositStakingToken(uint amount) private returns(uint bunnyHarvested) {
+        uint before = bunny.balanceOf(address(this));
+        pool.deposit(amount);
+        bunnyHarvested = bunny.balanceOf(address(this)).add(amount).sub(before);
+    }
+
+    // Bunny pool could discount withdrawal fees
+    function _withdrawStakingToken(uint _amount) private returns(uint bunnyHarvested, uint amount) {
+        uint before = bunny.balanceOf(address(this));
+        pool.withdraw(_amount);
+        uint amountAfter = bunny.balanceOf(address(this));
+
+        // Discount pool withdrawal fees to user's amount
+        if (amountAfter < before.add(_amount) ) {
+            amount = amountAfter.sub(before);
+            bunnyHarvested = 0;
+        } else {
+            amount = _amount;
+        }
+
+        bunnyHarvested = amountAfter.sub(_amount).sub(before);
     }
 
     function _cleanupIfDustShares() private {
@@ -457,6 +504,11 @@ contract VaultBunny is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             totalShares = totalShares.sub(shares);
             delete _shares[msg.sender];
         }
+    }
+
+    function _allowance(IBEP20 _token, address _account) private {
+        _token.safeApprove(_account, uint(0));
+        _token.safeApprove(_account, uint(~0));
     }
 
     // SALVAGE PURPOSE ONLY

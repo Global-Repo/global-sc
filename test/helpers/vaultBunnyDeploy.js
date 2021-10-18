@@ -33,7 +33,7 @@ let bunny;
 let bunnyPoolMock;
 
 let deploy = async function () {
-    [owner, treasury, vaultLocked, user1, ...addrs] = await ethers.getSigners();
+    [owner, treasury, vaultLocked, user1, user2, ...addrs] = await ethers.getSigners();
     bunny = await deployBunny();
     bunnyPoolMock = await deployBunnyPoolMock(bunny.address);
     nativeToken = await deployGlobal();
@@ -87,21 +87,25 @@ let deploy = async function () {
 
 let getNativeToken = function () { return nativeToken }
 let getBnb = function () { return weth }
+let getBusd = function () { return busd }
 let getVaultDistribution = function () { return vaultDistribution }
 let getVaultVested = function () { return vaultVested }
 let getVaultBunny = function () { return vaultBunny }
 let getBunny = function () { return bunny }
 let getGlobalMasterChef = function () { return globalMasterChef }
 let getBunnyPoolMock = function () { return bunnyPoolMock }
+let getRouterMock = function () { return routerMock }
 
 module.exports = {
     deploy,
     getVaultBunny,
     getNativeToken,
     getBnb,
+    getBusd,
     getBunny,
     getVaultDistribution,
     getVaultVested,
     getGlobalMasterChef,
     getBunnyPoolMock,
+    getRouterMock,
 };
