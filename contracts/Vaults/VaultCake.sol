@@ -231,6 +231,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     }
 
     function withdraw(uint shares) external override onlyWhitelisted onlyNonContract {
+        require(balance() > 0, "Nothing to withdraw");
         uint amount = balance().mul(shares).div(totalShares);
 
         uint cakeHarvested = _withdrawStakingToken(amount);
@@ -245,6 +246,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     }
 
     function withdrawUnderlying(uint _amount) external override onlyNonContract {
+        require(balance() > 0, "Nothing to withdraw");
         uint amount = Math.min(_amount, _principal[msg.sender]);
         uint shares = Math.min(amount.mul(totalShares).div(balance()), _shares[msg.sender]);
 
