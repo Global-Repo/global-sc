@@ -1125,4 +1125,50 @@ describe("MasterChef: Deposit", function () {
     //await masterChef.connect(addr1).emergencyWithdraw(0);
 
   });
+
+
+  it("Should not let update pool with id 0. test MCC-02", async function () {
+    //calling updatePool should usually increase the lastRewardBlock, as per line:
+    //     >>pool.lastRewardBlock = block.number;
+    // except for pool 0, which in this case returns in newly added if
+    //     >>if (_pid == 0) return;
+    let date = new Date();
+    const deadline = date.setTime(date.getTime() + 2 * 3600); // +2 hours
+
+    await router.addLiquidity(
+        tokenA.address,
+        weth.address,
+        BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
+        owner.address,
+        deadline
+    );
+
+    const pairAddress = await factory.getPair(tokenA.address, weth.address);
+    await masterChef.addPool(
+        100,
+        pairAddress,
+        DAY_IN_SECONDS * 3,
+        DAY_IN_SECONDS * 3,
+        50,
+        50,
+        100,
+        100
+    );
+
+    masterChef.updatePool(1);
+    const blockinitial1 = (await masterChef.poolInfo(1)).lastRewardBlock;
+    await ethers.provider.send("evm_mine");
+    masterChef.updatePool(1);
+    const blockfinal1 = (await masterChef.poolInfo(1)).lastRewardBlock;
+    expect( Number(blockfinal1) ).to.be.greaterThan( Number(blockinitial1) );
+
+    const blockinitial0 = (await masterChef.poolInfo(0)).lastRewardBlock;
+    await ethers.provider.send("evm_mine");
+    masterChef.updatePool(0);
+    const blockfinal0 = (await masterChef.poolInfo(0)).lastRewardBlock;
+    expect( Number(blockinitial0) ).to.be.equal( Number(blockfinal0) );
+  });
 });
