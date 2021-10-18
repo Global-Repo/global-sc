@@ -41,7 +41,7 @@ describe("VaultDistribution: Beneficiaries", function () {
     expect(await getVaultDistribution().isBeneficiary(beneficiaryMock2.address)).to.false;
   });
 
-  it("Add and remove beneficiaries", async function () {
+  it("VDV-02 Add and remove beneficiaries", async function () {
     expect(await getVaultDistribution().getBeneficiariesLength()).to.equal(0);
 
     await getVaultDistribution().addBeneficiary(beneficiaryMock1.address);

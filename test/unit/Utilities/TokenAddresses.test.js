@@ -36,6 +36,7 @@ describe("TokenAddresses: ", function () {
   });
 
   it("TAH-01 Cannot add tokens without being owner", async function () {
-    await expect(tokenAddresses.connect(other).addToken("BUSD", busd.address)).to.be.revertedWith("Ownable: caller is not the owner");
+    await expect(tokenAddresses.connect(other).addToken("BUSD", busd.address))
+        .to.be.revertedWith("Ownable: caller is not the owner");
   });
 });

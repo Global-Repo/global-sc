@@ -50,7 +50,7 @@ describe("SmartChefFactory: After deployment", function () {
     )).to.emit("NewSmartChefContract");
   });
 
-  it("Bonus end block must be bigger than start block", async function () {
+  it("SCC-01 - Bonus end block must be bigger than start block", async function () {
     const startBlock = await ethers.provider.getBlockNumber()+100;
     const endBlock = await ethers.provider.getBlockNumber();
 
@@ -65,7 +65,7 @@ describe("SmartChefFactory: After deployment", function () {
     )).to.be.revertedWith("Start block must be before than bonus end block");
   });
 
-  it("Stop reward input validation", async function () {
+  it("SCC-03 Stop reward input validation", async function () {
     const startBlock = await ethers.provider.getBlockNumber();
     const endBlock = await ethers.provider.getBlockNumber() + 100;
 
