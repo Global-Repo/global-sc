@@ -23,7 +23,7 @@ beforeEach(async function () {
 });
 
 describe("VaultBunny: Deposit", function () {
-  it("Simple deposit to test de allowance against bunny pool", async function () {
+  it("VBV-01 Simple deposit to test de allowance against bunny pool", async function () {
     const depositAmount = bep20Amount(5);
 
     await getBunny().approve(getVaultBunny().address, OWNER_INITIAL_CAKES);

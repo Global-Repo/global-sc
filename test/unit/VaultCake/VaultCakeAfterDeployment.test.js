@@ -17,7 +17,7 @@ describe("VaultCake: After deployment", function () {
     expect(await getVaultCake().pid()).to.equal(0);
   });
 
-  it("Staking token is cake", async function () {
+  it("VCV-05 Staking token is cake", async function () {
     expect(await getVaultCake().stakingToken()).to.equal(getCakeToken().address);
   });
 
@@ -37,7 +37,7 @@ describe("VaultCake: After deployment", function () {
     expect(await getVaultCake().balanceOf(user1.address)).to.equal(0);
   });
 
-  it("Set minter: only contract addresses", async function () {
+  it("VCV-03 Set minter: only contract addresses", async function () {
     await expect(getVaultCake().setMinter(user1.address))
         .to.be.revertedWith("function call to a non-contract account");
   });

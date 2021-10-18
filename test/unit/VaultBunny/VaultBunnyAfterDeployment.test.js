@@ -18,11 +18,11 @@ beforeEach(async function () {
 });
 
 describe("VaultBunny: After deployment", function () {
-  it("Staking token is cake", async function () {
+  it("VBV-09 Staking token is cake", async function () {
     expect(await getVaultBunny().stakingToken()).to.equal(getBunny().address);
   });
 
-  it("Rewards token should be Wnbn", async function () {
+  it("VBV-10 Rewards token should be Wnbn", async function () {
     expect(await getVaultBunny().rewardsToken()).to.equal(getBnb().address);
   });
 
