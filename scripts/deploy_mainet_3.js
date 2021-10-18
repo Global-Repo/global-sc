@@ -9,12 +9,14 @@ const {
     deployVaultStaked,
     deployVaultStakedToGlobal,
     deployVaultCake,
+    deployVaultBunny,
 } = require("../test/helpers/singleDeploys.js");
 const { timestampNHours, timestampNDays, bep20Amount } = require("../test/helpers/utils.js");
 
 let globalToken; // TODO: set address here instead of deploy it again
 let factory;
 let router;
+let routerPancake;
 let tokenAddresses;
 let pathFinder;
 let masterChefInternal;
@@ -31,14 +33,17 @@ let vaultStakedToGlobal;
 let vaultCake15;
 let vaultCake30;
 let vaultCake50;
+let vaultBunny30;
 let cakeMasterChefAddress;
 
 let wethAddress;
 let busdAddress;
 let cakeAddress;
+let bunnyAddress;
 
 let CURRENT_BLOCK;
 let masterChefStartBlock
+let bunnyPoolAddress
 
 // Addresses
 let DEPLOYER_ADDRESS = null;
@@ -76,33 +81,39 @@ async function main() {
     // TODO: canviar en deploy real (els dos)
     TREASURY_ADDRESS = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63";
     TREASURY_LP_ADDRESS = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63";
-
+/*
     // Tokens
     globalToken = "0xC8d439D3B72280801d64eB371fe58Fede1a556ae";
     wethAddress = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
     busdAddress = "0xe9e7cea3dedca5984780bafc599bd69add087d56";
     cakeAddress = "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82";
+    bunnyAddress = "0xc9849e6fdb743d08faee3e34dd2d1bc69ea11a51";
 
     // Dependencies already deployed
     router = "0x36a1847cdA738E3EAE6808d8AB92dC3dB5093e87";
+    routerPancake = "0x10ed43c718714eb63d5aa57b78b54704e256024e";
     tokenAddresses = "0x39C4D6EfD66671e0Bc8027F5ef264888D010ecC1";
     pathFinder = "0x60f54FF377eaFdA0fA47eA3029afcaa259FefDD6";
     masterChef = "0xe0B197B14ff038a72cC7a41C436155A2a2F5c14C";
-/*
+
+*/
+
     // Testnet addresses
     // Tokens
     globalToken = "0xe5eEb81e563aF8e92FBbeDD868500958f3D5f720";
     wethAddress = "0x094616f0bdfb0b526bd735bf66eca0ad254ca81f";
     busdAddress = "0xed24fc36d5ee211ea25a80239fb8c4cfd80f12ee";
     cakeAddress = "0xa0bb66f240a93849c24Fa43d5d8a791FC94eb21a";
+    bunnyAddress = "0xc9849e6fdb743d08faee3e34dd2d1bc69ea11a51";
 
     // Dependencies already deployed
     router = "0x7eA058e2640f66D16c0ee7De1449edbfB6011214";
     tokenAddresses = "0x98fA7d9C31877e95B7896C04D8f9729803c3D69b";
     pathFinder = "0xFA58471aaE36f98536AF7a94EfD78e8b6fBF4234";
     masterChef = "0xD412d85B75410bE2d01C3503bE580274c27c3B69";
-*/
+
     cakeMasterChefAddress = "0x73feaa1ee314f8c655e354234017be2193c9e24e";
+    bunnyPoolAddress = "0xCADc8CB26c8C7cB46500E61171b5F27e9bd7889D";
 
     vaultDistribution = await deployVaultDistribution(wethAddress, globalToken);
     console.log("Vault distribution deployed to:", vaultDistribution.address);
@@ -115,14 +126,14 @@ async function main() {
     );
     console.log("Vault locked deployed to:", vaultLocked.address);
 
-    vaultVested15 = await deployVaultVested(globalToken, wethAddress, masterChef, vaultLocked.address);
-    console.log("Vault vested 15 deployed to:", vaultVested15.address);
+    //vaultVested15 = await deployVaultVested(globalToken, wethAddress, masterChef, vaultLocked.address);
+    //console.log("Vault vested 15 deployed to:", vaultVested15.address);
 
     vaultVested30 = await deployVaultVested(globalToken, wethAddress, masterChef, vaultLocked.address);
     console.log("Vault vested 30 deployed to:", vaultVested30.address);
 
-    vaultVested50 = await deployVaultVested(globalToken, wethAddress, masterChef, vaultLocked.address);
-    console.log("Vault vested 50 deployed to:", vaultVested50.address);
+    //vaultVested50 = await deployVaultVested(globalToken, wethAddress, masterChef, vaultLocked.address);
+    //console.log("Vault vested 50 deployed to:", vaultVested50.address);
 
     vaultStaked = await deployVaultStaked(globalToken, wethAddress, masterChef);
     console.log("Vault staked deployed to:", vaultStaked.address);
@@ -130,7 +141,7 @@ async function main() {
     vaultStakedToGlobal = await deployVaultStakedToGlobal(globalToken, wethAddress, masterChef, router);
     console.log("Vault staked to global deployed to:", vaultStakedToGlobal.address);
 
-    vaultCake15 = await deployVaultCake(
+    /*vaultCake15 = await deployVaultCake(
         cakeAddress,
         globalToken,
         cakeMasterChefAddress,
@@ -141,7 +152,7 @@ async function main() {
         vaultDistribution.address,
         vaultVested15.address
     );
-    console.log("Vault CAKE 15 deployed to:", vaultCake15.address);
+    console.log("Vault CAKE 15 deployed to:", vaultCake15.address);*/
     // TODO: MC setMinter dels 3 vaults cake
 
     vaultCake30 = await deployVaultCake(
@@ -157,7 +168,7 @@ async function main() {
     );
     console.log("Vault CAKE 30 deployed to:", vaultCake30.address);
 
-    vaultCake50 = await deployVaultCake(
+    /*vaultCake50 = await deployVaultCake(
         cakeAddress,
         globalToken,
         cakeMasterChefAddress,
@@ -168,15 +179,30 @@ async function main() {
         vaultDistribution.address,
         vaultVested50.address
     );
-    console.log("Vault CAKE 50 deployed to:", vaultCake50.address);
+    console.log("Vault CAKE 50 deployed to:", vaultCake50.address);*/
+
+    /*vaultBunny30 = await deployVaultBunny(
+        bunnyAddress,
+        globalToken,
+        wethAddress,
+        bunnyPoolAddress,
+        TREASURY_ADDRESS,
+        tokenAddresses,
+        router,
+        pathFinder,
+        vaultDistribution.address,
+        vaultVested30.address,
+        routerPancake
+    );
+    console.log("Vault bunny deployed to:", vaultBunny30.address);*/
 
     await setUpVaultDistribution(owner);
-    await setUpVaultVested15(owner);
+    //await setUpVaultVested15(owner);
     await setUpVaultVested30(owner);
-    await setUpVaultVested50(owner);
-    await setUpVaultCake15(owner);
+    //await setUpVaultVested50(owner);
+    //await setUpVaultCake15(owner);
     await setUpVaultCake30(owner);
-    await setUpVaultCake50(owner);
+    //await setUpVaultCake50(owner);
 
     console.log("Current block is:", CURRENT_BLOCK);
 }
@@ -187,18 +213,23 @@ let setUpVaultDistribution = async function (owner) {
     //TODO: mintejar 58m de globals abans de moure el ownership de global a MC
 
     // Vault distribution depositories
-    await vaultDistribution.connect(owner).setDepositary(vaultCake15.address, true);
+    //await vaultDistribution.connect(owner).setDepositary(vaultCake15.address, true);
     await vaultDistribution.connect(owner).setDepositary(vaultCake30.address, true);
-    await vaultDistribution.connect(owner).setDepositary(vaultCake50.address, true);
+    //await vaultDistribution.connect(owner).setDepositary(vaultCake50.address, true);
     console.log("Vaults CAKE 15,30,50 added as depositary");
 
+    //await vaultDistribution.connect(owner).setDepositary(vaultBunny15.address, true);
+    //await vaultDistribution.connect(owner).setDepositary(vaultBunny30.address, true);
+    //await vaultDistribution.connect(owner).setDepositary(vaultBunny50.address, true);
+    //console.log("Vaults BUNNY 15,30,50 added as depositary");
+
     // Vault distribution as rewarder
-    await vaultVested15.connect(owner).setRewarder(vaultDistribution.address, true);
-    console.log("Vault distribution added as vault vested 15 rewarder");
+    //await vaultVested15.connect(owner).setRewarder(vaultDistribution.address, true);
+    //console.log("Vault distribution added as vault vested 15 rewarder");
     await vaultVested30.connect(owner).setRewarder(vaultDistribution.address, true);
     console.log("Vault distribution added as vault vested 30 rewarder");
-    await vaultVested50.connect(owner).setRewarder(vaultDistribution.address, true);
-    console.log("Vault distribution added as vault vested 50 rewarder");
+    //await vaultVested50.connect(owner).setRewarder(vaultDistribution.address, true);
+    //console.log("Vault distribution added as vault vested 50 rewarder");
     await vaultLocked.connect(owner).setRewarder(vaultDistribution.address, true);
     console.log("Vault distribution added as vault loked rewarder");
     await vaultStaked.connect(owner).setRewarder(vaultDistribution.address, true);
@@ -207,12 +238,12 @@ let setUpVaultDistribution = async function (owner) {
     console.log("Vault distribution added as vault staked to global rewarder");
 
     // Vault distribution beneficiaries
-    await vaultDistribution.connect(owner).addBeneficiary(vaultVested15.address);
-    console.log("Vault vested 15 added as beneficiary");
+    //await vaultDistribution.connect(owner).addBeneficiary(vaultVested15.address);
+    //console.log("Vault vested 15 added as beneficiary");
     await vaultDistribution.connect(owner).addBeneficiary(vaultVested30.address);
     console.log("Vault vested 30 added as beneficiary");
-    await vaultDistribution.connect(owner).addBeneficiary(vaultVested50.address);
-    console.log("Vault vested 50 added as beneficiary");
+    //await vaultDistribution.connect(owner).addBeneficiary(vaultVested50.address);
+    //console.log("Vault vested 50 added as beneficiary");
     await vaultDistribution.connect(owner).addBeneficiary(vaultLocked.address);
     console.log("Vault locked added as beneficiary");
     await vaultDistribution.connect(owner).addBeneficiary(vaultStaked.address);
