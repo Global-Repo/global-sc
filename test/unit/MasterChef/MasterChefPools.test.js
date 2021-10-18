@@ -144,7 +144,7 @@ beforeEach(async function () {
 });
 
 describe("MasterChef: Pools", function () {
-  it("Non duplicated modifier in addPool", async function () {
+  it("MCC-05 Non duplicated modifier in addPool", async function () {
     let date = new Date();
     const deadline = date.setTime(date.getTime() + 2 * 3600); // +2 hours
 
