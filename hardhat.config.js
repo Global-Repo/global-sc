@@ -28,6 +28,7 @@ module.exports = {
       accounts: {mnemonic: mnemonicTest},
     },
     mainnet: {
+      allowUnlimitedContractSize: true,
       url: "https://bsc-dataseed.binance.org/",
       chainId: 56,
       gasPrice: 20000000000,

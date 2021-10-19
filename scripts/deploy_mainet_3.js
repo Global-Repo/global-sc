@@ -81,7 +81,7 @@ async function main() {
     // TODO: canviar en deploy real (els dos)
     TREASURY_ADDRESS = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63";
     TREASURY_LP_ADDRESS = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63";
-/*
+
     // Tokens
     globalToken = "0xC8d439D3B72280801d64eB371fe58Fede1a556ae";
     wethAddress = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
@@ -95,9 +95,7 @@ async function main() {
     tokenAddresses = "0x39C4D6EfD66671e0Bc8027F5ef264888D010ecC1";
     pathFinder = "0x60f54FF377eaFdA0fA47eA3029afcaa259FefDD6";
     masterChef = "0xe0B197B14ff038a72cC7a41C436155A2a2F5c14C";
-
-*/
-
+/*
     // Testnet addresses
     // Tokens
     globalToken = "0xe5eEb81e563aF8e92FBbeDD868500958f3D5f720";
@@ -111,7 +109,7 @@ async function main() {
     tokenAddresses = "0x98fA7d9C31877e95B7896C04D8f9729803c3D69b";
     pathFinder = "0xFA58471aaE36f98536AF7a94EfD78e8b6fBF4234";
     masterChef = "0xD412d85B75410bE2d01C3503bE580274c27c3B69";
-
+*/
     cakeMasterChefAddress = "0x73feaa1ee314f8c655e354234017be2193c9e24e";
     bunnyPoolAddress = "0xCADc8CB26c8C7cB46500E61171b5F27e9bd7889D";
 
@@ -204,6 +202,56 @@ async function main() {
     await setUpVaultCake30(owner);
     //await setUpVaultCake50(owner);
 
+
+    await hre.run("verify:verify", {
+        address: vaultDistribution.address,
+        constructorArguments: [
+            wethAddress,
+            globalToken
+        ],
+    });
+    await hre.run("verify:verify", {
+        address: vaultLocked.address,
+        constructorArguments: [
+            globalToken,
+            wethAddress,
+            masterChef,
+            VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL
+        ],
+    });
+    await hre.run("verify:verify", {
+        address: vaultVested30.address,
+        constructorArguments: [
+            globalToken, wethAddress, masterChef, vaultLocked.address
+        ],
+    });
+    await hre.run("verify:verify", {
+        address: vaultStaked.address,
+        constructorArguments: [
+            globalToken, wethAddress, masterChef
+        ],
+    });
+    await hre.run("verify:verify", {
+        address: vaultStakedToGlobal.address,
+        constructorArguments: [
+            globalToken, wethAddress, masterChef, router
+        ],
+    });
+    await hre.run("verify:verify", {
+        address: vaultCake30.address,
+        constructorArguments: [
+            cakeAddress,
+            globalToken,
+            cakeMasterChefAddress,
+            TREASURY_ADDRESS,
+            tokenAddresses,
+            router,
+            pathFinder,
+            vaultDistribution.address,
+            vaultVested30.address
+        ],
+    });
+
     console.log("Current block is:", CURRENT_BLOCK);
 }
 
@@ -277,6 +325,11 @@ let setUpVaultVested15 = async function (owner) {
 
 let setUpVaultVested30 = async function (owner) {
     console.log("-- Vault vested 30 set up start");
+
+    // TODO: faltan beneficiaries
+    // Beneficiaries
+    await vaultVested30.connect(owner).setDepositary(vaultCake30.address, true);
+    console.log("Vaults CAKE 15,30,50 added as depositary");
 
     await vaultVested30.connect(owner).setMinTokenAmountToDistribute(VAULT_VESTED_MIN_BNB_TO_DISTRIBUTE);
     console.log("Min BNB to distribute set to: ", VAULT_VESTED_MIN_BNB_TO_DISTRIBUTE.toString());
