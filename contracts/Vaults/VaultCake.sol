@@ -94,6 +94,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         vaultDistribution = VaultDistribution(_vaultDistribution);
 
         _allowance(cake, _cakeMasterChef);
+        _allowance(cake, _router);
 
         __PausableUpgradeable_init();
         __WhitelistUpgradeable_init();
