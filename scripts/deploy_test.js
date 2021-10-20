@@ -116,7 +116,7 @@ async function main() {
     );
     console.log("Vault CAKE 30 deployed to:", vaultCake30.address);
 
-    await setUpVaultCake30(owner);
+    await vaultCake30.setRewards(7000, 300, 1000, 1700, 5000);
 
     await hre.run("verify:verify", {
         address: vaultCake30.address,
@@ -133,13 +133,33 @@ async function main() {
         ],
     });
 
+    /*const MyVaultCake = await ethers.getContractFactory("VaultCake");
+    const vaultCake30 = await MyVaultCake.attach("0x48461d80fb56d44C9218cf679F3fBCE75D09D0e8");*/
+
+    const MyMasterchef = await ethers.getContractFactory("MasterChef");
+    const myMasterchef = await MyMasterchef.attach(masterChef);
+
+    await myMasterchef.addAddressToWhitelist(vaultCake30.address);
+    await myMasterchef.setMinter(vaultCake30.address, true);
+    await vaultCake30.setMinter(masterChef);
+
+    const MyVaultDistribution = await ethers.getContractFactory("VaultDistribution");
+    const myVaultDistribution = await MyVaultDistribution.attach(vaultDistribution.address);
+    await myVaultDistribution.setDepositary(vaultCake30.address, true);
+
+    const MyVaultVested = await ethers.getContractFactory("VaultVested");
+    const myvaultVested = await MyVaultVested.attach(vaultVested30.address);
+    await myvaultVested.setDepositary(vaultCake30.address, true);
+
+    await vaultCake30.setWithdrawalFees(60, 10, 0);
+
     console.log("Current block is:", CURRENT_BLOCK);
 }
 
 let setUpVaultCake30 = async function (owner) {
     console.log("-- Vault cake set up start");
 
-    await vaultCake30.connect(owner).setRewards(7000, 300, 1000, 1700, 5000);
+    await vaultCake30.setRewards(7000, 300, 1000, 1700, 5000);
     console.log("Rewards set to: toUser:7000, toOperations:300, toBuyGlobal:1000, toBuyBNB:1700, toMintGlobal:5000");
 
     console.log("-- Vault cake set up done");
