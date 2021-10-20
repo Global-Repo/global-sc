@@ -16,13 +16,16 @@ import "./VaultVested.sol";
 import './VaultDistribution.sol';
 import 'hardhat/console.sol';
 
-contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
+// Rep cakes + ven la mitat per bnb i fa addliquidity a (cake-bnb) i el lp autocompund
+// withdraw es treuren tots els cake-bnb, al user se li torna els lps inicials (principal) i els rewards es converteixen
+// a cake (fent remove liquidity) convertint els bnb a cake
+// amb el cake es fa handle rewards
+contract VaultCakeWBNBLPold is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     using SafeBEP20 for IBEP20;
     using SafeMath for uint;
     using SafeMath for uint16;
 
-    IBEP20 public _stakingToken;
-    IStrategy private _rewardsToken;
+    IBEP20 public lpToken;
     IBEP20 public global;
     IBEP20 public cake;
     IBEP20 public wbnb;
@@ -42,18 +45,10 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
     address public constant GLOBAL_BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     uint256 public pid;
-    uint public periodFinish;
-    uint public rewardRate;
-    uint public rewardsDuration;
-    uint public lastUpdateTime;
-    uint public rewardPerTokenStored;
-
-    mapping(address => uint) public userRewardPerTokenPaid;
-    mapping(address => uint) public rewards;
-
-    uint private _totalSupply;
-    mapping(address => uint) private _balances;
-    mapping(address => uint) private _depositedAt;
+    uint public totalShares;
+    mapping (address => uint) public _shares;
+    mapping (address => uint) public _principal;
+    mapping (address => uint) public _depositedAt;
 
     struct WithdrawalFees {
         uint16 burn;      // % to burn (in Global)
@@ -70,10 +65,7 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
     }
 
     WithdrawalFees public withdrawalFees;
-    Rewards public rewardsSetUp;
-
-    event RewardAdded(uint reward);
-    event RewardsDurationUpdated(uint newDuration);
+    Rewards public rewards;
 
     modifier onlyNonContract() {
         require(tx.origin == msg.sender);
@@ -83,16 +75,6 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
             size := extcodesize(a)
         }
         require(size == 0, "Contract calls not allowed");
-        _;
-    }
-
-    modifier updateReward(address account) {
-        rewardPerTokenStored = rewardPerToken();
-        lastUpdateTime = lastTimeRewardApplicable();
-        if (account != address(0)) {
-            rewards[account] = earned(account);
-            userRewardPerTokenPaid[account] = rewardPerTokenStored;
-        }
         _;
     }
 
@@ -109,12 +91,10 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
         address _globalRouter,
         address _pathFinder,
         address _vaultDistribution,
-        address _vaultVested,
-        address _vaultCake
+        address _vaultVested
     ) public {
         pid = _pid;
-        _stakingToken = IBEP20(_lpToken);
-        _rewardsToken = IStrategy(_vaultCake);
+        lpToken = IBEP20(_lpToken);
         global = IBEP20(_global);
         cake = IBEP20(_cake);
         wbnb = IBEP20(_wbnb);
@@ -124,7 +104,7 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
         vaultVested = VaultVested(_vaultVested);
         vaultDistribution = VaultDistribution(_vaultDistribution);
 
-        _stakingToken.safeApprove(_cakeMasterChef, uint(~0));
+        lpToken.safeApprove(_cakeMasterChef, uint(~0));
 
         __PausableUpgradeable_init();
         __WhitelistUpgradeable_init();
@@ -144,8 +124,8 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
 
     function setMinter(address _minter) external onlyOwner {
         require(IMinter(_minter).isMinter(address(this)) == true, "This vault must be a minter in minter's contract");
-        _stakingToken.safeApprove(_minter, 0);
-        _stakingToken.safeApprove(_minter, uint(~0));
+        lpToken.safeApprove(_minter, 0);
+        lpToken.safeApprove(_minter, uint(~0));
         minter = IMinter(_minter);
     }
 
@@ -166,11 +146,11 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
     ) public onlyOwner {
         require(_toUser.add(_toOperations).add(_toBuyGlobal).add(_toBuyWBNB) == 10000, "Rewards must add up to 100%");
 
-        rewardsSetUp.toUser = _toUser;
-        rewardsSetUp.toOperations = _toOperations;
-        rewardsSetUp.toBuyGlobal = _toBuyGlobal;
-        rewardsSetUp.toBuyWBNB = _toBuyWBNB;
-        rewardsSetUp.toMintGlobal = _toMintGlobal;
+        rewards.toUser = _toUser;
+        rewards.toOperations = _toOperations;
+        rewards.toBuyGlobal = _toBuyGlobal;
+        rewards.toBuyWBNB = _toBuyWBNB;
+        rewards.toMintGlobal = _toMintGlobal;
     }
 
     function setDefaultWithdrawalFees() private {
@@ -186,122 +166,81 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
     }
 
     function totalSupply() external view override returns (uint) {
-        return _totalSupply;
+        return totalShares;
     }
 
-    function balance() override external view returns (uint) {
-        return _totalSupply;
+    function balance() public view override returns (uint amount) {
+        (amount,) = cakeMasterChef.userInfo(pid, address(this));
     }
 
-    function balanceOf(address account) external view override returns (uint) {
-        return _balances[account];
+    function balanceOf(address account) public view override returns(uint) {
+        if (totalShares == 0) return 0;
+        return balance().mul(sharesOf(account)).div(totalShares);
     }
 
-    function sharesOf(address account) external view override returns (uint) {
-        return _balances[account];
+    function withdrawableBalanceOf(address account) public view override returns (uint) {
+        return balanceOf(account);
     }
 
-    function principalOf(address account) external view override returns (uint) {
-        return _balances[account];
+    function sharesOf(address account) public view override returns (uint) {
+        return _shares[account];
+    }
+
+    function principalOf(address account) public view override returns (uint) {
+        return _principal[account];
+    }
+
+    function earned(address account) public view override returns (uint) {
+        if (balanceOf(account) >= principalOf(account) + DUST) {
+            return balanceOf(account).sub(principalOf(account));
+        } else {
+            return 0;
+        }
+    }
+
+    function priceShare() external view override returns(uint) {
+        if (totalShares == 0) return 1e18;
+        return balance().mul(1e18).div(totalShares);
     }
 
     function depositedAt(address account) external view override returns (uint) {
         return _depositedAt[account];
     }
 
-    function withdrawableBalanceOf(address account) public view override returns (uint) {
-        return _balances[account];
-    }
-
     function stakingToken() external view returns (address) {
-        return address(_stakingToken);
+        return address(lpToken);
     }
 
     function rewardsToken() external view override returns (address) {
-        return address(_rewardsToken);
+        return address(cake);
     }
 
-    function priceShare() external view override returns (uint) {
-        return 1e18;
+    function deposit(uint _amount) public override onlyNonContract {
+        _deposit(_amount, msg.sender);
+        _principal[msg.sender] = _principal[msg.sender].add(_amount);
+        _depositedAt[msg.sender] = block.timestamp;
     }
 
-    function lastTimeRewardApplicable() public view returns (uint) {
-        return Math.min(block.timestamp, periodFinish);
-    }
-
-    function rewardPerToken() public view returns (uint) {
-        if (_totalSupply == 0) {
-            return rewardPerTokenStored;
-        }
-        return
-        rewardPerTokenStored.add(
-            lastTimeRewardApplicable().sub(lastUpdateTime).mul(rewardRate).mul(1e18).div(_totalSupply)
-        );
-    }
-
-    function earned(address account) override public view returns (uint) {
-        return _balances[account].mul(rewardPerToken().sub(userRewardPerTokenPaid[account])).div(1e18).add(rewards[account]);
-    }
-
-    function getRewardForDuration() external view returns (uint) {
-        return rewardRate.mul(rewardsDuration);
-    }
-
-    function deposit(uint amount) override onlyNonContract public {
-        _deposit(amount, msg.sender);
-    }
-
-    function depositAll() override onlyNonContract external {
-        deposit(_stakingToken.balanceOf(msg.sender));
-    }
-
-    function _deposit(uint amount, address _to) private notPaused updateReward(_to) {
-        require(amount > 0, "Amount must be greater than zero");
-        _totalSupply = _totalSupply.add(amount);
-        _balances[_to] = _balances[_to].add(amount);
-        _depositedAt[_to] = block.timestamp;
-        _stakingToken.safeTransferFrom(msg.sender, address(this), amount);
-        uint cakeHarvested = _depositStakingToken(amount);
-        emit Deposited(_to, amount);
-
-        _harvest(cakeHarvested);
-    }
-
-    function withdraw(uint amount) override public onlyNonContract updateReward(msg.sender) {
-        require(amount > 0, "Amount must be greater than zero");
-        _totalSupply = _totalSupply.sub(amount);
-        _balances[msg.sender] = _balances[msg.sender].sub(amount);
-        uint cakeHarvested = _withdrawStakingToken(amount);
-
-        // Borrar esta linia
-        uint withdrawalFee = 0;
-        /*
-        if (canMint()) {
-            uint depositTimestamp = _depositedAt[msg.sender];
-            withdrawalFee = _minter.withdrawalFee(amount, depositTimestamp);
-            if (withdrawalFee > 0) {
-                uint performanceFee = withdrawalFee.div(100);
-                _minter.mintForV2(address(_stakingToken), withdrawalFee.sub(performanceFee), performanceFee, msg.sender, depositTimestamp);
-                amount = amount.sub(withdrawalFee);
-            }
-        }
-        */
-
-        handleWithdrawalFees(amount);
-
-        _stakingToken.safeTransfer(msg.sender, amount);
-        emit Withdrawn(msg.sender, amount, withdrawalFee);
-
-        _harvest(cakeHarvested);
+    function depositAll() external override onlyNonContract {
+        deposit(lpToken.balanceOf(msg.sender));
     }
 
     function withdrawAll() external override onlyNonContract {
-        uint _withdraw = withdrawableBalanceOf(msg.sender);
-        if (_withdraw > 0) {
-            withdraw(_withdraw);
-        }
+        uint amount = balanceOf(msg.sender);
+        uint principal = principalOf(msg.sender);
+        uint profit = amount > principal ? amount.sub(principal) : 0;
 
-        getReward();
+        (uint cakeHarvested) = _withdrawStakingToken(amount);
+
+        handleWithdrawalFees(principal);
+        handleRewards(profit);
+
+        totalShares = totalShares.sub(_shares[msg.sender]);
+        delete _shares[msg.sender];
+        delete _principal[msg.sender];
+        delete _depositedAt[msg.sender];
+
+        _harvest(cakeHarvested);
     }
 
     function harvest() external override onlyNonContract {
@@ -309,29 +248,50 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
         _harvest(lpTokenHarvested);
     }
 
-    function getReward() public override onlyNonContract updateReward(msg.sender) {
-        uint reward = rewards[msg.sender];
-        if (reward > 0) {
-            rewards[msg.sender] = 0;
-            uint before = cake.balanceOf(address(this));
-            _rewardsToken.withdraw(reward);
-            uint cakeBalance = cake.balanceOf(address(this)).sub(before);
+    function withdraw(uint shares) external override onlyWhitelisted onlyNonContract {
+        require(balance() > 0, "Nothing to withdraw");
+        uint amount = balance().mul(shares).div(totalShares);
 
+        uint lpTokenHarvested = _withdrawStakingToken(amount);
 
-            uint performanceFee = 0;
-            /*
-            if (canMint()) {
-                performanceFee = _minter.performanceFee(cakeBalance);
-                _minter.mintForV2(CAKE, 0, performanceFee, msg.sender, _depositedAt[msg.sender]);
-            }
-            */
+        handleWithdrawalFees(amount);
 
-            handleRewards(reward);
+        totalShares = totalShares.sub(shares);
+        _shares[msg.sender] = _shares[msg.sender].sub(shares);
+        _principal[msg.sender] = _principal[msg.sender].sub(amount);
 
-            cake.safeTransfer(msg.sender, cakeBalance.sub(performanceFee));
-            emit ProfitPaid(msg.sender, cakeBalance);
-            //emit ProfitPaid(msg.sender, cakeBalance, performanceFee);
-        }
+        _harvest(lpTokenHarvested);
+    }
+
+    function withdrawUnderlying(uint _amount) external override onlyNonContract {
+        require(balance() > 0, "Nothing to withdraw");
+        uint amount = Math.min(_amount, _principal[msg.sender]);
+        uint shares = Math.min(amount.mul(totalShares).div(balance()), _shares[msg.sender]);
+
+        uint lpTokenHarvested = _withdrawStakingToken(amount);
+
+        handleWithdrawalFees(amount);
+
+        totalShares = totalShares.sub(shares);
+        _shares[msg.sender] = _shares[msg.sender].sub(shares);
+        _principal[msg.sender] = _principal[msg.sender].sub(amount);
+
+        _harvest(lpTokenHarvested);
+    }
+
+    function getReward() external override onlyNonContract {
+        uint amount = earned(msg.sender);
+        uint shares = Math.min(amount.mul(totalShares).div(balance()), _shares[msg.sender]);
+
+        uint lpTokenHarvested = _withdrawStakingToken(amount);
+
+        handleRewards(amount);
+
+        totalShares = totalShares.sub(shares);
+        _shares[msg.sender] = _shares[msg.sender].sub(shares);
+        _cleanupIfDustShares();
+
+        _harvest(lpTokenHarvested);
     }
 
     // Receives lpToken as amount
@@ -433,30 +393,42 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
         emit Withdrawn(msg.sender, amountCakeSwapped, 0);
     }
 
-    // Receives cakes as amount
+    // TODO: rewards from staking are in cake not in LPs
     function handleRewards(uint _amount) private {
         if (_amount < DUST) {
             return; // No rewards
         }
 
+        // Swaps lpToken to CAKE and BNB (remove liquidity)
+        (uint amountCake, uint amountBNB) = cakeRouter.removeLiquidity(
+            address(cake),
+            address(wbnb),
+            _amount,
+            0,
+            0,
+            address(this),
+            block.timestamp
+        );
+
         // Swaps CAKE to BNB
         address[] memory pathToBnb = pathFinder.findPath(address(cake), address(wbnb));
-        uint[] memory amountsPredicted = globalRouter.getAmountsOut(_amount, pathToBnb);
+        uint[] memory amountsPredicted = globalRouter.getAmountsOut(amountCake, pathToBnb);
         uint[] memory amountsBNB = globalRouter.swapExactTokensForTokens(
-            _amount,
+            amountCake,
             (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
             pathToBnb,
             address(this),
             block.timestamp
         );
 
-        uint amountBNB = amountsBNB[amountsBNB.length-1];
+        // Total BNB swapped amount + BNB
+        uint totalAmountBNB = amountsBNB[amountsBNB.length-1].add(amountBNB);
 
         uint deadline = block.timestamp;
-        uint amountToUser = amountBNB.mul(rewardsSetUp.toUser).div(10000);
-        uint amountToOperations = amountBNB.mul(rewardsSetUp.toOperations).div(10000);
-        uint amountToBuyGlobal = amountBNB.mul(rewardsSetUp.toBuyGlobal).div(10000);
-        uint amountToBuyWBNB = amountBNB.mul(rewardsSetUp.toBuyWBNB).div(10000);
+        uint amountToUser = totalAmountBNB.mul(rewards.toUser).div(10000);
+        uint amountToOperations = totalAmountBNB.mul(rewards.toOperations).div(10000);
+        uint amountToBuyGlobal = totalAmountBNB.mul(rewards.toBuyGlobal).div(10000);
+        uint amountToBuyWBNB = totalAmountBNB.mul(rewards.toBuyWBNB).div(10000);
 
         // Swaps BNB for BUSD and sends BUSD to treasury
         if (amountToOperations < DUST) {
@@ -503,7 +475,7 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
             global.approve(address(vaultVested), amountGlobalBought);
             vaultVested.deposit(amountGlobalBought, msg.sender);
 
-            uint amountToMintGlobal = amountGlobalBought.mul(rewardsSetUp.toMintGlobal).div(10000);
+            uint amountToMintGlobal = amountGlobalBought.mul(rewards.toMintGlobal).div(10000);
             minter.mintNativeTokens(amountToMintGlobal, address(this));
             global.approve(address(vaultVested), amountToMintGlobal);
             vaultVested.deposit(amountToMintGlobal, msg.sender);
@@ -525,51 +497,69 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
         emit ProfitPaid(msg.sender, amountCakeSwapped);
     }
 
-    function _depositStakingToken(uint amount) private returns (uint cakeHarvested) {
-        uint before = cake.balanceOf(address(this));
+    function _depositStakingToken(uint amount) private returns(uint lpTokenHarvested) {
+        uint before = lpToken.balanceOf(address(this));
         cakeMasterChef.deposit(pid, amount);
-        cakeHarvested = cake.balanceOf(address(this)).sub(before);
+        lpTokenHarvested = lpToken.balanceOf(address(this)).add(amount).sub(before);
     }
 
-    function _withdrawStakingToken(uint amount) private returns (uint cakeHarvested) {
+    function _withdrawStakingToken(uint amount) private returns(uint cakeHarvested) {
         uint before = cake.balanceOf(address(this));
         cakeMasterChef.withdraw(pid, amount);
         cakeHarvested = cake.balanceOf(address(this)).sub(before);
     }
 
-    function _harvest(uint cakeAmount) private {
-        uint _before = _rewardsToken.sharesOf(address(this));
-        _rewardsToken.deposit(cakeAmount);
-        uint amount = _rewardsToken.sharesOf(address(this)).sub(_before);
-        if (amount > 0) {
-            _notifyRewardAmount(amount);
-            emit Harvested(amount);
+    function _harvest(uint _cakeHarvested) private {
+        if (_cakeHarvested > 0) {
+            // Swaps half of cakes to BNB
+            address[] memory pathToBNB = pathFinder.findPath(address(cake), address(wbnb));
+            uint[] memory amountsPredicted = globalRouter.getAmountsOut(_cakeHarvested.div(2), pathToBNB);
+            uint[] memory amountsBNB = globalRouter.swapExactTokensForTokens(
+                _cakeHarvested.div(2),
+                (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                pathToBNB,
+                address(this),
+                block.timestamp
+            );
+
+            uint amountBNBSwapped = amountsBNB[amountsBNB.length-1];
+
+            // Swap BNB and CAKE to LP (add liquidity)
+            cakeRouter.addLiquidity(
+                address(cake),
+                address(wbnb),
+                _cakeHarvested.div(2),
+                amountBNBSwapped,
+                0,
+                0,
+                address(this),
+                block.timestamp
+            );
+
+            cakeMasterChef.deposit(pid, lpToken.balanceOf(address(this)));
+            emit Harvested(_cakeHarvested);
         }
     }
 
-    function _notifyRewardAmount(uint reward) private updateReward(address(0)) {
-        if (block.timestamp >= periodFinish) {
-            rewardRate = reward.div(rewardsDuration);
-        } else {
-            uint remaining = periodFinish.sub(block.timestamp);
-            uint leftover = remaining.mul(rewardRate);
-            rewardRate = reward.add(leftover).div(rewardsDuration);
-        }
+    function _deposit(uint _amount, address _to) private notPaused {
+        lpToken.safeTransferFrom(msg.sender, address(this), _amount);
 
-        // Ensure the provided reward amount is not more than the balance in the contract.
-        // This keeps the reward rate in the right range, preventing overflows due to
-        // very high values of rewardRate in the earned and rewardsPerToken functions;
-        // Reward + leftover must be less than 2^256 / 10^18 to avoid overflow.
-        uint _balance = _rewardsToken.sharesOf(address(this));
-        require(rewardRate <= _balance.div(rewardsDuration), "reward rate must be in the right range");
+        uint shares = totalShares == 0 ? _amount : (_amount.mul(totalShares)).div(balance());
+        totalShares = totalShares.add(shares);
+        _shares[_to] = _shares[_to].add(shares);
 
-        lastUpdateTime = block.timestamp;
-        periodFinish = block.timestamp.add(rewardsDuration);
-        emit RewardAdded(reward);
+        uint lpTokenHarvested = _depositStakingToken(_amount);
+        emit Deposited(msg.sender, _amount);
+
+        _harvest(lpTokenHarvested);
     }
 
-    function withdrawUnderlying(uint _amount) external override onlyNonContract {
-
+    function _cleanupIfDustShares() private {
+        uint shares = _shares[msg.sender];
+        if (shares > 0 && shares < DUST) {
+            totalShares = totalShares.sub(shares);
+            delete _shares[msg.sender];
+        }
     }
 
     function _allowance(IBEP20 _token, address _account) private {

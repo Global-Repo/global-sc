@@ -133,6 +133,13 @@ let deployCakeMasterChefMock = async function (cake) {
     return cakeMasterChefMock;
 };
 
+let deployCakeMasterChefLPMock = async function (lpToken, cake) {
+    const CakeMasterChefLPMock = await ethers.getContractFactory("CakeMasterChefLPMock");
+    const cakeMasterChefLPMock = await CakeMasterChefLPMock.deploy(lpToken, cake);
+    await cakeMasterChefLPMock.deployed();
+    return cakeMasterChefLPMock;
+};
+
 let deployRouterMock = async function () {
     const RouterMock = await ethers.getContractFactory("RouterMock");
     const routerMock = await RouterMock.deploy();
@@ -191,6 +198,43 @@ let deployBunnyPoolMock = async function (bunny)
     const bunnyPoolMock = await BunnyPoolMock.deploy(bunny);
     await bunnyPoolMock.deployed();
     return bunnyPoolMock;
+};
+
+let deployVaultCakeWBNBLP = async function (
+    pid,
+    lpToken,
+    global,
+    cake,
+    wbnb,
+    cakeMasterChef,
+    cakeRouter,
+    treasury,
+    tokenAddresses,
+    globalRouter,
+    pathFinder,
+    vaultDistribution,
+    vaultVested,
+    vaultCake,
+) {
+    const VaultCakeWBNBLP = await ethers.getContractFactory("VaultCakeWBNBLP");
+    const vaultCakeWBNBLP = await VaultCakeWBNBLP.deploy(
+        pid,
+        lpToken,
+        global,
+        cake,
+        wbnb,
+        cakeMasterChef,
+        cakeRouter,
+        treasury,
+        tokenAddresses,
+        globalRouter,
+        pathFinder,
+        vaultDistribution,
+        vaultVested,
+        vaultCake
+    );
+    await vaultCakeWBNBLP.deployed();
+    return vaultCakeWBNBLP;
 };
 
 let deployVaultBunny = async function (
@@ -279,6 +323,7 @@ module.exports = {
     deploySmartChef,
     deploySmartChefFactory,
     deployCakeMasterChefMock,
+    deployCakeMasterChefLPMock,
     deployGlobalMasterChefMock,
     deployRouterMock,
     deployVaultDistribution,
@@ -292,4 +337,5 @@ module.exports = {
     deployVaultBunny,
     deployBunny,
     deployBunnyPoolMock,
+    deployVaultCakeWBNBLP,
 };
