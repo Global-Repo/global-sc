@@ -140,7 +140,7 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
         _allowance(IBEP20(address(pair)), _cakeRouter);
         _allowance(cake, _globalRouter);
         _allowance(wbnb, _globalRouter);
-        _allowance(cake, _rewardsToken);
+        _allowance(cake, _vaultCake);
     }
 
     function setMinter(address _minter) external onlyOwner {
