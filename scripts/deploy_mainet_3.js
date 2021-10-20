@@ -331,6 +331,12 @@ let setUpVaultVested30 = async function (owner) {
     await vaultVested30.connect(owner).setDepositary(vaultCake30.address, true);
     console.log("Vaults CAKE 15,30,50 added as depositary");
 
+    // TODO añadir todos los vaults que stakean en MC: staked, stakedToGlobal, locked
+    const AttachedMasterchef = await ethers.getContractFactory("MasterChef");
+    const attachedMasterchef = await AttachedMasterchef.attach(masterChef);
+    await attachedMasterchef.connect(owner).addAddressToWhitelist(vaultCake30.address, true);
+    console.log("Vaults vested 15,30,50 added in MasterChef whitelist");
+
     await vaultVested30.connect(owner).setMinTokenAmountToDistribute(VAULT_VESTED_MIN_BNB_TO_DISTRIBUTE);
     console.log("Min BNB to distribute set to: ", VAULT_VESTED_MIN_BNB_TO_DISTRIBUTE.toString());
 
