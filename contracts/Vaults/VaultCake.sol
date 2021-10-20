@@ -71,6 +71,20 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         _;
     }
 
+    modifier onlyNonContractExcludeWhitelist() {
+        if (isWhitelist(msg.sender) == false) {
+            require(tx.origin == msg.sender);
+            address a = msg.sender;
+            uint32 size;
+            assembly {
+                size := extcodesize(a)
+            }
+            require(size == 0, "Contract calls not allowed");
+        }
+
+        _;
+    }
+
     constructor(
         address _cake,
         address _global,
@@ -198,7 +212,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         return address(cake);
     }
 
-    function deposit(uint _amount) public override {
+    function deposit(uint _amount) public override onlyNonContractExcludeWhitelist {
         _deposit(_amount, msg.sender);
 
         if (isWhitelist(msg.sender) == false) {
