@@ -198,7 +198,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         return address(cake);
     }
 
-    function deposit(uint _amount) public override onlyWhitelisted {
+    function deposit(uint _amount) public override {
         _deposit(_amount, msg.sender);
 
         if (isWhitelist(msg.sender) == false) {
@@ -333,7 +333,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             return; // No rewards
         }
 
-        uint deadline = block.timestamp.add(2 hours);
+        uint deadline = block.timestamp;
         uint amountToUser = _amount.mul(rewards.toUser).div(10000);
         uint amountToOperations = _amount.mul(rewards.toOperations).div(10000);
         uint amountToBuyGlobal = _amount.mul(rewards.toBuyGlobal).div(10000);
