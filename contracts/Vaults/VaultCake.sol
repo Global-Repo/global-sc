@@ -198,10 +198,13 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         return address(cake);
     }
 
-    function deposit(uint _amount) public override onlyNonContract {
+    function deposit(uint _amount) public override onlyWhitelisted {
         _deposit(_amount, msg.sender);
-        _principal[msg.sender] = _principal[msg.sender].add(_amount);
-        _depositedAt[msg.sender] = block.timestamp;
+
+        if (isWhitelist(msg.sender) == false) {
+            _principal[msg.sender] = _principal[msg.sender].add(_amount);
+            _depositedAt[msg.sender] = block.timestamp;
+        }
     }
 
     function depositAll() external override onlyNonContract {
@@ -231,17 +234,17 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         _harvest(cakeHarvested);
     }
 
-    function withdraw(uint shares) external override onlyWhitelisted onlyNonContract {
+    function withdraw(uint shares) external override onlyWhitelisted {
         require(balance() > 0, "Nothing to withdraw");
         uint amount = balance().mul(shares).div(totalShares);
 
         uint cakeHarvested = _withdrawStakingToken(amount);
 
-        handleWithdrawalFees(amount);
+        cake.safeTransfer(msg.sender, amount);
+        emit Withdrawn(msg.sender, amount, 0);
 
         totalShares = totalShares.sub(shares);
         _shares[msg.sender] = _shares[msg.sender].sub(shares);
-        _principal[msg.sender] = _principal[msg.sender].sub(amount);
 
         _harvest(cakeHarvested);
     }
