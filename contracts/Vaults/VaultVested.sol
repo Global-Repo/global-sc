@@ -90,7 +90,7 @@ contract VaultVested is IDistributable, ReentrancyGuard, DepositoryRestriction, 
         penaltyFees.interval = _interval;
     }
 
-    function balance() public view override returns (uint amount) {
+    function balance() external view override returns (uint amount) {
         (amount,) = globalMasterChef.userInfo(pid, address(this));
     }
 
