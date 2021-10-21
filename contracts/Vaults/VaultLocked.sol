@@ -94,7 +94,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
         _distributeBNB();
     }
 
-    function balance() public view returns (uint amount) {
+    function balance() public view override returns (uint amount) {
         (amount,) = globalMasterChef.userInfo(pid, address(this));
     }
 

@@ -59,7 +59,7 @@ contract VaultStakedToGlobal is IDistributable, ReentrancyGuard, RewarderRestric
         _distribute();
     }
 
-    function balance() public view returns (uint amount) {
+    function balance() public view override returns (uint amount) {
         (amount,) = globalMasterChef.userInfo(pid, address(this));
     }
 
