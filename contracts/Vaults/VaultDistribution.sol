@@ -112,14 +112,16 @@ contract VaultDistribution is Ownable, DepositoryRestriction {
 
         uint totalBeneficiaryTokens = 0;
         for (uint i = 0; i < beneficiaries.length; i++) {
-            totalBeneficiaryTokens = totalBeneficiaryTokens.add(beneficiaryToken.balanceOf(beneficiaries[i]));
+            totalBeneficiaryTokens = totalBeneficiaryTokens.add(IDistributable(beneficiaries[i]).balance());
         }
 
         for (uint i = 0; i < beneficiaries.length; i++) {
-            uint beneficiaryDistributionPercentage = beneficiaryToken.balanceOf(beneficiaries[i]).mul(100).div(totalBeneficiaryTokens);
+            uint beneficiaryDistributionPercentage = IDistributable(beneficiaries[i]).balance().mul(100).div(totalBeneficiaryTokens);
             uint amountForBeneficiary = totalDistributionTokenAmountToDistribute.mul(beneficiaryDistributionPercentage).div(100);
-            distributionToken.safeTransfer(beneficiaries[i], amountForBeneficiary);
-            IDistributable(beneficiaries[i]).triggerDistribute(amountForBeneficiary);
+            if (amountForBeneficiary > 0) {
+                distributionToken.safeTransfer(beneficiaries[i], amountForBeneficiary);
+                IDistributable(beneficiaries[i]).triggerDistribute(amountForBeneficiary);
+            }
         }
 
         lastDistributedEvent = block.timestamp;

@@ -7,4 +7,8 @@ contract BeneficiaryMock is IDistributable {
     function triggerDistribute(uint _amount) external override {
         emit Distributed(1e18);
     }
+
+    function balance() public view returns (uint amount) {
+        amount = 1;
+    }
 }
