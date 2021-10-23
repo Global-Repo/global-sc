@@ -101,7 +101,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     TokenAddresses public tokenAddresses;
 
     // En cas d'exploit, deixem sortir a la gent per l'emergency sense pagar LP fees. Not safu = no LPs fees in emergencywithdraw
-    bool safu = true;
+    bool public safu = true;
 
     // Vault where locked tokens are
     address public nativeTokenLockedVaultAddr;
@@ -135,11 +135,11 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     PoolInfo[] public poolInfo;
 
     // Total de fees pendents d'enviar a cremar
-    uint256 totalFeesToBurn = 0;
+    uint256 public totalFeesToBurn = 0;
     // Total de fees pendens d'enviar al vaul de native token locked.
-    uint256 totalFeesToBoostLocked = 0;
+    uint256 public totalFeesToBoostLocked = 0;
     // Cada 25 iteracions fem els envios per posar una freqüència i no fer masses envios petits
-    uint16 counterForTransfers = 0;
+    uint16 public counterForTransfers = 0;
 
     // Info of each user that stakes LP tokens.
     // Info d'un usuari en una pool en concret.
@@ -498,9 +498,8 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
                     counterForTransfers++;
 
                     // Fees que cremarem i fees que enviarem per fer boost dels locked. Les acumulem a l'espera d'enviarles quan toquin
-                    totalFeesToBurn = totalFeesToBurn.add(totalRewards.mul(pool.performanceFeesOfNativeTokensBurn.div(10000)));
-                    totalFeesToBoostLocked = totalFeesToBoostLocked.add(totalRewards.mul(pool.performanceFeesOfNativeTokensToLockedVault.div(10000)));
-
+                    totalFeesToBurn = totalFeesToBurn.add((totalRewards.mul(pool.performanceFeesOfNativeTokensBurn)).div(10000));
+                    totalFeesToBoostLocked = totalFeesToBoostLocked.add((totalRewards.mul(pool.performanceFeesOfNativeTokensToLockedVault)).div(10000));
                     // Rewards que finalment rebrà l'usuari: total rewards - feesTaken
                     totalRewards = totalRewards.sub(totalRewards.mul(pool.performanceFeesOfNativeTokensBurn.add(pool.performanceFeesOfNativeTokensToLockedVault)).div(10000));
 
