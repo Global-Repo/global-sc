@@ -191,6 +191,10 @@ let setUpVaultCake30 = async function (owner) {
     await vaultCake30.connect(owner).setRewards(7000, 300, 1000, 1700, 5000);
     console.log("Rewards set to: toUser:7000, toOperations:300, toBuyGlobal:1000, toBuyBNB:1700, toMintGlobal:5000");
 
+    // TODO no tenemos ya wbnblp vault
+    //await vaultCake30.setWhitelist(vaultCakeWBNBLP30.address, true);
+    //console.log("Vault is whitelisted in vault cake 30 for deposits");
+
     await masterChef.setMinter(vaultCake30.address, true);
     console.log("Vault is minter in masterchef");
 
