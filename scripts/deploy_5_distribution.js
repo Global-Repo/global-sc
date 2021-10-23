@@ -4,18 +4,16 @@ require("@nomiclabs/hardhat-ethers");
 const {
     GLOBAL_TOKEN_ADDRESS,
     WETH_ADDRESS,
-    MASTERCHEF_ADDRESS
-} = require("addresses.js");
+} = require("./addresses");
 
 const {
-    deployVaultDistribution,
-} = require("../../test/helpers/singleDeploys.js");
+    deployVaultDistribution
+} = require("../test/helpers/singleDeploys");
 const { timestampNHours, timestampNDays, bep20Amount } = require("../test/helpers/utils.js");
 
 const VAULT_DISTRIBUTION_MIN_BNB_TO_DISTRIBUTE = bep20Amount(1); // 1 BNB
 const VAULT_DISTRIBUTION_DISTRIBUTE_PERCENTAGE = 10000; // 100%
 const VAULT_DISTRIBUTION_DISTRIBUTE_INTERVAL = timestampNHours(12); // 12h
-const VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL = timestampNHours(12); // 12h, Hours to distribute Globals from last distribution event.
 
 let CURRENT_BLOCK;
 let vaultDistribution;
@@ -38,9 +36,7 @@ async function main() {
         address: vaultDistribution.address,
         constructorArguments: [
             GLOBAL_TOKEN_ADDRESS,
-            WETH_ADDRESS,
-            MASTERCHEF_ADDRESS,
-            VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL
+            WETH_ADDRESS
         ],
     });
 

@@ -7,11 +7,11 @@ const {
     MASTERCHEF_ADDRESS,
     VAULT_LOCKED_ADDRESS,
     VAULT_DISTRIBUTOR_ADDRESS,
-} = require("addresses.js");
+} = require("./addresses");
 
 const {
     deployVaultVested,
-} = require("../../test/helpers/singleDeploys.js");
+} = require("../test/helpers/singleDeploys");
 
 const { timestampNHours, timestampNDays, bep20Amount } = require("../test/helpers/utils.js");
 

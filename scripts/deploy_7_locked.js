@@ -5,11 +5,11 @@ const {
     GLOBAL_TOKEN_ADDRESS,
     WETH_ADDRESS,
     MASTERCHEF_ADDRESS,
-} = require("addresses.js");
+} = require("./addresses");
 
 const {
     deployVaultLocked,
-} = require("../../test/helpers/singleDeploys.js");
+} = require("../test/helpers/singleDeploys");
 
 const { timestampNHours, timestampNDays, bep20Amount } = require("../test/helpers/utils.js");
 
@@ -55,6 +55,9 @@ async function main() {
     // Set up
     await masterchef.addAddressToWhitelist(vaultLocked.address, true);
     console.log("Vault locked added into Masterchef whitelist");
+
+    await masterchef.setLockedVaultAddress(vaultLocked.address);
+    console.log("Masterchef locked vault address set to:", vaultLocked.address);
 
     console.log("Current block is:", CURRENT_BLOCK);
 

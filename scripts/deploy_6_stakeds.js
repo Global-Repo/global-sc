@@ -7,12 +7,12 @@ const {
     MASTERCHEF_ADDRESS,
     ROUTER_ADDRESS,
     VAULT_DISTRIBUTOR_ADDRESS,
-} = require("addresses.js");
+} = require("./addresses");
 
 const {
     deployVaultStaked,
     deployVaultStakedToGlobal,
-} = require("../../test/helpers/singleDeploys.js");
+} = require("../test/helpers/singleDeploys");
 
 const { timestampNHours, timestampNDays, bep20Amount } = require("../test/helpers/utils.js");
 

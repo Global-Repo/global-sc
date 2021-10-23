@@ -11,7 +11,8 @@ const {
     deployMintNotifier,
     deploySmartChefFactory,
     deployVaultLocked,
-} = require("../../test/helpers/singleDeploys.js");
+} = require("../test/helpers/singleDeploys");
+
 const { timestampNHours, bep20Amount } = require("../../test/helpers/utils.js");
 
 let globalToken; // TODO: set address here instead of deploy it again

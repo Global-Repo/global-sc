@@ -14,11 +14,11 @@ const {
     VAULT_VESTED_30_ADDRESS,
     VAULT_VESTED_50_ADDRESS,
     MASTERCHEF_ADDRESS,
-} = require("addresses.js");
+} = require("./addresses");
 
 const {
     deployVaultCake,
-} = require("../../test/helpers/singleDeploys.js");
+} = require("../test/helpers/singleDeploys");
 
 const { timestampNHours, timestampNDays, bep20Amount } = require("../test/helpers/utils.js");
 
