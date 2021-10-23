@@ -4,14 +4,18 @@ const {ethers} = require("hardhat");
 const {
     GLOBAL_TOKEN_ADDRESS,
     WETH_ADDRESS,
-    DEV_ADDRESS,
+    DEV_POWER_ADDRESS,
     CAKE_ADDRESS,
     BUSD_ADDRESS,
+    DOGE_ADDRESS,
+    USDT_ADDRESS,
+    ETH_ADDRESS,
+    BTC_ADDRESS,
 } = require("./addresses");
 const {
     deploySmartChefFactory,
 } = require("../test/helpers/singleDeploys");
-const { timestampNHours, bep20Amount } = require("../test/helpers/utils");
+const { bep20Amount } = require("../test/helpers/utils");
 
 let smartChefFactory;
 
@@ -26,6 +30,10 @@ async function main() {
     CURRENT_BLOCK = await ethers.provider.getBlockNumber();
     console.log("Current block is:", CURRENT_BLOCK);
 
+    const START_BLOCK = 12434277; // 24h despues del masterchef
+    const END_BLOCK = START_BLOCK + (28800 * 30);
+    const USER_POOL_LIMIT = 400;
+
     // Start
     smartChefFactory = await deploySmartChefFactory();
     console.log("SmartChefFactory deployed to:", smartChefFactory.address);
@@ -37,39 +45,96 @@ async function main() {
     });
 
     // Set up
-    // TODO comptar cuanta pasta i quina emisió
-    smartChefFactory.deployPool(
+    const tx1 = await smartChefFactory.deployPool(
         GLOBAL_TOKEN_ADDRESS,
         WETH_ADDRESS,
-        BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-        CURRENT_BLOCK,
-        CURRENT_BLOCK + 28800 * 30,
-        BigNumber.from(300).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-        DEV_ADDRESS
+        "1736111111111",
+        START_BLOCK,
+        START_BLOCK + (28800 * 30),
+        bep20Amount(300),
+        DEV_POWER_ADDRESS
     );
-    console.log("SmartChef created for GLB - BNB on:", smartChefFactory.address);
+    const result1 = await tx1.wait();
+    const smartChefAddress1 = result1.events[2].args[0];
+    console.log("SmartChef created for GLB - BNB on:", smartChefAddress1.address);
 
-    smartChefFactory.deployPool(
+    const tx2 = await smartChefFactory.deployPool(
         GLOBAL_TOKEN_ADDRESS,
         BUSD_ADDRESS,
-        BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-        CURRENT_BLOCK,
-        CURRENT_BLOCK + 28800 * 30,
-        BigNumber.from(300).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-        DEV_ADDRESS
+        "6944444444444440",
+        START_BLOCK,
+        END_BLOCK,
+        bep20Amount(USER_POOL_LIMIT),
+        DEV_POWER_ADDRESS
     );
-    console.log("SmartChef created for GLB - BUSD on:", smartChefFactory.address);
+    const result2 = await tx2.wait();
+    const smartChefAddress2 = result2.events[2].args[0];
+    console.log("SmartChef created for GLB - BUSD on:", smartChefAddress2.address);
 
-    smartChefFactory.deployPool(
+    const tx3 = await smartChefFactory.deployPool(
         GLOBAL_TOKEN_ADDRESS,
         CAKE_ADDRESS,
-        BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-        CURRENT_BLOCK,
-        CURRENT_BLOCK + 28800 * 30,
-        BigNumber.from(300).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
-        DEV_ADDRESS
+        "347222222222222",
+        START_BLOCK,
+        END_BLOCK,
+        bep20Amount(USER_POOL_LIMIT),
+        DEV_POWER_ADDRESS
     );
-    console.log("SmartChef created for GLB - CAKE on:", smartChefFactory.address);
+    const result3 = await tx3.wait();
+    const smartChefAddress3 = result3.events[2].args[0];
+    console.log("SmartChef created for GLB - CAKE on:", smartChefAddress3.address);
+
+    const tx4 = await smartChefFactory.deployPool(
+        GLOBAL_TOKEN_ADDRESS,
+        USDT_ADDRESS,
+        "6944444444444440",
+        START_BLOCK,
+        END_BLOCK,
+        bep20Amount(USER_POOL_LIMIT),
+        DEV_POWER_ADDRESS
+    );
+    const result4 = await tx4.wait();
+    const smartChefAddress4 = result4.events[2].args[0];
+    console.log("SmartChef created for GLB - USDT on:", smartChefAddress4.address);
+
+    const tx5 = await smartChefFactory.deployPool(
+        GLOBAL_TOKEN_ADDRESS,
+        ETH_ADDRESS,
+        "1736111111111",
+        START_BLOCK,
+        END_BLOCK,
+        bep20Amount(USER_POOL_LIMIT),
+        DEV_POWER_ADDRESS
+    );
+    const result5 = await tx5.wait();
+    const smartChefAddress5 = result5.events[2].args[0];
+    console.log("SmartChef created for GLB - ETH on:", smartChefAddress5.address);
+
+    const tx6 = await smartChefFactory.deployPool(
+        GLOBAL_TOKEN_ADDRESS,
+        BTC_ADDRESS,
+        "115740740741",
+        START_BLOCK,
+        END_BLOCK,
+        bep20Amount(USER_POOL_LIMIT),
+        DEV_POWER_ADDRESS
+    );
+    const result6 = await tx6.wait();
+    const smartChefAddress6 = result6.events[2].args[0];
+    console.log("SmartChef created for GLB - BTC on:", smartChefAddress6.address);
+
+    const tx7 = await smartChefFactory.deployPool(
+        GLOBAL_TOKEN_ADDRESS,
+        DOGE_ADDRESS,
+        "27777777777777800",
+        START_BLOCK,
+        END_BLOCK,
+        bep20Amount(USER_POOL_LIMIT),
+        DEV_POWER_ADDRESS
+    );
+    const result7 = await tx7.wait();
+    const smartChefAddress7 = result7.events[2].args[0];
+    console.log("SmartChef created for GLB - DOGE on:", smartChefAddress7.address);
 
     console.log("Current block is:", CURRENT_BLOCK);
 
