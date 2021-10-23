@@ -29,8 +29,8 @@ contract Pair is IPair, PancakeERC20 {
     uint public override price0CumulativeLast;
     uint public override price1CumulativeLast;
     uint public override kLast; // reserve0 * reserve1, as of immediately after the most recent liquidity event
-    uint32 public override swapFee = 86; // uses 0.88% default
-    uint32 public override devFee = 1; // uses 0.44% default from swap fee
+    uint32 public override swapFee = 86; // uses 0.086% default
+    uint32 public override devFee = 1; // uses 0.043% default from swap fee
     //Original SwapFee base
     //uint32 public swapFee = 100; // uses 0.1% default
     //uint32 public devFee = 1; // uses 0.05% default from swap fee
