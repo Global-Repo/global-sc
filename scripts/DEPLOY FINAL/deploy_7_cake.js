@@ -154,7 +154,7 @@ async function main() {
     console.log("Current block is:", CURRENT_BLOCK);
 
     console.log("Deploy finished");
-    console.log("Ensure you update VaultLocked address into addresses.js");
+    console.log("Ensure you update VaultCake15, VaultCake30, VaultCake50 addresses into addresses.js");
 }
 
 // We recommend this pattern to be able to use async/await everywhere

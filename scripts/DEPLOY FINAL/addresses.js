@@ -28,6 +28,9 @@ const VAULT_VESTED_30_ADDRESS = "";
 const VAULT_VESTED_50_ADDRESS = "";
 const VAULT_STAKED = "";
 const VAULT_STAKED_TO_GLOBAL = "";
+const VAULT_CAKE_15 = "";
+const VAULT_CAKE_30 = "";
+const VAULT_CAKE_50 = "";
 
 module.exports = {
     TREASURY_ADDRESS,
@@ -49,4 +52,7 @@ module.exports = {
     VAULT_VESTED_50_ADDRESS,
     VAULT_STAKED,
     VAULT_STAKED_TO_GLOBAL,
+    VAULT_CAKE_15,
+    VAULT_CAKE_30,
+    VAULT_CAKE_50,
 };
