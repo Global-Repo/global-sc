@@ -13,6 +13,7 @@ const {
     VAULT_VESTED_15_ADDRESS,
     VAULT_VESTED_30_ADDRESS,
     VAULT_VESTED_50_ADDRESS,
+    MASTERCHEF_ADDRESS,
 } = require("addresses.js");
 
 const {
@@ -20,8 +21,6 @@ const {
 } = require("../../test/helpers/singleDeploys.js");
 
 const { timestampNHours, timestampNDays, bep20Amount } = require("../test/helpers/utils.js");
-
-const VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL = timestampNHours(12); // 12h, Hours to distribute Globals from last distribution event.
 
 let CURRENT_BLOCK;
 let vaultDistribution;
@@ -31,10 +30,11 @@ let vaultVested50;
 let vaultCake15;
 let vaultCake30;
 let vaultCake50;
+let masterchef;
 
 async function main() {
     console.log("Starting deploy");
-    console.log("Ensure you have proper addresses set up into addresses.js for: VaultDistribution, VaultVested15, VaultVested30, VaultVested50");
+    console.log("Ensure you have proper addresses set up into addresses.js for: Masterchef, VaultDistribution, VaultVested15, VaultVested30, VaultVested50");
 
     [deployer] = await hre.ethers.getSigners();
 
@@ -42,6 +42,9 @@ async function main() {
     console.log("Current block is:", CURRENT_BLOCK);
 
     // Attach
+    const Masterchef = await ethers.getContractFactory("MasterChef");
+    masterchef = await Masterchef.attach(MASTERCHEF_ADDRESS);
+
     const VaultDistribution = await ethers.getContractFactory("VaultDistribution");
     vaultDistribution = await VaultDistribution.attach(VAULT_DISTRIBUTOR_ADDRESS);
 
@@ -112,7 +115,41 @@ async function main() {
     });
 
     // Set up
+    await vaultCake15.setRewards(8500, 100, 600, 800, 2500);
+    console.log("Vault cake 15 rewards set to: toUser:8500, toOperations:100, toBuyGlobal:600, toBuyBNB:800, toMintGlobal:2500");
+    await vaultCake30.setRewards(7000, 300, 1000, 1700, 5000);
+    console.log("Vault cake 30 rewards set to: toUser:7000, toOperations:300, toBuyGlobal:1000, toBuyBNB:1700, toMintGlobal:5000");
+    await vaultCake50.setRewards(5000, 500, 1500, 3000, 7500);
+    console.log("Vault cake 50 rewards set to: toUser:5000, toOperations:500, toBuyGlobal:1500, toBuyBNB:3000, toMintGlobal:7500");
 
+    await masterchef.setMinter(vaultCake15.address, true);
+    console.log("Vault cake 15 is minter into Masterchef");
+    await masterchef.setMinter(vaultCake30.address, true);
+    console.log("Vault cake 30 is minter into Masterchef");
+    await masterchef.setMinter(vaultCake50.address, true);
+    console.log("Vault cake 50 is minter into Masterchef");
+
+    await vaultCake15.setMinter(MASTERCHEF_ADDRESS);
+    console.log("Vault cake 15 minter is Masterchef");
+    await vaultCake30.setMinter(MASTERCHEF_ADDRESS);
+    console.log("Vault cake 30 minter is Masterchef");
+    await vaultCake50.setMinter(MASTERCHEF_ADDRESS);
+    console.log("Vault cake 50 minter is Masterchef");
+
+    await vaultDistribution.setDepositary(vaultCake15.address, true);
+    console.log("Vault cake 15 added into vault distribution as depositary");
+    await vaultDistribution.setDepositary(vaultCake30.address, true);
+    console.log("Vault cake 30 added into vault distribution as depositary");
+    await vaultDistribution.setDepositary(vaultCake50.address, true);
+    console.log("Vault cake 50 added into vault distribution as depositary");
+
+    // TODO: review, interval 0?
+    await vaultCake15.setWithdrawalFees(60, 10, 0);
+    console.log("Vault cake 50 withdrawal fees set to: burn:60, team:10, interval:0");
+    await vaultCake30.setWithdrawalFees(60, 10, 0);
+    console.log("Vault cake 50 withdrawal fees set to: burn:60, team:10, interval:0");
+    await vaultCake50.setWithdrawalFees(60, 10, 0);
+    console.log("Vault cake 50 withdrawal fees set to: burn:60, team:10, interval:0");
 
     console.log("Current block is:", CURRENT_BLOCK);
 
