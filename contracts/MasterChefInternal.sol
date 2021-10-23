@@ -7,7 +7,6 @@ import "./Helpers/IPathFinder.sol";
 import './Tokens/IPair.sol';
 import './Modifiers/Ownable.sol';
 
-// MC owner of MCInternal
 contract MasterChefInternal is Ownable {
     TokenAddresses public tokenAddresses;
     IPathFinder public pathFinder;
