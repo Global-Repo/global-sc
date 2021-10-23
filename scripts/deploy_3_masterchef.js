@@ -3,8 +3,8 @@ require("@nomiclabs/hardhat-ethers");
 const {ethers} = require("hardhat");
 const {
     GLOBAL_TOKEN_ADDRESS,
-    DEV_ADDRESS,
-    TREASURY_ADDRESS,
+    DEV_POWER_ADDRESS,
+    TREASURY_MINT_ADDRESS,
     TREASURY_LP_ADDRESS,
     TOKEN_ADDRESSES_ADDRESS,
     ROUTER_ADDRESS,
@@ -12,7 +12,7 @@ const {
 const {
     deployPathFinder,
 } = require("../test/helpers/singleDeploys");
-const { timestampNHours, bep20Amount } = require("../../test/helpers/utils.js");
+const { bep20Amount } = require("../test/helpers/utils");
 
 let pathFinder;
 let masterChefInternal;
@@ -29,9 +29,8 @@ async function main() {
     CURRENT_BLOCK = await ethers.provider.getBlockNumber();
     console.log("Current block is:", CURRENT_BLOCK);
 
-    // TODO: set up
-    const NATIVE_TOKEN_PER_BLOCK = 0;
-    const MASTERCHEF_START_BLOCK = 0;
+    const NATIVE_TOKEN_PER_BLOCK = bep20Amount(125);
+    const MASTERCHEF_START_BLOCK = 12405477; // timestamp 1636144200;
 
     // Start
     pathFinder = await deployPathFinder(TOKEN_ADDRESSES_ADDRESS);
@@ -59,6 +58,11 @@ async function main() {
 
     // Verify
     await hre.run("verify:verify", {
+        address: pathFinder.address,
+        constructorArguments: [],
+    });
+
+    await hre.run("verify:verify", {
         address: masterChefInternal.address,
         constructorArguments: [
             TOKEN_ADDRESSES_ADDRESS,
@@ -80,10 +84,10 @@ async function main() {
     });
 
     // Set up
-    await masterchef.setTreasury(TREASURY_ADDRESS);
-    console.log("Masterchef treasury address set up to:", TREASURY_ADDRESS);
+    await masterchef.setTreasury(TREASURY_MINT_ADDRESS);
+    console.log("Masterchef treasury address set up to:", TREASURY_MINT_ADDRESS);
 
-    await masterchef.setTreasury(TREASURY_LP_ADDRESS);
+    await masterchef.setTreasuryLP(TREASURY_LP_ADDRESS);
     console.log("Masterchef treasury LP address set up to:", TREASURY_LP_ADDRESS);
 
     await masterChefInternal.transferOwnership(masterchef.address);
@@ -92,8 +96,8 @@ async function main() {
     await pathFinder.transferOwnership(masterChefInternal.address);
     console.log("Path finder ownership to masterchef internal:", masterChefInternal.address);
 
-    await masterchef.transferDevPower(DEV_ADDRESS);
-    console.log("Masterchef dev power set to:", DEV_ADDRESS);
+    await masterchef.transferDevPower(DEV_POWER_ADDRESS);
+    console.log("Masterchef dev power set to:", DEV_POWER_ADDRESS);
 
     console.log("Current block is:", CURRENT_BLOCK);
 

@@ -7,14 +7,13 @@ const {
     BUSD_ADDRESS,
     CAKE_ADDRESS,
     DEV_ADDRESS,
-    TREASURY_ADDRESS,
+    TREASURY_SWAP_ADDRESS,
 } = require("./addresses");
 const {
     deployFactory,
     deployRouter,
     deployTokenAddresses,
 } = require("../test/helpers/singleDeploys");
-const { timestampNHours, bep20Amount } = require("../../test/helpers/utils.js");
 
 let factory;
 let router;
@@ -35,8 +34,8 @@ async function main() {
     factory = await deployFactory(DEV_ADDRESS);
     console.log("Factory deployed to:", factory.address);
 
-    await factory.setFeeTo(TREASURY_ADDRESS);
-    console.log("FeeTo from factory set to treasury:", TREASURY_ADDRESS);
+    await factory.setFeeTo(TREASURY_SWAP_ADDRESS);
+    console.log("FeeTo from factory set to treasury:", TREASURY_SWAP_ADDRESS);
 
     router = await deployRouter(factory.address, WETH_ADDRESS);
     console.log("Router deployed to:", router.address);
@@ -75,9 +74,6 @@ async function main() {
         address: tokenAddresses.address,
         constructorArguments: [],
     });
-
-    // Set up
-
 
     console.log("Current block is:", CURRENT_BLOCK);
 

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Unlicensed
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
 import './Helpers/Context.sol';
@@ -20,73 +20,32 @@ import './Tokens/IPair.sol';
 import './IRouterV2.sol';
 import "./MasterChefInternal.sol";
 
-// HEM DE FER IMPORT DE LA INTERFACE I DEL SC DEL VAULT!!!!!!!!!
-
-
-// PER AFEGIR:
-// La funció de withdraw, enlloc danar a la teva wallet, ha danar a la pool de GLOBALS VESTED. Podriem posar que la pool de pid = 0 és la vested de forma automàtica (pasarla pel constructor) i així ja la creem i sempre és la mateixa.
-// S'HAURÀ DE REPASSAR TOT EL CODI DE PANTHER I VEURE QUE NO ENS DEIXEM RES!!!!!!!!! i els modificadors public-private etc
-
-// podem fer un stop all rewards per deixar morir al masterchef if needed i reemplaçarlo per un altre. Hem de fer que totes les fees siguin 0 si fem STOP.
-// poder fer whitelist i blacklist d'una direcicó per si apareix hacker. devpower per evitar timelock, q llavors no serveix per res. també hem de posar un activar-desactivar whitelist-blacklist.
-// És a dir, fem un activar la funcionalitat i després posem white or black lists.
-// happy hour pel amm!! les fees allà: baixem els % de tot durant X to Y hores i fem boost del burn oper pujar otken?
-// transaction frontrun pay miners??? sushiswap
-// Falta poder fer update dels routers i tot això...
-// és possible fer lockdown i transferir el ownership de pools i vaults individualment, o ja fem servir el migrator per aixop??
-
-// idea: mesura antiwhale en una pool. si un vault té més de 1m$ de toksn, no es pot fer un dipòsit de més del 20% del vault.
-//aixi evitem els flash loans attacks també, perque ningú es pot quedar amb el 99% del vault degut a flash loans
-// Per revisar: que no ens deixem cap funció de pancake/panther, private-public-internal-external, transfer i safetransfer, onlydevpower i onlyowner.
-
-
-
-
-
-
-
-
 // We hope code is bug-free. For everyone's life savings.
 contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     using SafeMath for uint16;
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
-    // Info of each user.
     struct UserInfo {
-        uint256 amount;     		// How many LP tokens the user has provided.
-        uint256 rewardDebt; 		// Rewards que se li deuen a un usuari particular. Reward debt. See explanation below.
-        uint256 rewardLockedUp;  	// Rewards que se li deuen a un usuari particular i que no pot cobrar.
-        uint256 nextHarvestUntil; 	// Moment en el que l'usuari ja té permís per fer harvest..
-        uint256 withdrawalOrPerformanceFees; 		// Ens indica si ha passat més de X temps per saber si cobrem una fee o una altra.
+        uint256 amount;
+        uint256 rewardDebt;
+        uint256 rewardLockedUp;
+        uint256 nextHarvestUntil;
+        uint256 withdrawalOrPerformanceFees;
         bool whitelisted;
-        //
-        // We do some fancy math here. Basically, any point in time, the amount of Native tokens
-        // entitled to a user but is pending to be distributed is:
-        //
-        //   Aquesta explicació fot cagar. El total de rewards pendents, si traiem lo
-        //	 que li hem de pagar a un usuari, és el següent:
-        //   pending reward = (user.amount * pool.accNativeTokenPerShare) - user.rewardDebt
-        //
-        // Whenever a user deposits or withdraws LP tokens to a pool. Here's what happens:
-        //   1. The pool's `accNativeTokenPerShare` (and `lastRewardBlock`) gets updated.
-        //   2. User receives the pending reward sent to his/her address.
-        //   3. User's `amount` gets updated.
-        //   4. User's `rewardDebt` gets updated.
     }
 
-    // Info of each farming pool.
     struct PoolInfo {
-        IBEP20 lpToken;           							// Address of LP token contract.
-        uint256 allocPoint;       							// Pes de la pool per indicar % de rewards que tindrà respecte el total. How many allocation points assigned to this pool. Weight of native tokens to distribute per block.
-        uint256 lastRewardBlock;  							// Últim bloc que ha mintat native tokens.
-        uint256 accNativeTokenPerShare; 					// Accumulated Native tokens per share, times 1e12.
-        uint256 harvestInterval;  							// Freqüència amb la que podràs fer claim en aquesta pool.
-        uint256 maxWithdrawalInterval;						// Punt d'inflexió per decidir si cobres withDrawalFeeOfLps o bé performanceFeesOfNativeTokens
-        uint16 withDrawalFeeOfLpsBurn;						// % (10000 = 100%) dels LPs que es cobraran com a fees que serviran per fer buyback.
-        uint16 withDrawalFeeOfLpsTeam;						// % (10000 = 100%) dels LPs que es cobraran com a fees que serviran per operations/marketing.
-        uint16 performanceFeesOfNativeTokensBurn;			// % (10000 = 100%) dels rewards que es cobraran com a fees que serviran per fer buyback
-        uint16 performanceFeesOfNativeTokensToLockedVault;	// % (10000 = 100%) dels rewards que es cobraran com a fees que serviran per fer boost dels native tokens locked
+        IBEP20 lpToken;
+        uint256 allocPoint;
+        uint256 lastRewardBlock;
+        uint256 accNativeTokenPerShare;
+        uint256 harvestInterval;
+        uint256 maxWithdrawalInterval;
+        uint16 withDrawalFeeOfLpsBurn;
+        uint16 withDrawalFeeOfLpsTeam;
+        uint16 performanceFeesOfNativeTokensBurn;
+        uint16 performanceFeesOfNativeTokensToLockedVault;
     }
 
     // Inicialitzem el nostre router Global

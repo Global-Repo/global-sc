@@ -11,7 +11,7 @@ const {
 const {
     deploySmartChefFactory,
 } = require("../test/helpers/singleDeploys");
-const { timestampNHours, bep20Amount } = require("../../test/helpers/utils.js");
+const { timestampNHours, bep20Amount } = require("../test/helpers/utils");
 
 let smartChefFactory;
 
