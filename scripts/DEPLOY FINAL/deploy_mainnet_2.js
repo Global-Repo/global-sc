@@ -28,6 +28,7 @@ let vaultLocked;
 let wethAddress;
 let busdAddress;
 let cakeAddress;
+let globalTokenAddress;
 
 let CURRENT_BLOCK;
 let masterChefStartBlock
@@ -53,30 +54,24 @@ async function main() {
     console.log("Current block is:", CURRENT_BLOCK);
 
     // Setup
-    // TODO change to real dev address in mainet
-    DEPLOYER_ADDRESS = owner.address;
 
-    DEV_ADDRESS = owner.address;
+    DEPLOYER_ADDRESS = owner.address; // TODO canviar DEPLOYER_ADDRESS
 
-    // TODO: canviar en deploy real (els dos)
-    TREASURY_ADDRESS = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63";
-    TREASURY_LP_ADDRESS = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63";
+    DEV_ADDRESS = owner.address; // TODO canviar DEV_ADDRESS
+
+    TREASURY_ADDRESS = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63"; // TODO: canviar TREASURY_ADDRESS
+
+    TREASURY_LP_ADDRESS = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63"; // TODO: canviar TREASURY_LP_ADDRESS
 
     wethAddress = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
     busdAddress = "0xe9e7cea3dedca5984780bafc599bd69add087d56";
     cakeAddress = "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82";
 
-    const feeSetterAddress = DEV_ADDRESS;
-    masterChefStartBlock = CURRENT_BLOCK + 1;
+    globalTokenAddress="0xcf958b53ec9340886d72bb4f5f2977e8c2ab64d3";
 
-    // Deploy
-    // TODO native token only for mainet testing purposes
-    globalToken = await deployGlobal();
-    console.log("Global token deployed to:", globalToken.address);
-    await globalToken.connect(owner).openTrading();
-    console.log("Global token launched");
-    await globalToken.connect(owner).mint(BigNumber.from(1000000).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
-    console.log("Minted 1000000 globals to owner:", owner.address);
+    const feeSetterAddress = DEV_ADDRESS;
+    masterChefStartBlock = 12405477; // timestamp 1636144200
+    //masterChefStartBlock = CURRENT_BLOCK + 1;
 
     // TODO: deploy router and factory en un primer pas per afegir liquidesa i validar
     factory = await deployFactory(feeSetterAddress);
@@ -91,8 +86,8 @@ async function main() {
     tokenAddresses = await deployTokenAddresses();
     console.log("TokenAddresses deployed to:", tokenAddresses.address);
 
-    await tokenAddresses.addToken(tokenAddresses.GLOBAL(), globalToken.address);
-    console.log("Added Global to TokenAddresses with address:", globalToken.address);
+    await tokenAddresses.addToken(tokenAddresses.GLOBAL(), globalTokenAddress);
+    console.log("Added Global to TokenAddresses with address:", globalTokenAddress);
     await tokenAddresses.addToken(tokenAddresses.BNB(), wethAddress);
     console.log("Added BNB to TokenAddresses with address:", wethAddress);
     await tokenAddresses.addToken(tokenAddresses.WBNB(), wethAddress);
