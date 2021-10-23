@@ -28,6 +28,7 @@ let vaultLocked;
 let wethAddress;
 let busdAddress;
 let cakeAddress;
+let lpTokenAddress;
 
 let CURRENT_BLOCK;
 let masterChefStartBlock
@@ -65,6 +66,7 @@ async function main() {
     wethAddress = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
     busdAddress = "0xe9e7cea3dedca5984780bafc599bd69add087d56";
     cakeAddress = "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82";
+    lpTokenAddress = "0x0eD7e52944161450477ee417DE9Cd3a859b14fD0";
 
     const feeSetterAddress = DEV_ADDRESS;
     masterChefStartBlock = CURRENT_BLOCK + 1;
@@ -101,9 +103,8 @@ async function main() {
     console.log("Added BUSD to TokenAddresses with address:", busdAddress);
     await tokenAddresses.addToken(tokenAddresses.CAKE(), cakeAddress);
     console.log("Added CAKE to TokenAddresses with address:", cakeAddress);
-    // TODO: add cakebnblp when vaults
-    //await tokenAddresses.addToken(tokenAddresses.CAKE_WBNB_LP(), cakeWbnbLPAddress);
-    //console.log("Added CAKE-WBNB-LP to TokenAddresses with address:", cakeWbnbLPAddress);
+    await tokenAddresses.addToken(tokenAddresses.CAKE_WBNB_LP(), lpTokenAddress);
+    console.log("Added CAKE-WBNB-LP to TokenAddresses with address:", lpTokenAddress);
 
     pathFinder = await deployPathFinder(tokenAddresses.address);
     console.log("PathFinder deployed to:", pathFinder.address);
