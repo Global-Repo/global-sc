@@ -12,7 +12,7 @@ const {
 const { timestampNHours, timestampNDays, bep20Amount } = require("../test/helpers/utils.js");
 
 const VAULT_DISTRIBUTION_MIN_BNB_TO_DISTRIBUTE = bep20Amount(1); // 1 BNB
-const VAULT_DISTRIBUTION_DISTRIBUTE_PERCENTAGE = 10000; // 100%
+const VAULT_DISTRIBUTION_DISTRIBUTE_PERCENTAGE = 1000; // 10%
 const VAULT_DISTRIBUTION_DISTRIBUTE_INTERVAL = timestampNHours(12); // 12h
 
 let CURRENT_BLOCK;

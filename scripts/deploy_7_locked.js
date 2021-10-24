@@ -5,6 +5,7 @@ const {
     GLOBAL_TOKEN_ADDRESS,
     WETH_ADDRESS,
     MASTERCHEF_ADDRESS,
+    DEV_POWER_ADDRESS,
 } = require("./addresses");
 
 const {

@@ -14,8 +14,6 @@ const {
     deployVaultStakedToGlobal,
 } = require("../test/helpers/singleDeploys");
 
-const { timestampNHours, timestampNDays, bep20Amount } = require("../test/helpers/utils.js");
-
 let CURRENT_BLOCK;
 let masterchef;
 let vaultDistribution;
