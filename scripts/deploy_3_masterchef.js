@@ -22,7 +22,7 @@ let CURRENT_BLOCK;
 
 async function main() {
     console.log("Starting deploy");
-    console.log("Ensure you have proper addresses set up into addresses.js for: Factory, Router, TokenAddresses");
+    console.log("Ensure you have proper addresses set up into addresses.js for: Router, TokenAddresses");
 
     [deployer] = await hre.ethers.getSigners();
 
@@ -102,7 +102,7 @@ async function main() {
     console.log("Current block is:", CURRENT_BLOCK);
 
     console.log("Deploy finished");
-    console.log("Ensure you update PathFinder, Masterchef, MasterchefInternal, address into addresses.js");
+    console.log("Ensure you update PathFinder, Masterchef, address into addresses.js");
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -6,7 +6,7 @@ const {
     WETH_ADDRESS,
     BUSD_ADDRESS,
     CAKE_ADDRESS,
-    DEV_ADDRESS,
+    DEV_POWER_ADDRESS,
     TREASURY_SWAP_ADDRESS,
 } = require("./addresses");
 const {
@@ -31,7 +31,7 @@ async function main() {
     console.log("Current block is:", CURRENT_BLOCK);
 
     // Start
-    factory = await deployFactory(DEV_ADDRESS);
+    factory = await deployFactory(DEV_POWER_ADDRESS);
     console.log("Factory deployed to:", factory.address);
 
     await factory.setFeeTo(TREASURY_SWAP_ADDRESS);
