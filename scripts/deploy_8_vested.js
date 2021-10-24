@@ -6,14 +6,14 @@ const {
     WETH_ADDRESS,
     MASTERCHEF_ADDRESS,
     VAULT_LOCKED_ADDRESS,
-    VAULT_DISTRIBUTOR_ADDRESS,
+    VAULT_DISTRIBUTION_ADDRESS,
 } = require("./addresses");
 
 const {
     deployVaultVested,
 } = require("../test/helpers/singleDeploys");
 
-const { timestampNHours, timestampNDays, bep20Amount } = require("../test/helpers/utils.js");
+const { timestampNDays, bep20Amount } = require("../test/helpers/utils");
 
 const VAULT_VESTED_MIN_BNB_TO_DISTRIBUTE = bep20Amount(1); // 1 BNB
 const VAULT_VESTED_PENALTY_FEES_INTERVAL = timestampNDays(99); // 99 days
@@ -40,7 +40,7 @@ async function main() {
     masterchef = await Masterchef.attach(MASTERCHEF_ADDRESS);
 
     const VaultDistribution = await ethers.getContractFactory("VaultDistribution");
-    vaultDistribution = await VaultDistribution.attach(VAULT_DISTRIBUTOR_ADDRESS);
+    vaultDistribution = await VaultDistribution.attach(VAULT_DISTRIBUTION_ADDRESS);
 
     const VaultLocked = await ethers.getContractFactory("VaultLocked");
     vaultLocked = await VaultLocked.attach(VAULT_LOCKED_ADDRESS);
@@ -114,11 +114,11 @@ async function main() {
     await vaultVested50.setPenaltyFees(8300, VAULT_VESTED_PENALTY_FEES_INTERVAL);
     console.log("Vault vested 50 penalty fees percentage set to: 8300 and interval of days: ", VAULT_VESTED_PENALTY_FEES_INTERVAL.toString());
 
-    await masterchef.addAddressToWhitelist(vaultVested15.address, true);
+    await masterchef.addAddressToWhitelist(vaultVested15.address);
     console.log("Vault vested 15 added into Masterchef whitelist");
-    await masterchef.addAddressToWhitelist(vaultVested30.address, true);
+    await masterchef.addAddressToWhitelist(vaultVested30.address);
     console.log("Vault vested 30 added into Masterchef whitelist");
-    await masterchef.addAddressToWhitelist(vaultVested50.address, true);
+    await masterchef.addAddressToWhitelist(vaultVested50.address);
     console.log("Vault vested 50 added into Masterchef whitelist");
 
     await vaultVested15.setRewarder(vaultDistribution.address, true);

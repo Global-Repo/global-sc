@@ -5,7 +5,6 @@ const {
     GLOBAL_TOKEN_ADDRESS,
     WETH_ADDRESS,
     MASTERCHEF_ADDRESS,
-    DEV_POWER_ADDRESS,
 } = require("./addresses");
 
 const {
@@ -54,7 +53,7 @@ async function main() {
     });
 
     // Set up
-    await masterchef.addAddressToWhitelist(vaultLocked.address, true);
+    await masterchef.addAddressToWhitelist(vaultLocked.address);
     console.log("Vault locked added into Masterchef whitelist");
 
     await masterchef.setLockedVaultAddress(vaultLocked.address);

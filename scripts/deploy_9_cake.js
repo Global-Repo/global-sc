@@ -9,7 +9,7 @@ const {
     TOKEN_ADDRESSES_ADDRESS,
     ROUTER_ADDRESS,
     PATH_FINDER_ADDRESS,
-    VAULT_DISTRIBUTOR_ADDRESS,
+    VAULT_DISTRIBUTION_ADDRESS,
     VAULT_VESTED_15_ADDRESS,
     VAULT_VESTED_30_ADDRESS,
     VAULT_VESTED_50_ADDRESS,
@@ -20,7 +20,7 @@ const {
     deployVaultCake,
 } = require("../test/helpers/singleDeploys");
 
-const { timestampNHours, timestampNDays, bep20Amount } = require("../test/helpers/utils.js");
+const { timestampNDays } = require("../test/helpers/utils");
 
 let CURRENT_BLOCK;
 let vaultDistribution;
@@ -46,7 +46,7 @@ async function main() {
     masterchef = await Masterchef.attach(MASTERCHEF_ADDRESS);
 
     const VaultDistribution = await ethers.getContractFactory("VaultDistribution");
-    vaultDistribution = await VaultDistribution.attach(VAULT_DISTRIBUTOR_ADDRESS);
+    vaultDistribution = await VaultDistribution.attach(VAULT_DISTRIBUTION_ADDRESS);
 
     const VaultVested15 = await ethers.getContractFactory("VaultVested");
     vaultVested15 = await VaultVested15.attach(VAULT_VESTED_15_ADDRESS);
@@ -66,7 +66,7 @@ async function main() {
         TOKEN_ADDRESSES_ADDRESS,
         ROUTER_ADDRESS,
         PATH_FINDER_ADDRESS,
-        VAULT_DISTRIBUTOR_ADDRESS,
+        VAULT_DISTRIBUTION_ADDRESS,
         VAULT_VESTED_15_ADDRESS
     );
     console.log("Vault Cake 15 deployed to:", vaultCake15.address);
@@ -79,7 +79,7 @@ async function main() {
         TOKEN_ADDRESSES_ADDRESS,
         ROUTER_ADDRESS,
         PATH_FINDER_ADDRESS,
-        VAULT_DISTRIBUTOR_ADDRESS,
+        VAULT_DISTRIBUTION_ADDRESS,
         VAULT_VESTED_30_ADDRESS
     );
     console.log("Vault Cake 30 deployed to:", vaultCake30.address);
@@ -92,11 +92,10 @@ async function main() {
         TOKEN_ADDRESSES_ADDRESS,
         ROUTER_ADDRESS,
         PATH_FINDER_ADDRESS,
-        VAULT_DISTRIBUTOR_ADDRESS,
+        VAULT_DISTRIBUTION_ADDRESS,
         VAULT_VESTED_50_ADDRESS
     );
     console.log("Vault Cake 50 deployed to:", vaultCake50.address);
-
 
     // Verify
     await hre.run("verify:verify", {
@@ -109,7 +108,7 @@ async function main() {
             TOKEN_ADDRESSES_ADDRESS,
             ROUTER_ADDRESS,
             PATH_FINDER_ADDRESS,
-            VAULT_DISTRIBUTOR_ADDRESS,
+            VAULT_DISTRIBUTION_ADDRESS,
             VAULT_VESTED_15_ADDRESS
         ],
     });
@@ -124,7 +123,7 @@ async function main() {
             TOKEN_ADDRESSES_ADDRESS,
             ROUTER_ADDRESS,
             PATH_FINDER_ADDRESS,
-            VAULT_DISTRIBUTOR_ADDRESS,
+            VAULT_DISTRIBUTION_ADDRESS,
             VAULT_VESTED_30_ADDRESS
         ],
     });
@@ -139,7 +138,7 @@ async function main() {
             TOKEN_ADDRESSES_ADDRESS,
             ROUTER_ADDRESS,
             PATH_FINDER_ADDRESS,
-            VAULT_DISTRIBUTOR_ADDRESS,
+            VAULT_DISTRIBUTION_ADDRESS,
             VAULT_VESTED_50_ADDRESS
         ],
     });
@@ -159,12 +158,13 @@ async function main() {
     await masterchef.setMinter(vaultCake50.address, true);
     console.log("Vault cake 50 is minter into Masterchef");
 
-    await vaultCake15.setMinter(MASTERCHEF_ADDRESS);
-    console.log("Vault cake 15 minter is Masterchef");
-    await vaultCake30.setMinter(MASTERCHEF_ADDRESS);
-    console.log("Vault cake 30 minter is Masterchef");
-    await vaultCake50.setMinter(MASTERCHEF_ADDRESS);
-    console.log("Vault cake 50 minter is Masterchef");
+    // TODO: this should be executed after global token has MC as owner
+    //await vaultCake15.setMinter(MASTERCHEF_ADDRESS);
+    //console.log("Vault cake 15 minter is Masterchef");
+    //await vaultCake30.setMinter(MASTERCHEF_ADDRESS);
+    //console.log("Vault cake 30 minter is Masterchef");
+    //await vaultCake50.setMinter(MASTERCHEF_ADDRESS);
+    //console.log("Vault cake 50 minter is Masterchef");
 
     await vaultDistribution.setDepositary(vaultCake15.address, true);
     console.log("Vault cake 15 added into vault distribution as depositary");
@@ -173,7 +173,6 @@ async function main() {
     await vaultDistribution.setDepositary(vaultCake50.address, true);
     console.log("Vault cake 50 added into vault distribution as depositary");
 
-    // TODO: review, interval 0?
     await vaultCake15.setWithdrawalFees(65, 15, timestampNDays(4));
     console.log("Vault cake 15 withdrawal fees set to: burn:60, team:10, interval:0");
     await vaultCake30.setWithdrawalFees(65, 15, timestampNDays(4));

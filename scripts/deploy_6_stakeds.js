@@ -6,7 +6,7 @@ const {
     WETH_ADDRESS,
     MASTERCHEF_ADDRESS,
     ROUTER_ADDRESS,
-    VAULT_DISTRIBUTOR_ADDRESS,
+    VAULT_DISTRIBUTION_ADDRESS,
 } = require("./addresses");
 
 const {
@@ -34,7 +34,7 @@ async function main() {
     masterchef = await Masterchef.attach(MASTERCHEF_ADDRESS);
 
     const VaultDistribution = await ethers.getContractFactory("VaultDistribution");
-    vaultDistribution = await VaultDistribution.attach(VAULT_DISTRIBUTOR_ADDRESS);
+    vaultDistribution = await VaultDistribution.attach(VAULT_DISTRIBUTION_ADDRESS);
 
     // Start
     vaultStaked = await deployVaultStaked(
@@ -53,7 +53,7 @@ async function main() {
     console.log("Vault staked to global deployed to:", vaultStakedToGlobal.address);
 
     // Verify
-    /*await hre.run("verify:verify", {
+    await hre.run("verify:verify", {
         address: vaultStaked.address,
         constructorArguments: [
             GLOBAL_TOKEN_ADDRESS,
@@ -70,12 +70,12 @@ async function main() {
             MASTERCHEF_ADDRESS,
             ROUTER_ADDRESS
         ],
-    });*/
+    });
 
     // Set up
-    /*await masterchef.addAddressToWhitelist(vaultStaked.address, true);
+    await masterchef.addAddressToWhitelist(vaultStaked.address);
     console.log("Vault staked added into Masterchef whitelist");
-    await masterchef.addAddressToWhitelist(vaultStakedToGlobal.address, true);
+    await masterchef.addAddressToWhitelist(vaultStakedToGlobal.address);
     console.log("Vault staked to global added into Masterchef whitelist");
 
     await vaultStaked.setRewarder(vaultDistribution.address, true);
@@ -91,7 +91,7 @@ async function main() {
     console.log("Current block is:", CURRENT_BLOCK);
 
     console.log("Deploy finished");
-    console.log("Ensure you update VaultStaked, VaultStakedToGlobal addresses into addresses.js");*/
+    console.log("Ensure you update VaultStaked, VaultStakedToGlobal addresses into addresses.js");
 }
 
 // We recommend this pattern to be able to use async/await everywhere
