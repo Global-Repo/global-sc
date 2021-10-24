@@ -81,6 +81,26 @@ async function main() {
         ],
     });
 
+    await hre.run("verify:verify", {
+        address: vaultVested30.address,
+        constructorArguments: [
+            GLOBAL_TOKEN_ADDRESS,
+            WETH_ADDRESS,
+            MASTERCHEF_ADDRESS,
+            VAULT_LOCKED_ADDRESS
+        ],
+    });
+
+    await hre.run("verify:verify", {
+        address: vaultVested50.address,
+        constructorArguments: [
+            GLOBAL_TOKEN_ADDRESS,
+            WETH_ADDRESS,
+            MASTERCHEF_ADDRESS,
+            VAULT_LOCKED_ADDRESS
+        ],
+    });
+
     // Set up
     await vaultVested15.setMinTokenAmountToDistribute(VAULT_VESTED_MIN_BNB_TO_DISTRIBUTE);
     await vaultVested30.setMinTokenAmountToDistribute(VAULT_VESTED_MIN_BNB_TO_DISTRIBUTE);

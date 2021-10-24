@@ -5,7 +5,7 @@ const {
     GLOBAL_TOKEN_ADDRESS,
     CAKE_ADDRESS,
     CAKE_MASTERCHEF_ADDRESS,
-    TREASURY_ADDRESS,
+    TREASURY_SWAP_ADDRESS,
     TOKEN_ADDRESSES_ADDRESS,
     ROUTER_ADDRESS,
     PATH_FINDER_ADDRESS,
@@ -62,7 +62,7 @@ async function main() {
         CAKE_ADDRESS,
         GLOBAL_TOKEN_ADDRESS,
         CAKE_MASTERCHEF_ADDRESS,
-        TREASURY_ADDRESS,
+        TREASURY_SWAP_ADDRESS,
         TOKEN_ADDRESSES_ADDRESS,
         ROUTER_ADDRESS,
         PATH_FINDER_ADDRESS,
@@ -75,7 +75,7 @@ async function main() {
         CAKE_ADDRESS,
         GLOBAL_TOKEN_ADDRESS,
         CAKE_MASTERCHEF_ADDRESS,
-        TREASURY_ADDRESS,
+        TREASURY_SWAP_ADDRESS,
         TOKEN_ADDRESSES_ADDRESS,
         ROUTER_ADDRESS,
         PATH_FINDER_ADDRESS,
@@ -88,7 +88,7 @@ async function main() {
         CAKE_ADDRESS,
         GLOBAL_TOKEN_ADDRESS,
         CAKE_MASTERCHEF_ADDRESS,
-        TREASURY_ADDRESS,
+        TREASURY_SWAP_ADDRESS,
         TOKEN_ADDRESSES_ADDRESS,
         ROUTER_ADDRESS,
         PATH_FINDER_ADDRESS,
@@ -105,12 +105,42 @@ async function main() {
             CAKE_ADDRESS,
             GLOBAL_TOKEN_ADDRESS,
             CAKE_MASTERCHEF_ADDRESS,
-            TREASURY_ADDRESS,
+            TREASURY_SWAP_ADDRESS,
             TOKEN_ADDRESSES_ADDRESS,
             ROUTER_ADDRESS,
             PATH_FINDER_ADDRESS,
             VAULT_DISTRIBUTOR_ADDRESS,
             VAULT_VESTED_15_ADDRESS
+        ],
+    });
+
+    await hre.run("verify:verify", {
+        address: vaultCake30.address,
+        constructorArguments: [
+            CAKE_ADDRESS,
+            GLOBAL_TOKEN_ADDRESS,
+            CAKE_MASTERCHEF_ADDRESS,
+            TREASURY_SWAP_ADDRESS,
+            TOKEN_ADDRESSES_ADDRESS,
+            ROUTER_ADDRESS,
+            PATH_FINDER_ADDRESS,
+            VAULT_DISTRIBUTOR_ADDRESS,
+            VAULT_VESTED_30_ADDRESS
+        ],
+    });
+
+    await hre.run("verify:verify", {
+        address: vaultCake50.address,
+        constructorArguments: [
+            CAKE_ADDRESS,
+            GLOBAL_TOKEN_ADDRESS,
+            CAKE_MASTERCHEF_ADDRESS,
+            TREASURY_SWAP_ADDRESS,
+            TOKEN_ADDRESSES_ADDRESS,
+            ROUTER_ADDRESS,
+            PATH_FINDER_ADDRESS,
+            VAULT_DISTRIBUTOR_ADDRESS,
+            VAULT_VESTED_50_ADDRESS
         ],
     });
 
@@ -144,11 +174,11 @@ async function main() {
     console.log("Vault cake 50 added into vault distribution as depositary");
 
     // TODO: review, interval 0?
-    await vaultCake15.setWithdrawalFees(60, 10, 0);
-    console.log("Vault cake 50 withdrawal fees set to: burn:60, team:10, interval:0");
-    await vaultCake30.setWithdrawalFees(60, 10, 0);
-    console.log("Vault cake 50 withdrawal fees set to: burn:60, team:10, interval:0");
-    await vaultCake50.setWithdrawalFees(60, 10, 0);
+    await vaultCake15.setWithdrawalFees(65, 15, timestampNDays(4));
+    console.log("Vault cake 15 withdrawal fees set to: burn:60, team:10, interval:0");
+    await vaultCake30.setWithdrawalFees(65, 15, timestampNDays(4));
+    console.log("Vault cake 30 withdrawal fees set to: burn:60, team:10, interval:0");
+    await vaultCake50.setWithdrawalFees(65, 15, timestampNDays(4));
     console.log("Vault cake 50 withdrawal fees set to: burn:60, team:10, interval:0");
 
     console.log("Current block is:", CURRENT_BLOCK);
