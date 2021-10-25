@@ -43,8 +43,8 @@ async function main() {
     await hre.run("verify:verify", {
         address: vaultDistribution.address,
         constructorArguments: [
-            GLOBAL_TOKEN_ADDRESS,
-            WETH_ADDRESS
+            WETH_ADDRESS,
+            GLOBAL_TOKEN_ADDRESS
         ],
     });
 
