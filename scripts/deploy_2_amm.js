@@ -58,7 +58,7 @@ async function main() {
     await hre.run("verify:verify", {
         address: factory.address,
         constructorArguments: [
-            DEV_ADDRESS
+            DEV_POWER_ADDRESS
         ],
     });
 
