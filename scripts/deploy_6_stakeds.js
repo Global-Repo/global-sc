@@ -52,6 +52,22 @@ async function main() {
     );
     console.log("Vault staked to global deployed to:", vaultStakedToGlobal.address);
 
+    // Set up
+    await masterchef.addAddressToWhitelist(vaultStaked.address);
+    console.log("Vault staked added into Masterchef whitelist");
+    await masterchef.addAddressToWhitelist(vaultStakedToGlobal.address);
+    console.log("Vault staked to global added into Masterchef whitelist");
+
+    await vaultStaked.setRewarder(vaultDistribution.address, true);
+    console.log("Vault distribution added into vault staked as rewarder");
+    await vaultStakedToGlobal.setRewarder(vaultDistribution.address, true);
+    console.log("Vault distribution added into vault staked to global as rewarder");
+
+    await vaultDistribution.addBeneficiary(vaultStaked.address);
+    console.log("Vault staked added into vault distribution as beneficiary");
+    await vaultDistribution.addBeneficiary(vaultStakedToGlobal.address);
+    console.log("Vault staked to global added into vault distribution as beneficiary");
+
     // Verify
     await hre.run("verify:verify", {
         address: vaultStaked.address,
@@ -71,22 +87,6 @@ async function main() {
             ROUTER_ADDRESS
         ],
     });
-
-    // Set up
-    await masterchef.addAddressToWhitelist(vaultStaked.address);
-    console.log("Vault staked added into Masterchef whitelist");
-    await masterchef.addAddressToWhitelist(vaultStakedToGlobal.address);
-    console.log("Vault staked to global added into Masterchef whitelist");
-
-    await vaultStaked.setRewarder(vaultDistribution.address, true);
-    console.log("Vault distribution added into vault staked as rewarder");
-    await vaultStakedToGlobal.setRewarder(vaultDistribution.address, true);
-    console.log("Vault distribution added into vault staked to global as rewarder");
-
-    await vaultDistribution.addBeneficiary(vaultStaked.address);
-    console.log("Vault staked added into vault distribution as beneficiary");
-    await vaultDistribution.addBeneficiary(vaultStakedToGlobal.address);
-    console.log("Vault staked to global added into vault distribution as beneficiary");
 
     console.log("Current block is:", CURRENT_BLOCK);
 

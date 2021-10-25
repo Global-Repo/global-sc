@@ -38,12 +38,6 @@ async function main() {
     smartChefFactory = await deploySmartChefFactory();
     console.log("SmartChefFactory deployed to:", smartChefFactory.address);
 
-    // Verify
-    await hre.run("verify:verify", {
-        address: smartChefFactory.address,
-        constructorArguments: [],
-    });
-
     // Set up
     const tx1 = await smartChefFactory.deployPool(
         GLOBAL_TOKEN_ADDRESS,
@@ -135,6 +129,12 @@ async function main() {
     const result7 = await tx7.wait();
     const smartChefAddress7 = result7.events[2].args[0];
     console.log("SmartChef created for GLB - DOGE on:", smartChefAddress7);
+
+    // Verify
+    await hre.run("verify:verify", {
+        address: smartChefFactory.address,
+        constructorArguments: [],
+    });
 
     console.log("Current block is:", CURRENT_BLOCK);
 

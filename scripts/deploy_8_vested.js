@@ -81,26 +81,6 @@ async function main() {
         ],
     });
 
-    await hre.run("verify:verify", {
-        address: vaultVested30.address,
-        constructorArguments: [
-            GLOBAL_TOKEN_ADDRESS,
-            WETH_ADDRESS,
-            MASTERCHEF_ADDRESS,
-            VAULT_LOCKED_ADDRESS
-        ],
-    });
-
-    await hre.run("verify:verify", {
-        address: vaultVested50.address,
-        constructorArguments: [
-            GLOBAL_TOKEN_ADDRESS,
-            WETH_ADDRESS,
-            MASTERCHEF_ADDRESS,
-            VAULT_LOCKED_ADDRESS
-        ],
-    });
-
     // Set up
     await vaultVested15.setMinTokenAmountToDistribute(VAULT_VESTED_MIN_BNB_TO_DISTRIBUTE);
     await vaultVested30.setMinTokenAmountToDistribute(VAULT_VESTED_MIN_BNB_TO_DISTRIBUTE);
@@ -141,6 +121,26 @@ async function main() {
     console.log("Vault vested 30 added into vault locked as depositary");
     await vaultLocked.setDepositary(vaultVested50.address, true);
     console.log("Vault vested 50 added into vault locked as depositary");
+
+    await hre.run("verify:verify", {
+        address: vaultVested30.address,
+        constructorArguments: [
+            GLOBAL_TOKEN_ADDRESS,
+            WETH_ADDRESS,
+            MASTERCHEF_ADDRESS,
+            VAULT_LOCKED_ADDRESS
+        ],
+    });
+
+    await hre.run("verify:verify", {
+        address: vaultVested50.address,
+        constructorArguments: [
+            GLOBAL_TOKEN_ADDRESS,
+            WETH_ADDRESS,
+            MASTERCHEF_ADDRESS,
+            VAULT_LOCKED_ADDRESS
+        ],
+    });
 
     console.log("Current block is:", CURRENT_BLOCK);
 
