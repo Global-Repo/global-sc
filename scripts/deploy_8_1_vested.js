@@ -52,10 +52,10 @@ async function main() {
     vaultVested15 = await VaultVested15.attach(VAULT_VESTED_15_ADDRESS);
 
     const VaultVested30 = await ethers.getContractFactory("VaultVested");
-    vaultVested30 = await VaultVested15.attach(VAULT_VESTED_30_ADDRESS);
+    vaultVested30 = await VaultVested30.attach(VAULT_VESTED_30_ADDRESS);
 
     const VaultVested50 = await ethers.getContractFactory("VaultVested");
-    vaultVested50 = await VaultVested15.attach(VAULT_VESTED_50_ADDRESS);
+    vaultVested50 = await VaultVested50.attach(VAULT_VESTED_50_ADDRESS);
 
     // Set up
     await vaultVested15.setMinTokenAmountToDistribute(VAULT_VESTED_MIN_BNB_TO_DISTRIBUTE);
