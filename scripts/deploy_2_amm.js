@@ -78,7 +78,7 @@ async function main() {
     console.log("Current block is:", CURRENT_BLOCK);
 
     console.log("Deploy finished");
-    console.log("Ensure you update Factory, Router, TokenAddresses address into addresses.js");
+    console.log("Ensure you update, Router, TokenAddresses address into addresses.js");
 }
 
 // We recommend this pattern to be able to use async/await everywhere

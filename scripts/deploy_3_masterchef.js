@@ -59,7 +59,9 @@ async function main() {
     // Verify
     await hre.run("verify:verify", {
         address: pathFinder.address,
-        constructorArguments: [],
+        constructorArguments: [
+            TOKEN_ADDRESSES_ADDRESS
+        ],
     });
 
     await hre.run("verify:verify", {
