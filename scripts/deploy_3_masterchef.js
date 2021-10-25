@@ -56,10 +56,28 @@ async function main() {
     console.log("Globals per block: ", NATIVE_TOKEN_PER_BLOCK.toString());
     console.log("Masterchef start block", MASTERCHEF_START_BLOCK.toString());
 
+    // Set up
+    await masterchef.setTreasury(TREASURY_MINT_ADDRESS);
+    console.log("Masterchef treasury address set up to:", TREASURY_MINT_ADDRESS);
+
+    await masterchef.setTreasuryLP(TREASURY_LP_ADDRESS);
+    console.log("Masterchef treasury LP address set up to:", TREASURY_LP_ADDRESS);
+
+    await masterChefInternal.transferOwnership(masterchef.address);
+    console.log("Masterchef internal ownership to masterchef:", masterchef.address);
+
+    await pathFinder.transferOwnership(masterChefInternal.address);
+    console.log("Path finder ownership to masterchef internal:", masterChefInternal.address);
+
+    await masterchef.transferDevPower(DEV_POWER_ADDRESS);
+    console.log("Masterchef dev power set to:", DEV_POWER_ADDRESS);
+
     // Verify
     await hre.run("verify:verify", {
         address: pathFinder.address,
-        constructorArguments: [],
+        constructorArguments: [
+            TOKEN_ADDRESSES_ADDRESS
+        ],
     });
 
     await hre.run("verify:verify", {
@@ -82,23 +100,7 @@ async function main() {
             pathFinder.address
         ],
     });
-
-    // Set up
-    await masterchef.setTreasury(TREASURY_MINT_ADDRESS);
-    console.log("Masterchef treasury address set up to:", TREASURY_MINT_ADDRESS);
-
-    await masterchef.setTreasuryLP(TREASURY_LP_ADDRESS);
-    console.log("Masterchef treasury LP address set up to:", TREASURY_LP_ADDRESS);
-
-    await masterChefInternal.transferOwnership(masterchef.address);
-    console.log("Masterchef internal ownership to masterchef:", masterchef.address);
-
-    await pathFinder.transferOwnership(masterChefInternal.address);
-    console.log("Path finder ownership to masterchef internal:", masterChefInternal.address);
-
-    await masterchef.transferDevPower(DEV_POWER_ADDRESS);
-    console.log("Masterchef dev power set to:", DEV_POWER_ADDRESS);
-
+    
     console.log("Current block is:", CURRENT_BLOCK);
 
     console.log("Deploy finished");

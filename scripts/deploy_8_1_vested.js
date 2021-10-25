@@ -7,6 +7,9 @@ const {
     MASTERCHEF_ADDRESS,
     VAULT_LOCKED_ADDRESS,
     VAULT_DISTRIBUTION_ADDRESS,
+    VAULT_VESTED_15_ADDRESS,
+    VAULT_VESTED_30_ADDRESS,
+    VAULT_VESTED_50_ADDRESS,
 } = require("./addresses");
 
 const {
@@ -45,41 +48,14 @@ async function main() {
     const VaultLocked = await ethers.getContractFactory("VaultLocked");
     vaultLocked = await VaultLocked.attach(VAULT_LOCKED_ADDRESS);
 
-    // Start
-    vaultVested15 = await deployVaultVested(
-        GLOBAL_TOKEN_ADDRESS,
-        WETH_ADDRESS,
-        MASTERCHEF_ADDRESS,
-        VAULT_LOCKED_ADDRESS
-    );
-    console.log("Vault vested 15 deployed to:", vaultVested15.address);
+    const VaultVested15 = await ethers.getContractFactory("VaultVested");
+    vaultVested15 = await VaultVested15.attach(VAULT_VESTED_15_ADDRESS);
 
-    vaultVested30 = await deployVaultVested(
-        GLOBAL_TOKEN_ADDRESS,
-        WETH_ADDRESS,
-        MASTERCHEF_ADDRESS,
-        VAULT_LOCKED_ADDRESS
-    );
-    console.log("Vault vested 30 deployed to:", vaultVested30.address);
+    const VaultVested30 = await ethers.getContractFactory("VaultVested");
+    vaultVested30 = await VaultVested30.attach(VAULT_VESTED_30_ADDRESS);
 
-    vaultVested50 = await deployVaultVested(
-        GLOBAL_TOKEN_ADDRESS,
-        WETH_ADDRESS,
-        MASTERCHEF_ADDRESS,
-        VAULT_LOCKED_ADDRESS
-    );
-    console.log("Vault vested 50 deployed to:", vaultVested50.address);
-
-    // Verify
-    await hre.run("verify:verify", {
-        address: vaultVested15.address,
-        constructorArguments: [
-            GLOBAL_TOKEN_ADDRESS,
-            WETH_ADDRESS,
-            MASTERCHEF_ADDRESS,
-            VAULT_LOCKED_ADDRESS
-        ],
-    });
+    const VaultVested50 = await ethers.getContractFactory("VaultVested");
+    vaultVested50 = await VaultVested50.attach(VAULT_VESTED_50_ADDRESS);
 
     // Set up
     await vaultVested15.setMinTokenAmountToDistribute(VAULT_VESTED_MIN_BNB_TO_DISTRIBUTE);
@@ -121,26 +97,6 @@ async function main() {
     console.log("Vault vested 30 added into vault locked as depositary");
     await vaultLocked.setDepositary(vaultVested50.address, true);
     console.log("Vault vested 50 added into vault locked as depositary");
-
-    await hre.run("verify:verify", {
-        address: vaultVested30.address,
-        constructorArguments: [
-            GLOBAL_TOKEN_ADDRESS,
-            WETH_ADDRESS,
-            MASTERCHEF_ADDRESS,
-            VAULT_LOCKED_ADDRESS
-        ],
-    });
-
-    await hre.run("verify:verify", {
-        address: vaultVested50.address,
-        constructorArguments: [
-            GLOBAL_TOKEN_ADDRESS,
-            WETH_ADDRESS,
-            MASTERCHEF_ADDRESS,
-            VAULT_LOCKED_ADDRESS
-        ],
-    });
 
     console.log("Current block is:", CURRENT_BLOCK);
 

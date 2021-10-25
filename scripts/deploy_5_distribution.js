@@ -31,15 +31,6 @@ async function main() {
     vaultDistribution = await deployVaultDistribution(WETH_ADDRESS, GLOBAL_TOKEN_ADDRESS);
     console.log("Vault distribution deployed to:", vaultDistribution.address);
 
-    // Verify
-    await hre.run("verify:verify", {
-        address: vaultDistribution.address,
-        constructorArguments: [
-            GLOBAL_TOKEN_ADDRESS,
-            WETH_ADDRESS
-        ],
-    });
-
     // Set up
     await vaultDistribution.setMinTokenAmountToDistribute(VAULT_DISTRIBUTION_MIN_BNB_TO_DISTRIBUTE);
     console.log("Min BNB to distribute set to: ", VAULT_DISTRIBUTION_MIN_BNB_TO_DISTRIBUTE.toString());
@@ -47,6 +38,15 @@ async function main() {
     console.log("Distribute percentage set to: ", VAULT_DISTRIBUTION_DISTRIBUTE_PERCENTAGE.toString());
     await vaultDistribution.setDistributionInterval(VAULT_DISTRIBUTION_DISTRIBUTE_INTERVAL);
     console.log("Distribution interval set to: ", VAULT_DISTRIBUTION_DISTRIBUTE_INTERVAL.toString());
+
+    // Verify
+    await hre.run("verify:verify", {
+        address: vaultDistribution.address,
+        constructorArguments: [
+            WETH_ADDRESS,
+            GLOBAL_TOKEN_ADDRESS
+        ],
+    });
 
     console.log("Current block is:", CURRENT_BLOCK);
 

@@ -41,6 +41,13 @@ async function main() {
     );
     console.log("Vault locked deployed to:", vaultLocked.address);
 
+    // Set up
+    await masterchef.addAddressToWhitelist(vaultLocked.address);
+    console.log("Vault locked added into Masterchef whitelist");
+
+    await masterchef.setLockedVaultAddress(vaultLocked.address);
+    console.log("Masterchef locked vault address set to:", vaultLocked.address);
+
     // Verify
     await hre.run("verify:verify", {
         address: vaultLocked.address,
@@ -51,13 +58,6 @@ async function main() {
             VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL
         ],
     });
-
-    // Set up
-    await masterchef.addAddressToWhitelist(vaultLocked.address);
-    console.log("Vault locked added into Masterchef whitelist");
-
-    await masterchef.setLockedVaultAddress(vaultLocked.address);
-    console.log("Masterchef locked vault address set to:", vaultLocked.address);
 
     console.log("Current block is:", CURRENT_BLOCK);
 
