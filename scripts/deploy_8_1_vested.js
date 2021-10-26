@@ -53,6 +53,7 @@ async function main() {
         VAULT_LOCKED_ADDRESS
     );
     console.log("Vault vested 15 deployed to:", vaultVested15.address);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     vaultVested30 = await deployVaultVested(
         GLOBAL_TOKEN_ADDRESS,
@@ -61,6 +62,7 @@ async function main() {
         VAULT_LOCKED_ADDRESS
     );
     console.log("Vault vested 30 deployed to:", vaultVested30.address);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     vaultVested50 = await deployVaultVested(
         GLOBAL_TOKEN_ADDRESS,
@@ -69,6 +71,7 @@ async function main() {
         VAULT_LOCKED_ADDRESS
     );
     console.log("Vault vested 50 deployed to:", vaultVested50.address);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     // Verify
     await hre.run("verify:verify", {
@@ -80,6 +83,7 @@ async function main() {
             VAULT_LOCKED_ADDRESS
         ],
     });
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     await hre.run("verify:verify", {
         address: vaultVested30.address,
@@ -90,6 +94,7 @@ async function main() {
             VAULT_LOCKED_ADDRESS
         ],
     });
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     await hre.run("verify:verify", {
         address: vaultVested50.address,

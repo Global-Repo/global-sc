@@ -43,6 +43,7 @@ async function main() {
         MASTERCHEF_ADDRESS
     );
     console.log("Vault staked deployed to:", vaultStaked.address);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     vaultStakedToGlobal = await deployVaultStakedToGlobal(
         GLOBAL_TOKEN_ADDRESS,
@@ -51,22 +52,29 @@ async function main() {
         ROUTER_ADDRESS
     );
     console.log("Vault staked to global deployed to:", vaultStakedToGlobal.address);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     // Set up
     await masterchef.addAddressToWhitelist(vaultStaked.address);
     console.log("Vault staked added into Masterchef whitelist");
+    await new Promise(r => setTimeout(() => r(), 10000));
     await masterchef.addAddressToWhitelist(vaultStakedToGlobal.address);
     console.log("Vault staked to global added into Masterchef whitelist");
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     await vaultStaked.setRewarder(vaultDistribution.address, true);
     console.log("Vault distribution added into vault staked as rewarder");
+    await new Promise(r => setTimeout(() => r(), 10000));
     await vaultStakedToGlobal.setRewarder(vaultDistribution.address, true);
     console.log("Vault distribution added into vault staked to global as rewarder");
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     await vaultDistribution.addBeneficiary(vaultStaked.address);
     console.log("Vault staked added into vault distribution as beneficiary");
+    await new Promise(r => setTimeout(() => r(), 10000));
     await vaultDistribution.addBeneficiary(vaultStakedToGlobal.address);
     console.log("Vault staked to global added into vault distribution as beneficiary");
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     // Verify
     await hre.run("verify:verify", {
@@ -77,6 +85,7 @@ async function main() {
             MASTERCHEF_ADDRESS
         ],
     });
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     await hre.run("verify:verify", {
         address: vaultStakedToGlobal.address,

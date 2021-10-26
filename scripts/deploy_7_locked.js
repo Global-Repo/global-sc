@@ -40,13 +40,16 @@ async function main() {
         VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL
     );
     console.log("Vault locked deployed to:", vaultLocked.address);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     // Set up
     await masterchef.addAddressToWhitelist(vaultLocked.address);
     console.log("Vault locked added into Masterchef whitelist");
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     await masterchef.setLockedVaultAddress(vaultLocked.address);
     console.log("Masterchef locked vault address set to:", vaultLocked.address);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     // Verify
     await hre.run("verify:verify", {

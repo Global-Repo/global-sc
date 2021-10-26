@@ -35,11 +35,13 @@ async function main() {
     // Start
     pathFinder = await deployPathFinder(TOKEN_ADDRESSES_ADDRESS);
     console.log("PathFinder deployed to:", TOKEN_ADDRESSES_ADDRESS);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     const MasterChefInternal = await ethers.getContractFactory("MasterChefInternal");
     masterChefInternal = await MasterChefInternal.deploy(TOKEN_ADDRESSES_ADDRESS, pathFinder.address);
     await masterChefInternal.deployed();
     console.log("Masterchef Internal deployed to:", masterChefInternal.address);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     const MasterChef = await ethers.getContractFactory("MasterChef");
     masterchef = await MasterChef.deploy(
@@ -55,22 +57,28 @@ async function main() {
     console.log("Masterchef deployed to:", masterchef.address);
     console.log("Globals per block: ", NATIVE_TOKEN_PER_BLOCK.toString());
     console.log("Masterchef start block", MASTERCHEF_START_BLOCK.toString());
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     // Set up
     await masterchef.setTreasury(TREASURY_MINT_ADDRESS);
     console.log("Masterchef treasury address set up to:", TREASURY_MINT_ADDRESS);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     await masterchef.setTreasuryLP(TREASURY_LP_ADDRESS);
     console.log("Masterchef treasury LP address set up to:", TREASURY_LP_ADDRESS);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     await masterChefInternal.transferOwnership(masterchef.address);
     console.log("Masterchef internal ownership to masterchef:", masterchef.address);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     await pathFinder.transferOwnership(masterChefInternal.address);
     console.log("Path finder ownership to masterchef internal:", masterChefInternal.address);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     await masterchef.transferDevPower(DEV_POWER_ADDRESS);
     console.log("Masterchef dev power set to:", DEV_POWER_ADDRESS);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     // Verify
     await hre.run("verify:verify", {
@@ -79,6 +87,7 @@ async function main() {
             TOKEN_ADDRESSES_ADDRESS
         ],
     });
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     await hre.run("verify:verify", {
         address: masterChefInternal.address,
@@ -87,6 +96,7 @@ async function main() {
             pathFinder.address,
         ],
     });
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     await hre.run("verify:verify", {
         address: masterchef.address,
@@ -100,6 +110,7 @@ async function main() {
             pathFinder.address
         ],
     });
+    await new Promise(r => setTimeout(() => r(), 10000));
     
     console.log("Current block is:", CURRENT_BLOCK);
 

@@ -70,6 +70,7 @@ async function main() {
         VAULT_VESTED_15_ADDRESS
     );
     console.log("Vault Cake 15 deployed to:", vaultCake15.address);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     vaultCake30 = await deployVaultCake(
         CAKE_ADDRESS,
@@ -83,6 +84,7 @@ async function main() {
         VAULT_VESTED_30_ADDRESS
     );
     console.log("Vault Cake 30 deployed to:", vaultCake30.address);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     vaultCake50 = await deployVaultCake(
         CAKE_ADDRESS,
@@ -96,21 +98,28 @@ async function main() {
         VAULT_VESTED_50_ADDRESS
     );
     console.log("Vault Cake 50 deployed to:", vaultCake50.address);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     // Set up
     await vaultCake15.setRewards(8500, 100, 600, 800, 2500);
     console.log("Vault cake 15 rewards set to: toUser:8500, toOperations:100, toBuyGlobal:600, toBuyBNB:800, toMintGlobal:2500");
+    await new Promise(r => setTimeout(() => r(), 10000));
     await vaultCake30.setRewards(7000, 300, 1000, 1700, 5000);
     console.log("Vault cake 30 rewards set to: toUser:7000, toOperations:300, toBuyGlobal:1000, toBuyBNB:1700, toMintGlobal:5000");
+    await new Promise(r => setTimeout(() => r(), 10000));
     await vaultCake50.setRewards(5000, 500, 1500, 3000, 7500);
     console.log("Vault cake 50 rewards set to: toUser:5000, toOperations:500, toBuyGlobal:1500, toBuyBNB:3000, toMintGlobal:7500");
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     await masterchef.setMinter(vaultCake15.address, true);
     console.log("Vault cake 15 is minter into Masterchef");
+    await new Promise(r => setTimeout(() => r(), 10000));
     await masterchef.setMinter(vaultCake30.address, true);
     console.log("Vault cake 30 is minter into Masterchef");
+    await new Promise(r => setTimeout(() => r(), 10000));
     await masterchef.setMinter(vaultCake50.address, true);
     console.log("Vault cake 50 is minter into Masterchef");
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     // TODO: this should be executed after global token has MC as owner
     //await vaultCake15.setMinter(MASTERCHEF_ADDRESS);
@@ -122,17 +131,23 @@ async function main() {
 
     await vaultDistribution.setDepositary(vaultCake15.address, true);
     console.log("Vault cake 15 added into vault distribution as depositary");
+    await new Promise(r => setTimeout(() => r(), 10000));
     await vaultDistribution.setDepositary(vaultCake30.address, true);
     console.log("Vault cake 30 added into vault distribution as depositary");
+    await new Promise(r => setTimeout(() => r(), 10000));
     await vaultDistribution.setDepositary(vaultCake50.address, true);
     console.log("Vault cake 50 added into vault distribution as depositary");
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     await vaultCake15.setWithdrawalFees(65, 15, timestampNDays(4));
     console.log("Vault cake 15 withdrawal fees set to: burn:60, team:10, interval:0");
+    await new Promise(r => setTimeout(() => r(), 10000));
     await vaultCake30.setWithdrawalFees(65, 15, timestampNDays(4));
     console.log("Vault cake 30 withdrawal fees set to: burn:60, team:10, interval:0");
+    await new Promise(r => setTimeout(() => r(), 10000));
     await vaultCake50.setWithdrawalFees(65, 15, timestampNDays(4));
     console.log("Vault cake 50 withdrawal fees set to: burn:60, team:10, interval:0");
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     // Verify
     await hre.run("verify:verify", {
@@ -149,6 +164,7 @@ async function main() {
             VAULT_VESTED_15_ADDRESS
         ],
     });
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     await hre.run("verify:verify", {
         address: vaultCake30.address,
@@ -164,6 +180,7 @@ async function main() {
             VAULT_VESTED_30_ADDRESS
         ],
     });
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     await hre.run("verify:verify", {
         address: vaultCake50.address,

@@ -30,14 +30,18 @@ async function main() {
     // Start
     vaultDistribution = await deployVaultDistribution(WETH_ADDRESS, GLOBAL_TOKEN_ADDRESS);
     console.log("Vault distribution deployed to:", vaultDistribution.address);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     // Set up
     await vaultDistribution.setMinTokenAmountToDistribute(VAULT_DISTRIBUTION_MIN_BNB_TO_DISTRIBUTE);
     console.log("Min BNB to distribute set to: ", VAULT_DISTRIBUTION_MIN_BNB_TO_DISTRIBUTE.toString());
+    await new Promise(r => setTimeout(() => r(), 10000));
     await vaultDistribution.setDistributionPercentage(VAULT_DISTRIBUTION_DISTRIBUTE_PERCENTAGE);
     console.log("Distribute percentage set to: ", VAULT_DISTRIBUTION_DISTRIBUTE_PERCENTAGE.toString());
+    await new Promise(r => setTimeout(() => r(), 10000));
     await vaultDistribution.setDistributionInterval(VAULT_DISTRIBUTION_DISTRIBUTE_INTERVAL);
     console.log("Distribution interval set to: ", VAULT_DISTRIBUTION_DISTRIBUTE_INTERVAL.toString());
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     // Verify
     await hre.run("verify:verify", {

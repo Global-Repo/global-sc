@@ -37,6 +37,7 @@ async function main() {
     // Start
     smartChefFactory = await deploySmartChefFactory();
     console.log("SmartChefFactory deployed to:", smartChefFactory.address);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     // Set up
     const tx1 = await smartChefFactory.deployPool(
@@ -51,6 +52,7 @@ async function main() {
     const result1 = await tx1.wait();
     const smartChefAddress1 = result1.events[2].args[0];
     console.log("SmartChef created for GLB - BNB on:", smartChefAddress1);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     const tx2 = await smartChefFactory.deployPool(
         GLOBAL_TOKEN_ADDRESS,
@@ -64,6 +66,7 @@ async function main() {
     const result2 = await tx2.wait();
     const smartChefAddress2 = result2.events[2].args[0];
     console.log("SmartChef created for GLB - BUSD on:", smartChefAddress2);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     const tx3 = await smartChefFactory.deployPool(
         GLOBAL_TOKEN_ADDRESS,
@@ -77,6 +80,7 @@ async function main() {
     const result3 = await tx3.wait();
     const smartChefAddress3 = result3.events[2].args[0];
     console.log("SmartChef created for GLB - CAKE on:", smartChefAddress3);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     const tx4 = await smartChefFactory.deployPool(
         GLOBAL_TOKEN_ADDRESS,
@@ -90,6 +94,7 @@ async function main() {
     const result4 = await tx4.wait();
     const smartChefAddress4 = result4.events[2].args[0];
     console.log("SmartChef created for GLB - USDT on:", smartChefAddress4);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     const tx5 = await smartChefFactory.deployPool(
         GLOBAL_TOKEN_ADDRESS,
@@ -103,6 +108,7 @@ async function main() {
     const result5 = await tx5.wait();
     const smartChefAddress5 = result5.events[2].args[0];
     console.log("SmartChef created for GLB - ETH on:", smartChefAddress5);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     const tx6 = await smartChefFactory.deployPool(
         GLOBAL_TOKEN_ADDRESS,
@@ -116,6 +122,7 @@ async function main() {
     const result6 = await tx6.wait();
     const smartChefAddress6 = result6.events[2].args[0];
     console.log("SmartChef created for GLB - BTC on:", smartChefAddress6);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     const tx7 = await smartChefFactory.deployPool(
         GLOBAL_TOKEN_ADDRESS,
@@ -129,6 +136,7 @@ async function main() {
     const result7 = await tx7.wait();
     const smartChefAddress7 = result7.events[2].args[0];
     console.log("SmartChef created for GLB - DOGE on:", smartChefAddress7);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     // Verify
     await hre.run("verify:verify", {
