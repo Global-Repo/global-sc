@@ -6,7 +6,7 @@ import "../Libraries/SafeMath.sol";
 import "../Libraries/SafeBEP20.sol";
 import "../IGlobalMasterChef.sol";
 
-contract GlobalMasterChefMock is IGlobalMasterChef {
+contract GlobalMasterChefMock {
     using SafeMath for uint256;
     using SafeBEP20 for BEP20;
 
@@ -25,23 +25,23 @@ contract GlobalMasterChefMock is IGlobalMasterChef {
         globalToken = BEP20(_global);
     }
 
-    function userInfo(uint _pid, address _account) view external override returns (uint amount, uint rewardDebt) {
+    function userInfo(uint _pid, address _account) view external returns (uint amount, uint rewardDebt) {
         return (userInfoInternal[_account].amount, userInfoInternal[_account].rewardDebt);
     }
 
-    function enterStaking(uint256 _amount) external override {
+    function enterStaking(uint256 _amount) external {
         _enterStaking(_amount);
     }
 
-    function leaveStaking(uint256 _amount) external override {
+    function leaveStaking(uint256 _amount) external {
         _leaveStaking(_amount);
     }
 
-    function deposit(uint256 _pid, uint256 _amount) external override {
+    function deposit(uint256 _pid, uint256 _amount) external {
         _enterStaking(_amount);
     }
 
-    function withdraw(uint256 _pid, uint256 _amount) external override {
+    function withdraw(uint256 _pid, uint256 _amount) external {
         _leaveStaking(_amount);
     }
 
