@@ -30,7 +30,7 @@ async function main() {
     console.log("Current block is:", CURRENT_BLOCK);
 
     const NATIVE_TOKEN_PER_BLOCK = bep20Amount(125);
-    const MASTERCHEF_START_BLOCK = 12405477; // timestamp 1636144200;
+    const MASTERCHEF_START_BLOCK = 12516738; // timestamp 1636488000
 
     // Start
     pathFinder = await deployPathFinder(TOKEN_ADDRESSES_ADDRESS);
