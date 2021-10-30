@@ -29,7 +29,7 @@ async function main() {
     CURRENT_BLOCK = await ethers.provider.getBlockNumber();
     console.log("Current block is:", CURRENT_BLOCK);
 
-    const NATIVE_TOKEN_PER_BLOCK = bep20Amount(125);
+    const NATIVE_TOKEN_PER_BLOCK = bep20Amount(90);
     const MASTERCHEF_START_BLOCK = 12516738; // timestamp 1636488000
 
     // Start
