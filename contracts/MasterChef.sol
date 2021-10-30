@@ -672,15 +672,13 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     }
 
     // Update treasury address by the previous dev.
-    function setTreasury(address _treasury) public {
-        require(msg.sender == treasury, "[f] Dev: You don't have permissions to change the treasury address. DRACARYS.");
+    function setTreasury(address _treasury) public onlyOwner {
         require(_treasury != address(0), "[f] Dev: _treasury can't be address(0).");
         treasury = _treasury;
     }
 
     // Update treasuryLP address by the previous dev.
-    function setTreasuryLP(address _treasuryLP) public {
-        require(msg.sender == treasuryLP, "[f] Dev: You don't have permissions to change the treasuryLP address. DRACARYS.");
+    function setTreasuryLP(address _treasuryLP) public onlyOwner {
         require(_treasuryLP != address(0), "[f] Dev: _treasuryLP can't be address(0).");
         treasuryLP = _treasuryLP;
     }
