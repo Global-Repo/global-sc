@@ -80,6 +80,7 @@ const VAULT_CAKE_15 = "0xcCb79dBDeEDa8455b4A987d31E58eb1C98A339d4"; //-- vault c
 const VAULT_CAKE_30 = "0x82669FE7f8aC2e1617Cc6A1f3138C9c79217B4A6"; // -- vault cake mix strategy
 const VAULT_CAKE_50 = "0x1288e2Ce2beaf4601A66dFf4f33b47A6f41C38E3"; // -- vault cake global maximizer
 */
+
 /*
 // MAINNET per proves
 // Wallets
