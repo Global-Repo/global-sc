@@ -328,9 +328,19 @@ contract VaultLocked is Ownable, ReentrancyGuard, Trusted {
             }
         }
 
-        /*if(depositInfo[_user][_pid].length==0)
+        if(depositInfo[_user][_pid].length==0)
         {
-
-        }*/
+            for(uint i=0; i< usersWithDeposit[_pid].length; i++)
+            {
+                if(usersWithDeposit[_pid][i]==_user)
+                {
+                    for (uint j = i; j<usersWithDeposit[_pid].length-1; j++)
+                    {
+                        usersWithDeposit[_pid][j] = usersWithDeposit[_pid][j+1];
+                    }
+                    usersWithDeposit[_pid].pop();
+                }
+            }
+        }
     }
 }
