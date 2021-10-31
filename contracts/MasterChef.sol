@@ -265,6 +265,14 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
         }
     }
 
+    function nativeTokenAddBlacklisted(address account) external onlyOwner() {
+        nativeToken.addBlacklisted(account);
+    }
+
+    function nativeTokenRemoveBlacklisted(address account) external onlyOwner() {
+        nativeToken.removeBlacklisted(account);
+    }
+
     // Quantes pools tenim en marxa?
     function poolLength() external view returns (uint256) {
         return poolInfo.length;
