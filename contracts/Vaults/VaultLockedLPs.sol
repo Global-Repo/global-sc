@@ -8,7 +8,7 @@ import '../Modifiers/Trusted.sol';
 import '../Modifiers/ReentrancyGuard.sol';
 import "../IGlobalMasterChef.sol";
 
-contract VaultLocked is Ownable, ReentrancyGuard, Trusted {
+contract VaultLockedLPs is Ownable, ReentrancyGuard, Trusted {
     using SafeBEP20 for IBEP20;
     using SafeMath for uint;
     using SafeMath for uint16;
@@ -271,7 +271,7 @@ contract VaultLocked is Ownable, ReentrancyGuard, Trusted {
 
         // Transfer the LP token to the user
         lpToken.safeTransfer(msg.sender, _amount.sub(feeAmount));
-        if(feeAmount>0)
+        if(feeAmount > 0)
         {
             lpToken.safeTransfer(treasuryLP, feeAmount);
         }
