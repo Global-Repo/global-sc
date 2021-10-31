@@ -8,7 +8,7 @@ import "./Tokens/IBEP20.sol";
 import "./Libraries/SafeBEP20.sol";
 import "./Tokens/NativeToken.sol";
 
-contract PresaleNew is Ownable, Trusted{
+contract PresaleNewCap is Ownable, Trusted{
 
     using SafeBEP20 for uint16;
     using SafeMath for uint256;
@@ -62,7 +62,8 @@ contract PresaleNew is Ownable, Trusted{
     }
 
     function buyTokens(uint256 quantity, address buyer) private onlyHuman {
-        require((getStatus() == 0 && whitelist[buyer] && bnbacc < hardcap) || (getStatus() == 1 && bnbacc < hardcap) || (getStatus() == 1 && publicBegins.add(2 hours) > block.timestamp) , "[ERROR: YOU ARE NOT ALLOWED TO BUY]");
+        require((getStatus() == 0 && whitelist[buyer] && bnbacc < hardcap) || (getStatus() == 1 && bnbacc < hardcap) || (getStatus() == 1 && publicBegins.add(1 hours) > block.timestamp) , "[ERROR: YOU ARE NOT ALLOWED TO BUY]");
+        require(quantityBought[buyer].add(quantity) <= 25e18, '[ERROR: THANK YOU FOR YOUR KIND SUPPORT, BUT YOU CAN NOT BUY SO MANY TOKENS. Wait for launch to purchase more]');
 
         uint globalToReceive = 0;
 
