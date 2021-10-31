@@ -29,10 +29,8 @@ async function main() {
     CURRENT_BLOCK = await ethers.provider.getBlockNumber();
     console.log("Current block is:", CURRENT_BLOCK);
 
-    const NATIVE_TOKEN_PER_BLOCK = bep20Amount(125);
-
-    // MODIFICAR AQUÍ PEL DISSABTE A LES 21H!!!!
-    const MASTERCHEF_START_BLOCK = 12230204; // timestamp 1636144200;
+    const NATIVE_TOKEN_PER_BLOCK = bep20Amount(90);
+    const MASTERCHEF_START_BLOCK = 12430317; // timestamp 1636228800
 
     // Start
     pathFinder = await deployPathFinder(TOKEN_ADDRESSES_ADDRESS);
