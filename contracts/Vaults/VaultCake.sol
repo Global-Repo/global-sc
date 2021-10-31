@@ -25,7 +25,8 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     IBEP20 public busd;
     ICakeMasterChef public cakeMasterChef;
     IMinter public minter;
-    address public treasury;
+    address public operationsAndBurnWallet;
+    address public operationsWallet;
     VaultVested public vaultVested;
     VaultDistribution public vaultDistribution;
     IRouterV2 public router;
@@ -34,7 +35,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
 
     uint16 public constant MAX_WITHDRAWAL_FEES = 100; // 1%
     uint public constant DUST = 1000;
-    uint private constant SLIPPAGE = 9500; // Swaps slippage of 95%
+    uint public constant SLIPPAGE = 9500; // Swaps slippage of 95%
     address public constant GLOBAL_BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     uint256 public pid;
@@ -51,7 +52,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
 
     struct Rewards {
         uint16 toUser;       // % to user
-        uint16 toOperations; // % to treasury (in BUSD)
+        uint16 toOperations; // % to operationsWallet (in BUSD)
         uint16 toBuyGlobal;  // % to keeper as user (in Global)
         uint16 toBuyBNB;     // % to distributor (in BNB)
         uint16 toMintGlobal; // % to mint global multiplier (relation to toBuyGlobal)
@@ -89,7 +90,8 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         address _cake,
         address _global,
         address _cakeMasterChef,
-        address _treasury,
+        address _operationsAndBurnWallet,
+        address _operationsWallet,
         address _tokenAddresses,
         address _router,
         address _pathFinder,
@@ -103,7 +105,8 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         wbnb = IBEP20(tokenAddresses.findByName(tokenAddresses.WBNB()));
         busd = IBEP20(tokenAddresses.findByName(tokenAddresses.BUSD()));
         cakeMasterChef = ICakeMasterChef(_cakeMasterChef);
-        treasury = _treasury;
+        operationsAndBurnWallet = _operationsAndBurnWallet;
+        operationsWallet = _operationsWallet;
         vaultVested = VaultVested(_vaultVested);
         vaultDistribution = VaultDistribution(_vaultDistribution);
 
@@ -124,6 +127,14 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         require(IMinter(_minter).isMinter(address(this)) == true, "This vault must be a minter in minter's contract");
         minter = IMinter(_minter);
         _allowance(cake, _minter);
+    }
+
+    function setOperationsAndBurnWallet(address _operationsAndBurnWallet) external onlyOwner {
+        operationsAndBurnWallet = _operationsAndBurnWallet;
+    }
+
+    function setOperationsWallet(address _operationsWallet) external onlyOwner {
+        operationsWallet = _operationsWallet;
     }
 
     function setWithdrawalFees(uint16 burn, uint16 team, uint256 interval) public onlyOwner {
@@ -306,38 +317,40 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         uint amountToBurn = _amount.mul(withdrawalFees.burn).div(10000);
         uint amountToTeam = _amount.mul(withdrawalFees.team).div(10000);
         uint amountToUser = _amount.sub(amountToTeam).sub(amountToBurn);
+        /*
+                address[] memory pathToGlobal = pathFinder.findPath(address(cake), address(global));
+                address[] memory pathToBusd = pathFinder.findPath(address(cake), address(bd));
 
-        address[] memory pathToGlobal = pathFinder.findPath(address(cake), address(global));
-        address[] memory pathToBusd = pathFinder.findPath(address(cake), address(busd));
+                /*
+                // Swaps CAKE for GLOBAL and burns GLOBALS.
+                if (amountToBurn < DUST) {
+                    amountToUser = amountToUser.add(amountToBurn);
+                } else {
+                    uint[] memory amountsPredicted = router.getAmountsOut(amountToBurn, pathToGlobal);
+                    router.swapExactTokensForTokens(
+                        amountToBurn,
+                        (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                        pathToGlobal,
+                        GLOBAL_BURN_ADDRESS,
+                        deadline
+                    );
+                }
 
-        // Swaps CAKE for GLOBAL and burns GLOBALS.
-        if (amountToBurn < DUST) {
-            amountToUser = amountToUser.add(amountToBurn);
-        } else {
-            uint[] memory amountsPredicted = router.getAmountsOut(amountToBurn, pathToGlobal);
-            router.swapExactTokensForTokens(
-                amountToBurn,
-                (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
-                pathToGlobal,
-                GLOBAL_BURN_ADDRESS,
-                deadline
-            );
-        }
+                // Swaps CAKE for BUSD and sends BUSD to treasury.
+                if (amountToTeam < DUST) {
+                    amountToUser = amountToUser.add(amountToTeam);
+                } else {
+                    uint[] memory amountsPredicted = router.getAmountsOut(amountToTeam, pathToBusd);
+                    router.swapExactTokensForTokens(
+                        amountToTeam,
+                        (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                        pathToBusd,
+                        treasury,
+                        deadline
+                    );
+                }*/
 
-        // Swaps CAKE for BUSD and sends BUSD to treasury.
-        if (amountToTeam < DUST) {
-            amountToUser = amountToUser.add(amountToTeam);
-        } else {
-            uint[] memory amountsPredicted = router.getAmountsOut(amountToTeam, pathToBusd);
-            router.swapExactTokensForTokens(
-                amountToTeam,
-                (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
-                pathToBusd,
-                treasury,
-                deadline
-            );
-        }
-
+        cake.safeTransfer(operationsAndBurnWallet, amountToBurn.add(amountToTeam));
         cake.safeTransfer(msg.sender, amountToUser);
         emit Withdrawn(msg.sender, amountToUser, 0);
     }
@@ -354,9 +367,10 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         uint amountToBuyBNB = _amount.mul(rewards.toBuyBNB).div(10000);
 
         address[] memory pathToGlobal = pathFinder.findPath(address(cake), address(global));
-        address[] memory pathToBusd = pathFinder.findPath(address(cake), address(busd));
         address[] memory pathToBnb = pathFinder.findPath(address(cake), address(wbnb));
 
+        /*
+        address[] memory pathToBusd = pathFinder.findPath(address(cake), address(busd));
         // Swaps CAKE for BUSD and sends BUSD to treasury
         if (amountToOperations < DUST) {
             amountToUser = amountToUser.add(amountToOperations);
@@ -370,6 +384,8 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
                 deadline
             );
         }
+        */
+        cake.safeTransfer(operationsWallet, amountToOperations);
 
         // Swaps CAKE for BNB and sends BNB to distribution vault
         if (amountToBuyBNB < DUST) {
@@ -408,9 +424,12 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             vaultVested.deposit(amountGlobalBought, msg.sender);
 
             uint amountToMintGlobal = amountGlobalBought.mul(rewards.toMintGlobal).div(10000);
-            minter.mintNativeTokens(amountToMintGlobal, address(this));
-            global.approve(address(vaultVested), amountToMintGlobal);
-            vaultVested.deposit(amountToMintGlobal, msg.sender);
+            if (amountToMintGlobal > 0)
+            {
+                minter.mintNativeTokens(amountToMintGlobal, address(this));
+                global.approve(address(vaultVested), amountToMintGlobal);
+                vaultVested.deposit(amountToMintGlobal, msg.sender);
+            }
         }
 
         cake.safeTransfer(msg.sender, amountToUser);

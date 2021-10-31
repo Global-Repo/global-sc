@@ -5,7 +5,7 @@ const {
     GLOBAL_TOKEN_ADDRESS,
     DEV_POWER_ADDRESS,
     TREASURY_MINT_ADDRESS,
-    TREASURY_LP_ADDRESS,
+    TREASURY_LP_MASTERCHEF_ADDRESS,
     TOKEN_ADDRESSES_ADDRESS,
     ROUTER_ADDRESS,
 } = require("./addresses");
@@ -30,7 +30,7 @@ async function main() {
     console.log("Current block is:", CURRENT_BLOCK);
 
     const NATIVE_TOKEN_PER_BLOCK = bep20Amount(90);
-    const MASTERCHEF_START_BLOCK = 12516738; // timestamp 1636488000
+    const MASTERCHEF_START_BLOCK = 12430317; // timestamp 1636228800
 
     // Start
     pathFinder = await deployPathFinder(TOKEN_ADDRESSES_ADDRESS);
@@ -64,8 +64,8 @@ async function main() {
     console.log("Masterchef treasury address set up to:", TREASURY_MINT_ADDRESS);
     await new Promise(r => setTimeout(() => r(), 10000));
 
-    await masterchef.setTreasuryLP(TREASURY_LP_ADDRESS);
-    console.log("Masterchef treasury LP address set up to:", TREASURY_LP_ADDRESS);
+    await masterchef.setTreasuryLP(TREASURY_LP_MASTERCHEF_ADDRESS);
+    console.log("Masterchef treasury LP address set up to:", TREASURY_LP_MASTERCHEF_ADDRESS);
     await new Promise(r => setTimeout(() => r(), 10000));
 
     await masterChefInternal.transferOwnership(masterchef.address);

@@ -5,7 +5,6 @@ const {
     GLOBAL_TOKEN_ADDRESS,
     CAKE_ADDRESS,
     CAKE_MASTERCHEF_ADDRESS,
-    TREASURY_SWAP_ADDRESS,
     TOKEN_ADDRESSES_ADDRESS,
     ROUTER_ADDRESS,
     PATH_FINDER_ADDRESS,
@@ -14,7 +13,12 @@ const {
     VAULT_VESTED_30_ADDRESS,
     VAULT_VESTED_50_ADDRESS,
     MASTERCHEF_ADDRESS,
+    TREASURY_CAKE15_OPERATIONS_BURN_ADDRESS,
+    TREASURY_CAKE30_OPERATIONS_BURN_ADDRESS,
+    TREASURY_CAKE50_OPERATIONS_BURN_ADDRESS,
+    TREASURY_OPTIMIZER_OPERATIONS_ADDRESS
 } = require("./addresses");
+
 
 const {
     deployVaultCake,
@@ -62,7 +66,8 @@ async function main() {
         CAKE_ADDRESS,
         GLOBAL_TOKEN_ADDRESS,
         CAKE_MASTERCHEF_ADDRESS,
-        TREASURY_SWAP_ADDRESS,
+        TREASURY_CAKE15_OPERATIONS_BURN_ADDRESS,
+        TREASURY_OPTIMIZER_OPERATIONS_ADDRESS,
         TOKEN_ADDRESSES_ADDRESS,
         ROUTER_ADDRESS,
         PATH_FINDER_ADDRESS,
@@ -76,7 +81,8 @@ async function main() {
         CAKE_ADDRESS,
         GLOBAL_TOKEN_ADDRESS,
         CAKE_MASTERCHEF_ADDRESS,
-        TREASURY_SWAP_ADDRESS,
+        TREASURY_CAKE30_OPERATIONS_BURN_ADDRESS,
+        TREASURY_OPTIMIZER_OPERATIONS_ADDRESS,
         TOKEN_ADDRESSES_ADDRESS,
         ROUTER_ADDRESS,
         PATH_FINDER_ADDRESS,
@@ -90,7 +96,8 @@ async function main() {
         CAKE_ADDRESS,
         GLOBAL_TOKEN_ADDRESS,
         CAKE_MASTERCHEF_ADDRESS,
-        TREASURY_SWAP_ADDRESS,
+        TREASURY_CAKE50_OPERATIONS_BURN_ADDRESS,
+        TREASURY_OPTIMIZER_OPERATIONS_ADDRESS,
         TOKEN_ADDRESSES_ADDRESS,
         ROUTER_ADDRESS,
         PATH_FINDER_ADDRESS,
@@ -139,14 +146,24 @@ async function main() {
     console.log("Vault cake 50 added into vault distribution as depositary");
     await new Promise(r => setTimeout(() => r(), 10000));
 
+    await vaultVested15.setDepositary(vaultCake15.address, true);
+    console.log("Vault cake 15 added into vault distribution as depositary");
+    await new Promise(r => setTimeout(() => r(), 10000));
+    await vaultVested30.setDepositary(vaultCake30.address, true);
+    console.log("Vault cake 30 added into vault distribution as depositary");
+    await new Promise(r => setTimeout(() => r(), 10000));
+    await vaultVested50.setDepositary(vaultCake50.address, true);
+    console.log("Vault cake 50 added into vault distribution as depositary");
+    await new Promise(r => setTimeout(() => r(), 10000));
+
     await vaultCake15.setWithdrawalFees(65, 15, timestampNDays(4));
-    console.log("Vault cake 15 withdrawal fees set to: burn:60, team:10, interval:0");
+    console.log("Vault cake 15 withdrawal fees set to: burn:65, team:15, interval:4");
     await new Promise(r => setTimeout(() => r(), 10000));
     await vaultCake30.setWithdrawalFees(65, 15, timestampNDays(4));
-    console.log("Vault cake 30 withdrawal fees set to: burn:60, team:10, interval:0");
+    console.log("Vault cake 30 withdrawal fees set to: burn:65, team:15, interval:4");
     await new Promise(r => setTimeout(() => r(), 10000));
     await vaultCake50.setWithdrawalFees(65, 15, timestampNDays(4));
-    console.log("Vault cake 50 withdrawal fees set to: burn:60, team:10, interval:0");
+    console.log("Vault cake 50 withdrawal fees set to: burn:65, team:15, interval:4");
     await new Promise(r => setTimeout(() => r(), 10000));
 
     // Verify
@@ -156,7 +173,8 @@ async function main() {
             CAKE_ADDRESS,
             GLOBAL_TOKEN_ADDRESS,
             CAKE_MASTERCHEF_ADDRESS,
-            TREASURY_SWAP_ADDRESS,
+            TREASURY_CAKE15_OPERATIONS_BURN_ADDRESS,
+            TREASURY_OPTIMIZER_OPERATIONS_ADDRESS,
             TOKEN_ADDRESSES_ADDRESS,
             ROUTER_ADDRESS,
             PATH_FINDER_ADDRESS,
@@ -172,7 +190,8 @@ async function main() {
             CAKE_ADDRESS,
             GLOBAL_TOKEN_ADDRESS,
             CAKE_MASTERCHEF_ADDRESS,
-            TREASURY_SWAP_ADDRESS,
+            TREASURY_CAKE30_OPERATIONS_BURN_ADDRESS,
+            TREASURY_OPTIMIZER_OPERATIONS_ADDRESS,
             TOKEN_ADDRESSES_ADDRESS,
             ROUTER_ADDRESS,
             PATH_FINDER_ADDRESS,
@@ -188,7 +207,8 @@ async function main() {
             CAKE_ADDRESS,
             GLOBAL_TOKEN_ADDRESS,
             CAKE_MASTERCHEF_ADDRESS,
-            TREASURY_SWAP_ADDRESS,
+            TREASURY_CAKE50_OPERATIONS_BURN_ADDRESS,
+            TREASURY_OPTIMIZER_OPERATIONS_ADDRESS,
             TOKEN_ADDRESSES_ADDRESS,
             ROUTER_ADDRESS,
             PATH_FINDER_ADDRESS,
