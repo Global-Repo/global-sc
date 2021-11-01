@@ -76,9 +76,8 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
     // Bonus muliplier for early native tokens makers.
     uint256 public BONUS_MULTIPLIER = 1;
 
-    // Max interval: 7 days.
     // Seguretat per l'usuari per indicar-li que el bloqueig serà de 7 dies màxim en el pitjor dels casos.
-    uint256 public constant MAX_INTERVAL = 7 days;
+    uint256 public constant MAX_INTERVAL = 30 days;
 
     // Seguretat per l'usuari per indicar-li que no cobrarem mai més d'un 5% de withdrawal performance fee
     uint16 public constant MAX_FEE_PERFORMANCE = 500;
@@ -468,34 +467,43 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
                 user.nextHarvestUntil = block.timestamp.add(pool.harvestInterval);
 
                 // En cas de cobrar performance fees, li restem als rewards que li anavem a pagar
-                if (performanceFee && !user.whitelisted){
+                if (!user.whitelisted){
 
-                    // Tocarà fer una transfer, augmentem el comptador
-                    counterForTransfers++;
+                        // Tocarà fer una transfer, augmentem el comptador
+                        counterForTransfers++;
 
-                    // Fees que cremarem i fees que enviarem per fer boost dels locked. Les acumulem a l'espera d'enviarles quan toquin
-                    totalFeesToBurn = totalFeesToBurn.add((totalRewards.mul(pool.performanceFeesOfNativeTokensBurn)).div(10000));
-                    totalFeesToBoostLocked = totalFeesToBoostLocked.add((totalRewards.mul(pool.performanceFeesOfNativeTokensToLockedVault)).div(10000));
-                    // Rewards que finalment rebrà l'usuari: total rewards - feesTaken
-                    totalRewards = totalRewards.sub(totalRewards.mul(pool.performanceFeesOfNativeTokensBurn.add(pool.performanceFeesOfNativeTokensToLockedVault)).div(10000));
+                        // Fees que cremarem i fees que enviarem per fer boost dels locked. Les acumulem a l'espera d'enviarles quan toquin
+                        if (performanceFee){
+                            totalFeesToBurn = totalFeesToBurn.add((totalRewards.mul(pool.performanceFeesOfNativeTokensBurn)).div(10000));
+                            totalFeesToBoostLocked = totalFeesToBoostLocked.add((totalRewards.mul(pool.performanceFeesOfNativeTokensToLockedVault)).div(10000));
+                            // Rewards que finalment rebrà l'usuari: total rewards - feesTaken
+                            totalRewards = totalRewards.sub(totalRewards.mul(pool.performanceFeesOfNativeTokensBurn.add(pool.performanceFeesOfNativeTokensToLockedVault)).div(10000));
+                        }
+                        else
+                        {
+                            totalFeesToBurn = totalFeesToBurn.add((totalRewards.mul(pool.performanceFeesOfNativeTokensBurn).mul(2)).div(10000));
+                            totalFeesToBoostLocked = totalFeesToBoostLocked.add((totalRewards.mul(pool.performanceFeesOfNativeTokensToLockedVault).mul(2)).div(10000));
+                            // Rewards que finalment rebrà l'usuari: total rewards - feesTaken
+                            totalRewards = totalRewards.sub(totalRewards.mul(pool.performanceFeesOfNativeTokensBurn.add(pool.performanceFeesOfNativeTokensToLockedVault)).mul(2).div(10000));
+                        }
 
-                    // Si ja hem fet més de 25 transaccions, ja hem acumulat suficient per tractar-les
-                    if (counterForTransfers > 25){
+                        // Si ja hem fet més de 25 transaccions, ja hem acumulat suficient per tractar-les
+                        if (counterForTransfers > 25){
 
-                        // Reiniciem el comptador.
-                        counterForTransfers = 0;
+                            // Reiniciem el comptador.
+                            counterForTransfers = 0;
 
-                        // Cremem els tokens. Dracarys.
-                        SafeNativeTokenTransfer(BURN_ADDRESS, totalFeesToBurn);
-                        // Reiniciem el comptador de fees. Ho podem fer així i no cal l'increment de k com al AMM perque tota la info està al contracte
-                        totalFeesToBurn = 0;
+                            // Cremem els tokens. Dracarys.
+                            SafeNativeTokenTransfer(BURN_ADDRESS, totalFeesToBurn);
+                            // Reiniciem el comptador de fees. Ho podem fer així i no cal l'increment de k com al AMM perque tota la info està al contracte
+                            totalFeesToBurn = 0;
 
-                        // Enviem les fees acumulades cap al vault de Global locked per fer boost dels rewards allà
-                        SafeNativeTokenTransfer(nativeTokenLockedVaultAddr, totalFeesToBoostLocked);
+                            // Enviem les fees acumulades cap al vault de Global locked per fer boost dels rewards allà
+                            SafeNativeTokenTransfer(nativeTokenLockedVaultAddr, totalFeesToBoostLocked);
 
-                        // Reiniciem el comptador de fees. Ho podem fer així i no cal l'increment de k com al AMM perque tota la info està al contracte
-                        totalFeesToBoostLocked = 0;
-                    }
+                            // Reiniciem el comptador de fees. Ho podem fer així i no cal l'increment de k com al AMM perque tota la info està al contracte
+                            totalFeesToBoostLocked = 0;
+                        }
                 }
 
                 // Enviem els rewards pendents a l'usuari (es poden haver descomptat els performance fees)
