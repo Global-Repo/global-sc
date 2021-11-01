@@ -118,11 +118,11 @@ contract VaultStaked is IDistributable, ReentrancyGuard, RewarderRestriction {
     // Withdraw all only
     function withdraw() external nonReentrant {
         uint amount = balanceOf(msg.sender);
-        uint earned = earned(msg.sender);
+        uint earnedAmount = earned(msg.sender);
 
         globalMasterChef.leaveStaking(amount);
         global.safeTransfer(msg.sender, amount);
-        handleRewards(earned);
+        handleRewards(earnedAmount);
         totalSupply = totalSupply.sub(amount);
         _deleteUser(msg.sender);
         delete principal[msg.sender];
@@ -132,8 +132,8 @@ contract VaultStaked is IDistributable, ReentrancyGuard, RewarderRestriction {
     }
 
     function getReward() external nonReentrant {
-        uint earned = earned(msg.sender);
-        handleRewards(earned);
+        uint earnedAmount = earned(msg.sender);
+        handleRewards(earnedAmount);
         delete bnbEarned[msg.sender];
     }
 

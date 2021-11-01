@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.6.6;
 
+/*
 import "hardhat/console.sol";
 import "../IRouterV2.sol";
 import "../Tokens/IBEP20.sol";
@@ -78,3 +79,4 @@ contract RouterMock {
         amountB = 1e18;
     }
 }
+*/

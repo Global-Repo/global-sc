@@ -63,7 +63,7 @@ contract VaultLockedLPs is Ownable, ReentrancyGuard, Trusted {
         noFees = _noFees;
     }
 
-    function isUsersWithDeposit(uint _pid, address _user) public returns (bool)
+    function isUsersWithDeposit(uint _pid, address _user) public view returns (bool)
     {
         for(uint i=0; i< usersWithDeposit[_pid].length; i++)
         {

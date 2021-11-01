@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Unlicensed
 pragma solidity ^0.6.12;
 
+/*
+
 import "../Tokens/BEP20.sol";
 import "../Libraries/SafeMath.sol";
 import "../Libraries/SafeBEP20.sol";
@@ -54,3 +56,4 @@ contract BunnyPoolMock is IBunnyPoolStrategy {
 
     }
 }
+*/

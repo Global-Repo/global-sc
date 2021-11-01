@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.12;
+
+/*
 import "../Helpers/IPathFinder.sol";
 
 contract PathFinderMock is IPathFinder {
@@ -31,3 +35,4 @@ contract PathFinderMock is IPathFinder {
         return true;
     }
 }
+*/

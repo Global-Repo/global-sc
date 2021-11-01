@@ -12,7 +12,7 @@ interface IStrategy {
     function harvest() external;
 
     function totalSupply() external view returns (uint);
-    function balance() external view returns (uint);
+    function balanceMC() external view returns (uint);
     function balanceOf(address account) external view returns (uint);
     function sharesOf(address account) external view returns (uint);
     function principalOf(address account) external view returns (uint);

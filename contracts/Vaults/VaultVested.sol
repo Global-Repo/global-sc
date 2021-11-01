@@ -142,9 +142,9 @@ contract VaultVested is IDistributable, ReentrancyGuard, DepositoryRestriction, 
     // remove deposits with no fees
     function removeAvailableDeposits(address user) private
     {
-        uint256 now = block.timestamp;
+        uint256 btimestamp = block.timestamp;
 
-        while(depositInfo[user].length > 0 && depositInfo[user][0].nextWithdraw<now)
+        while(depositInfo[user].length > 0 && depositInfo[user][0].nextWithdraw<btimestamp)
         {
             for (uint i = 0; i<depositInfo[user].length-1; i++)
             {
@@ -198,12 +198,12 @@ contract VaultVested is IDistributable, ReentrancyGuard, DepositoryRestriction, 
         uint amount = amountOfUser(msg.sender);
         uint amountWithoutFees = availableForWithdraw(block.timestamp, msg.sender);
         uint amountWithFees = amount.sub(amountWithoutFees);
-        uint earned = earned(msg.sender);
+        uint earnedAmount = earned(msg.sender);
 
         globalMasterChef.leaveStaking(amount);
 
         handlePenaltyFees(amountWithFees, amountWithoutFees);
-        handleRewards(earned);
+        handleRewards(earnedAmount);
 
         totalSupply = totalSupply.sub(amount);
         removeAllDeposits(msg.sender);
@@ -215,12 +215,12 @@ contract VaultVested is IDistributable, ReentrancyGuard, DepositoryRestriction, 
     function withdrawWithoutFees() external nonReentrant {
         uint amountWithoutFees = availableForWithdraw(block.timestamp, msg.sender);
         require(amountWithoutFees > 0, "VaultVested: No tokens to withdraw without fees");
-        uint earned = earned(msg.sender);
+        uint earnedAmount = earned(msg.sender);
 
         globalMasterChef.leaveStaking(amountWithoutFees);
 
         handlePenaltyFees(0, amountWithoutFees);
-        handleRewards(earned);
+        handleRewards(earnedAmount);
 
         totalSupply = totalSupply.sub(amountWithoutFees);
         removeAvailableDeposits(msg.sender);
@@ -231,9 +231,9 @@ contract VaultVested is IDistributable, ReentrancyGuard, DepositoryRestriction, 
     }
 
     function getReward() external nonReentrant {
-        uint earned = earned(msg.sender);
+        uint earnedAmount = earned(msg.sender);
 
-        handleRewards(earned);
+        handleRewards(earnedAmount);
 
         delete bnbEarned[msg.sender];
     }

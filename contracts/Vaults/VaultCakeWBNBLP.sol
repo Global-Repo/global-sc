@@ -190,7 +190,7 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
         return _totalSupply;
     }
 
-    function balance() override external view returns (uint) {
+    function balanceMC() override external view returns (uint) {
         return _totalSupply;
     }
 
@@ -393,10 +393,10 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
         if (amountToBurn < DUST) {
             amountToUser = amountToUser.add(amountToBurn);
         } else {
-            uint[] memory amountsPredicted = globalRouter.getAmountsOut(amountToBurn, pathToGlobal);
+            uint[] memory amountsPredictedBNBGlobal = globalRouter.getAmountsOut(amountToBurn, pathToGlobal);
             globalRouter.swapExactTokensForTokens(
                 amountToBurn,
-                (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                (amountsPredictedBNBGlobal[amountsPredictedBNBGlobal.length-1].mul(SLIPPAGE)).div(10000),
                 pathToGlobal,
                 GLOBAL_BURN_ADDRESS,
                 block.timestamp
@@ -407,10 +407,10 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
         if (amountToTeam < DUST) {
             amountToUser = amountToUser.add(amountToTeam);
         } else {
-            uint[] memory amountsPredicted = globalRouter.getAmountsOut(amountToTeam, pathToBusd);
+            uint[] memory amountsPredictedBNBBUSD = globalRouter.getAmountsOut(amountToTeam, pathToBusd);
             globalRouter.swapExactTokensForTokens(
                 amountToTeam,
-                (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                (amountsPredictedBNBBUSD[amountsPredictedBNBBUSD.length-1].mul(SLIPPAGE)).div(10000),
                 pathToBusd,
                 treasury,
                 block.timestamp
@@ -467,10 +467,10 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
                 tokenAddresses.findByName(tokenAddresses.BNB()),
                 tokenAddresses.findByName(tokenAddresses.BUSD())
             );
-            uint[] memory amountsPredicted = globalRouter.getAmountsOut(amountToOperations, pathToBusd);
+            uint[] memory amountsPredictedBNBBUSD = globalRouter.getAmountsOut(amountToOperations, pathToBusd);
             globalRouter.swapExactTokensForTokens(
                 amountToOperations,
-                (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                (amountsPredictedBNBBUSD[amountsPredictedBNBBUSD.length-1].mul(SLIPPAGE)).div(10000),
                 pathToBusd,
                 treasury,
                 deadline
@@ -491,10 +491,10 @@ contract VaultCakeWBNBLP is IStrategy, PausableUpgradeable, WhitelistUpgradeable
             amountToUser = amountToUser.add(amountToBuyGlobal);
         } else {
             address[] memory pathToGlobal = pathFinder.findPath(address(cake), address(global));
-            uint[] memory amountsPredicted = globalRouter.getAmountsOut(amountToBuyGlobal, pathToGlobal);
+            uint[] memory amountsPredictedBNBGlobal = globalRouter.getAmountsOut(amountToBuyGlobal, pathToGlobal);
             uint[] memory amountsGlobal = globalRouter.swapExactTokensForTokens(
                 amountToBuyGlobal,
-                (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
+                (amountsPredictedBNBGlobal[amountsPredictedBNBGlobal.length-1].mul(SLIPPAGE)).div(10000),
                 pathToGlobal,
                 address(this),
                 deadline

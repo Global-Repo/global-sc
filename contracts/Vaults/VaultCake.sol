@@ -177,13 +177,13 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         return totalShares;
     }
 
-    function balance() public view override returns (uint amount) {
+    function balanceMC() public view override returns (uint amount) {
         (amount,) = cakeMasterChef.userInfo(pid, address(this));
     }
 
     function balanceOf(address account) public view override returns(uint) {
         if (totalShares == 0) return 0;
-        return balance().mul(sharesOf(account)).div(totalShares);
+        return balanceMC().mul(sharesOf(account)).div(totalShares);
     }
 
     function withdrawableBalanceOf(address account) public view override returns (uint) {
@@ -208,7 +208,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
 
     function priceShare() external view override returns(uint) {
         if (totalShares == 0) return 1e18;
-        return balance().mul(1e18).div(totalShares);
+        return balanceMC().mul(1e18).div(totalShares);
     }
 
     function depositedAt(address account) external view override returns (uint) {
@@ -260,8 +260,8 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     }
 
     function withdraw(uint shares) external override onlyWhitelisted {
-        require(balance() > 0, "Nothing to withdraw");
-        uint amount = balance().mul(shares).div(totalShares);
+        require(balanceMC() > 0, "Nothing to withdraw");
+        uint amount = balanceMC().mul(shares).div(totalShares);
 
         uint cakeHarvested = _withdrawStakingToken(amount);
 
@@ -275,9 +275,9 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     }
 
     function withdrawUnderlying(uint _amount) external override onlyNonContract {
-        require(balance() > 0, "Nothing to withdraw");
+        require(balanceMC() > 0, "Nothing to withdraw");
         uint amount = Math.min(_amount, _principal[msg.sender]);
-        uint shares = Math.min(amount.mul(totalShares).div(balance()), _shares[msg.sender]);
+        uint shares = Math.min(amount.mul(totalShares).div(balanceMC()), _shares[msg.sender]);
 
         uint cakeHarvested = _withdrawStakingToken(amount);
 
@@ -292,7 +292,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
 
     function getReward() external override onlyNonContract {
         uint amount = earned(msg.sender);
-        uint shares = Math.min(amount.mul(totalShares).div(balance()), _shares[msg.sender]);
+        uint shares = Math.min(amount.mul(totalShares).div(balanceMC()), _shares[msg.sender]);
 
         uint cakeHarvested = _withdrawStakingToken(amount);
 
@@ -313,42 +313,9 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             return;
         }
 
-        uint deadline = block.timestamp;
         uint amountToBurn = _amount.mul(withdrawalFees.burn).div(10000);
         uint amountToTeam = _amount.mul(withdrawalFees.team).div(10000);
         uint amountToUser = _amount.sub(amountToTeam).sub(amountToBurn);
-        /*
-                address[] memory pathToGlobal = pathFinder.findPath(address(cake), address(global));
-                address[] memory pathToBusd = pathFinder.findPath(address(cake), address(bd));
-
-                /*
-                // Swaps CAKE for GLOBAL and burns GLOBALS.
-                if (amountToBurn < DUST) {
-                    amountToUser = amountToUser.add(amountToBurn);
-                } else {
-                    uint[] memory amountsPredicted = router.getAmountsOut(amountToBurn, pathToGlobal);
-                    router.swapExactTokensForTokens(
-                        amountToBurn,
-                        (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
-                        pathToGlobal,
-                        GLOBAL_BURN_ADDRESS,
-                        deadline
-                    );
-                }
-
-                // Swaps CAKE for BUSD and sends BUSD to treasury.
-                if (amountToTeam < DUST) {
-                    amountToUser = amountToUser.add(amountToTeam);
-                } else {
-                    uint[] memory amountsPredicted = router.getAmountsOut(amountToTeam, pathToBusd);
-                    router.swapExactTokensForTokens(
-                        amountToTeam,
-                        (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
-                        pathToBusd,
-                        treasury,
-                        deadline
-                    );
-                }*/
 
         cake.safeTransfer(operationsAndBurnWallet, amountToBurn.add(amountToTeam));
         cake.safeTransfer(msg.sender, amountToUser);
@@ -458,7 +425,7 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
     function _deposit(uint _amount, address _to) private notPaused {
         cake.safeTransferFrom(msg.sender, address(this), _amount);
 
-        uint shares = totalShares == 0 ? _amount : (_amount.mul(totalShares)).div(balance());
+        uint shares = totalShares == 0 ? _amount : (_amount.mul(totalShares)).div(balanceMC());
         totalShares = totalShares.add(shares);
         _shares[_to] = _shares[_to].add(shares);
 
