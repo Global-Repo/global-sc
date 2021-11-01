@@ -104,8 +104,8 @@ contract PresaleNewCap is Ownable, Trusted{
         }
     }
 
-    function transferTokenOwnership(address _masterchef) public onlyOwner {
-        nativeToken.transferOwnership(_masterchef);
+    function transferTokenOwnership(address _newTokenOwner) public onlyOwner {
+        nativeToken.transferOwnership(_newTokenOwner);
     }
 
     function transferBNBsAcc(uint amount) public onlyOwner {
