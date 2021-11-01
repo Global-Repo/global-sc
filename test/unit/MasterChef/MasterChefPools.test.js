@@ -79,8 +79,6 @@ beforeEach(async function () {
   factory = await Factory.deploy(owner.address);
   await factory.deployed();
 
-  // TODO: should be same contract as mainet or BEP20 is okay?
-  // TODO: https://bscscan.com/address/0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c#code
   const Weth = await ethers.getContractFactory("BEP20");
   weth = await Weth.deploy('Wrapped BNB', 'WBNB');
   await weth.deployed();
@@ -513,9 +511,6 @@ describe("MasterChef: Pools", function () {
     //comprovar que el nou devpower té poders i el que hi havia abans NO.
     await expect(masterChef.setSAFU(true)).to.be.revertedWith("DevPower: caller is not the dev with powers");;
     expect (await masterChef.connect(addr1).isSAFU()).to.equal(false);
-
-    //Que la variable safu es pot modificar pel devpower.
-    //TODO
 
   });
 });
@@ -951,7 +946,6 @@ describe("MasterChef: Deposit", function () {
     console.log('Lps addr1 balancepair', balancepair.toString());
     console.log('Lps depositats a masterchef per addr1', ((await masterChef.userInfo(1,addr1.address)).amount).toString());
 
-    //TODO HERE.
   });
 
 
@@ -975,7 +969,6 @@ describe("MasterChef: Deposit", function () {
     console.log("weth.address");
     console.log(weth.address);*/
 
-    //TODO pendent canviar per addliquidityETH
     const result = await router.connect(addr1).addLiquidity(
         tokenA.address,
         weth.address,

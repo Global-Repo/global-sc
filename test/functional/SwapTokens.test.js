@@ -18,8 +18,6 @@ beforeEach(async function () {
   factory = await Factory.deploy(owner.address);
   await factory.deployed();
 
-  // TODO: should be same contract as mainet or BEP20 is okay?
-  // TODO: https://bscscan.com/address/0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c#code
   const Weth = await ethers.getContractFactory("BEP20");
   weth = await Weth.deploy('Wrapped BNB', 'WBNB');
   await weth.deployed();
@@ -107,7 +105,6 @@ describe("Swap tokens", function () {
     console.log(b.toString());*/
 
     //expect(await tokenA.balanceOf(owner.address)).to.equal(BigNumber.from(85).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
-    // TODO: expect token B amount
 
     await router.swapExactTokensForTokens(
         BigNumber.from(5).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER),
@@ -118,7 +115,6 @@ describe("Swap tokens", function () {
     );
 
     //expect(await tokenA.balanceOf(owner.address)).to.equal(BigNumber.from(80).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
-    // TODO: expect token B amount
 
     /*const c = await tokenA.balanceOf(owner.address);
     const d = await tokenB.balanceOf(owner.address);

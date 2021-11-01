@@ -54,7 +54,6 @@ describe("NativeToken: Antiwhale", function () {
     expect(await deployedToken.GetIfExcludedFromAntiWhale(owner.address)).to.false;
   });
 
-  // TODO: Fix double mint function name
   xit("Calculation of maximum number of tokens can be transferred", async function () {
     await deployedToken.mint(TOKEN_SUPPLY.toString());
 

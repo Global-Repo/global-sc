@@ -16,7 +16,6 @@ beforeEach(async function () {
 });
 
 describe("NativeToken: Transactions", function () {
-  // TODO: Fix double mint function name
   xit("Should to be able to mint only the owner", async function () {
     // Owner can mint
     await deployedToken.mint(TOKEN_SUPPLY.toString());
