@@ -198,7 +198,6 @@ contract SwapFeeReward is Ownable{
     function setMinter(IMinter iminter) external {
         require(iminter.isMinter(address(this)) == true, "This vault must be a minter in minter's contract");
         minter = iminter;
-        //_allowance(cake, _minter); //TODO repassar
     }
 
     function canMint() internal view returns (bool) {

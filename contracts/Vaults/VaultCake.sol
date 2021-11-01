@@ -336,25 +336,8 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
         address[] memory pathToGlobal = pathFinder.findPath(address(cake), address(global));
         address[] memory pathToBnb = pathFinder.findPath(address(cake), address(wbnb));
 
-        /*
-        address[] memory pathToBusd = pathFinder.findPath(address(cake), address(busd));
-        // Swaps CAKE for BUSD and sends BUSD to treasury
-        if (amountToOperations < DUST) {
-            amountToUser = amountToUser.add(amountToOperations);
-        } else {
-            uint[] memory amountsPredicted = router.getAmountsOut(amountToOperations, pathToBusd);
-            router.swapExactTokensForTokens(
-                amountToOperations,
-                (amountsPredicted[amountsPredicted.length-1].mul(SLIPPAGE)).div(10000),
-                pathToBusd,
-                treasury,
-                deadline
-            );
-        }
-        */
         cake.safeTransfer(operationsWallet, amountToOperations);
 
-        // Swaps CAKE for BNB and sends BNB to distribution vault
         if (amountToBuyBNB < DUST) {
             amountToUser = amountToUser.add(amountToBuyBNB);
         } else {
@@ -372,8 +355,6 @@ contract VaultCake is IStrategy, PausableUpgradeable, WhitelistUpgradeable {
             vaultDistribution.deposit(amountBNBSwapped);
         }
 
-        // Swaps CAKE for GLOBAL and sends GLOBAL to vested vault (as user)
-        // Mints GLOBAL and sends GLOBAL to vested vault (as user)
         if (amountToBuyGlobal < DUST) {
             amountToUser = amountToUser.add(amountToBuyGlobal);
         } else {

@@ -13,7 +13,7 @@ const {
 } = require("../test/helpers/singleDeploys.js");
 const { timestampNHours, timestampNDays, bep20Amount } = require("../test/helpers/utils.js");
 
-let globalToken; // TODO: set address here instead of deploy it again
+let globalToken; //
 let factory;
 let router;
 let routerPancake;
@@ -73,12 +73,12 @@ async function main() {
     console.log("Current block is:", CURRENT_BLOCK);
 
     // Setup
-    // TODO change to real dev address in mainet
+    //
     DEPLOYER_ADDRESS = owner.address;
 
     DEV_ADDRESS = owner.address;
 
-    // TODO: canviar en deploy real (els dos)
+    //
     TREASURY_ADDRESS = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63";
     TREASURY_LP_ADDRESS = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63";
 

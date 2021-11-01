@@ -103,7 +103,7 @@ contract Oracle {
             ))));
     }
 
-    function update(address tokenA, address tokenB) external { //TODO revisar com anar cridant el update
+    function update(address tokenA, address tokenB) external {
         require(msg.sender == priceUpdater, 'BSWOracle: Price can update only price updater address');
         address pair = pairFor(tokenA, tokenB);
 

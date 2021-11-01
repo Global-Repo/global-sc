@@ -14,7 +14,7 @@ const {
 } = require("../test/helpers/singleDeploys.js");
 const { timestampNHours, timestampNDays, bep20Amount } = require("../test/helpers/utils.js");
 
-let globalTokenAddress; // TODO: set address here instead of deploy it again
+let globalTokenAddress;
 let factory;
 let routerAddress;
 let routerPancakeAddress;
@@ -79,12 +79,12 @@ async function main() {
     console.log("Current block is:", CURRENT_BLOCK);
 
     // Setup
-    // TODO change to real dev address in mainet
+    //
     DEPLOYER_ADDRESS = owner.address;
 
     DEV_ADDRESS = owner.address;
 
-    // TODO: canviar en deploy real (els dos)
+    //
     TREASURY_ADDRESS = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63";
     TREASURY_LP_ADDRESS = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63";
 
@@ -191,7 +191,7 @@ let setUpVaultCake30 = async function (owner) {
     await vaultCake30.connect(owner).setRewards(7000, 300, 1000, 1700, 5000);
     console.log("Rewards set to: toUser:7000, toOperations:300, toBuyGlobal:1000, toBuyBNB:1700, toMintGlobal:5000");
 
-    // TODO no tenemos ya wbnblp vault
+    //
     //await vaultCake30.setWhitelist(vaultCakeWBNBLP30.address, true);
     //console.log("Vault is whitelisted in vault cake 30 for deposits");
 

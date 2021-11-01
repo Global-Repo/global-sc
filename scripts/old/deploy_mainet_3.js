@@ -13,7 +13,7 @@ const {
 } = require("../test/helpers/singleDeploys.js");
 const { timestampNHours, timestampNDays, bep20Amount } = require("../test/helpers/utils.js");
 
-let globalToken; // TODO: set address here instead of deploy it again
+let globalToken; //
 let factory;
 let router;
 let routerPancake;
@@ -73,12 +73,12 @@ async function main() {
     console.log("Current block is:", CURRENT_BLOCK);
 
     // Setup
-    // TODO change to real dev address in mainet
+    //
     DEPLOYER_ADDRESS = owner.address;
 
     DEV_ADDRESS = owner.address;
 
-    // TODO: canviar en deploy real (els dos)
+    //
     TREASURY_ADDRESS = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63";
     TREASURY_LP_ADDRESS = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63";
 
@@ -151,7 +151,7 @@ async function main() {
         vaultVested15.address
     );
     console.log("Vault CAKE 15 deployed to:", vaultCake15.address);*/
-    // TODO: MC setMinter dels 3 vaults cake
+    //
 
     vaultCake30 = await deployVaultCake(
         cakeAddress,
@@ -258,7 +258,7 @@ async function main() {
 let setUpVaultDistribution = async function (owner) {
     console.log("-- Vault distribution set up start");
 
-    //TODO: mintejar 58m de globals abans de moure el ownership de global a MC
+    //
 
     // Vault distribution depositories
     //await vaultDistribution.connect(owner).setDepositary(vaultCake15.address, true);
@@ -326,12 +326,12 @@ let setUpVaultVested15 = async function (owner) {
 let setUpVaultVested30 = async function (owner) {
     console.log("-- Vault vested 30 set up start");
 
-    // TODO: faltan beneficiaries
+    //
     // Beneficiaries
     await vaultVested30.connect(owner).setDepositary(vaultCake30.address, true);
     console.log("Vaults CAKE 15,30,50 added as depositary");
 
-    // TODO añadir todos los vaults que stakean en MC: staked, stakedToGlobal, locked
+    //
     const AttachedMasterchef = await ethers.getContractFactory("MasterChef");
     const attachedMasterchef = await AttachedMasterchef.attach(masterChef);
     await attachedMasterchef.connect(owner).addAddressToWhitelist(vaultCake30.address, true);

@@ -15,7 +15,7 @@ const {
 
 const { timestampNHours, bep20Amount } = require("../../test/helpers/utils.js");
 
-let globalToken; // TODO: set address here instead of deploy it again
+let globalToken;
 let factory;
 let router;
 let tokenAddresses;
@@ -56,13 +56,13 @@ async function main() {
 
     // Setup
 
-    DEPLOYER_ADDRESS = owner.address; // TODO canviar DEPLOYER_ADDRESS
+    DEPLOYER_ADDRESS = owner.address;
 
-    DEV_ADDRESS = owner.address; // TODO canviar DEV_ADDRESS
+    DEV_ADDRESS = owner.address;
 
-    TREASURY_ADDRESS = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63"; // TODO: canviar TREASURY_ADDRESS
+    TREASURY_ADDRESS = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63";
 
-    TREASURY_LP_ADDRESS = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63"; // TODO: canviar TREASURY_LP_ADDRESS
+    TREASURY_LP_ADDRESS = "0xfB0737Bb80DDd992f2A00A4C3bd88b1c63F86a63";
 
     wethAddress = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
     busdAddress = "0xe9e7cea3dedca5984780bafc599bd69add087d56";
@@ -74,7 +74,7 @@ async function main() {
     masterChefStartBlock = 12405477; // timestamp 1636144200
     //masterChefStartBlock = CURRENT_BLOCK + 1;
 
-    // TODO: deploy router and factory en un primer pas per afegir liquidesa i validar
+    //
     factory = await deployFactory(feeSetterAddress);
     console.log("Factory deployed to:", factory.address);
 
@@ -97,7 +97,7 @@ async function main() {
     console.log("Added BUSD to TokenAddresses with address:", busdAddress);
     await tokenAddresses.addToken(tokenAddresses.CAKE(), cakeAddress);
     console.log("Added CAKE to TokenAddresses with address:", cakeAddress);
-    // TODO: add cakebnblp when vaults
+    //
     //await tokenAddresses.addToken(tokenAddresses.CAKE_WBNB_LP(), cakeWbnbLPAddress);
     //console.log("Added CAKE-WBNB-LP to TokenAddresses with address:", cakeWbnbLPAddress);
 
@@ -140,7 +140,7 @@ async function main() {
     await masterChef.setLockedVaultAddress(vaultLocked.address);
     console.log("Masterchef set locked vault address to :", vaultLocked.address);
 
-    // TODO: this must not be executed on mainet until we are done with global stuff
+    //
     //await globalToken.transferOwnership(masterChef.address);
     //console.log("Global ownership to masterchef:", masterChef.address);
 
@@ -176,7 +176,7 @@ let setUpVaultLocked = async function (owner) {
 let setUpPools = async function (owner) {
     console.log("-- Pools set up start");
 
-    // TODO comptar cuanta pasta i quina emisió
+    //
     smartChefFactory.deployPool(
         globalToken.address,
         wethAddress.address,

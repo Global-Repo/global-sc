@@ -14,7 +14,7 @@ const {
 } = require("../test/helpers/singleDeploys.js");
 const { timestampNHours, bep20Amount } = require("../test/helpers/utils.js");
 
-let globalToken; // TODO: set address here instead of deploy it again
+let globalToken; //
 let factory;
 let router;
 let tokenAddresses;

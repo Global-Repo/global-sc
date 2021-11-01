@@ -40,7 +40,7 @@ async function main() {
     console.log("Added BUSD to TokenAddresses with address:", busdAddress);
     await tokenAddresses.addToken(tokenAddresses.CAKE(), cakeAddress);
     console.log("Added CAKE to TokenAddresses with address:", cakeAddress);
-    // TODO: add cakebnblp when vaults
+    //
     //await tokenAddresses.addToken(tokenAddresses.CAKE_WBNB_LP(), cakeWbnbLPAddress);
     //console.log("Added CAKE-WBNB-LP to TokenAddresses with address:", cakeWbnbLPAddress);
 

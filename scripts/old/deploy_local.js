@@ -157,9 +157,9 @@ async function main() {
     // Setup
     feeSetterAddress = owner.address;
     masterChefStartBlock = CURRENT_BLOCK + 1;
-    vaultBunnyPoolId = 0; // TODO: buscar
+    vaultBunnyPoolId = 0; //
 
-    // TODO: remove only for local
+    //
     const Weth = await hre.ethers.getContractFactory("BEP20");
     const weth = await Weth.deploy("Wrapped BNB", "WBNB");
     await weth.deployed();
@@ -209,7 +209,7 @@ async function main() {
     console.log("Masterchef deployed to:", masterChef.address);
     console.log("Globals per block: ", NATIVE_TOKEN_PER_BLOCK.toString());
     console.log("Start block", CURRENT_BLOCK + 1);
-    // TODO: remove only for local
+    //
     cakeMasterChefAddress = masterChef.address;
 
     smartChefFactory = await deploySmartChefFactory();
@@ -258,7 +258,7 @@ async function main() {
         tokenAddresses.address,
         router.address,
         pathFinder.address,
-        // TODO: keeper per vested i distributor vaults
+        //
     );
     await vaultBunny.deployed();
     console.log("Vault BUNNY deployed to:", vaultBunny.address);
@@ -275,7 +275,7 @@ async function main() {
         tokenAddresses.address,
         router.address,
         pathFinder.address,
-        // TODO: keeper per vested i distributor vaults
+        //
     );
     await vaultCakeWbnbLP.deployed();
     console.log("Vault CAKE-WBNB-LP deployed to:", vaultCakeWbnbLP.address);
@@ -287,7 +287,7 @@ async function main() {
 
 
 
-    // TODO: mint x tokens and change token owner by masterchef address
+    //
 /*
     // Set ups
     await pathFinder.transferOwnership(masterChef.address);
