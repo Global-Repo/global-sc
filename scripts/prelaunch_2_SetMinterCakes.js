@@ -33,10 +33,13 @@ async function main() {
     // this should be executed after global token has MC as owner
     await vaultCake15.setMinter(MASTERCHEF_ADDRESS);
     console.log("Vault cake 15 minter is Masterchef");
+    await new Promise(r => setTimeout(() => r(), 10000));
     await vaultCake30.setMinter(MASTERCHEF_ADDRESS);
     console.log("Vault cake 30 minter is Masterchef");
+    await new Promise(r => setTimeout(() => r(), 10000));
     await vaultCake50.setMinter(MASTERCHEF_ADDRESS);
     console.log("Vault cake 50 minter is Masterchef");
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     console.log("SetMinters finished");
 }
