@@ -30,7 +30,7 @@ async function main() {
     CURRENT_BLOCK = await ethers.provider.getBlockNumber();
     console.log("Current block is:", CURRENT_BLOCK);
 
-    const START_BLOCK = 12434277; // 24h despues del masterchef
+    const START_BLOCK = 12428502;
     const END_BLOCK = START_BLOCK + (28800 * 30);
     const USER_POOL_LIMIT = 400;
 
@@ -45,8 +45,8 @@ async function main() {
         WETH_ADDRESS,
         "1736111111111",
         START_BLOCK,
-        START_BLOCK + (28800 * 30),
-        bep20Amount(300),
+        END_BLOCK,
+        bep20Amount(USER_POOL_LIMIT),
         DEV_POWER_ADDRESS
     );
     const result1 = await tx1.wait();
@@ -143,6 +143,92 @@ async function main() {
         address: smartChefFactory.address,
         constructorArguments: [],
     });
+
+    await hre.run("verify:verify", {
+        address: smartChefAddress1,
+        constructorArguments: [
+            GLOBAL_TOKEN_ADDRESS,
+            WETH_ADDRESS,
+            "1736111111111",
+            START_BLOCK,
+            END_BLOCK,
+            bep20Amount(USER_POOL_LIMIT),
+            DEV_POWER_ADDRESS
+        ],
+    });
+    await hre.run("verify:verify", {
+        address: smartChefAddress2,
+        constructorArguments: [
+            GLOBAL_TOKEN_ADDRESS,
+            BUSD_ADDRESS,
+            "6944444444444440",
+            START_BLOCK,
+            END_BLOCK,
+            bep20Amount(USER_POOL_LIMIT),
+            DEV_POWER_ADDRESS
+        ],
+    });
+    await hre.run("verify:verify", {
+        address: smartChefAddress3,
+        constructorArguments: [
+            GLOBAL_TOKEN_ADDRESS,
+            CAKE_ADDRESS,
+            "347222222222222",
+            START_BLOCK,
+            END_BLOCK,
+            bep20Amount(USER_POOL_LIMIT),
+            DEV_POWER_ADDRESS
+        ],
+    });
+    await hre.run("verify:verify", {
+        address: smartChefAddress4,
+        constructorArguments: [
+            GLOBAL_TOKEN_ADDRESS,
+            USDT_ADDRESS,
+            "6944444444444440",
+            START_BLOCK,
+            END_BLOCK,
+            bep20Amount(USER_POOL_LIMIT),
+            DEV_POWER_ADDRESS
+        ],
+    });
+    await hre.run("verify:verify", {
+        address: smartChefAddress5,
+        constructorArguments: [
+            GLOBAL_TOKEN_ADDRESS,
+            ETH_ADDRESS,
+            "1736111111111",
+            START_BLOCK,
+            END_BLOCK,
+            bep20Amount(USER_POOL_LIMIT),
+            DEV_POWER_ADDRESS
+        ],
+    });
+    await hre.run("verify:verify", {
+        address: smartChefAddress6,
+        constructorArguments: [
+            GLOBAL_TOKEN_ADDRESS,
+            BTC_ADDRESS,
+            "115740740741",
+            START_BLOCK,
+            END_BLOCK,
+            bep20Amount(USER_POOL_LIMIT),
+            DEV_POWER_ADDRESS
+        ],
+    });
+    await hre.run("verify:verify", {
+        address: smartChefAddress7,
+        constructorArguments: [
+            GLOBAL_TOKEN_ADDRESS,
+            DOGE_ADDRESS,
+            "27777777777777800",
+            START_BLOCK,
+            END_BLOCK,
+            bep20Amount(USER_POOL_LIMIT),
+            DEV_POWER_ADDRESS
+        ],
+    });
+
 
     console.log("Current block is:", CURRENT_BLOCK);
 

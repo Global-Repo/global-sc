@@ -8,6 +8,7 @@ const {
     CAKE_ADDRESS,
     DEV_POWER_ADDRESS,
     TREASURY_SWAP_ADDRESS,
+    DEPLOYER_ADDRESS
 } = require("./addresses");
 const {
     deployFactory,
@@ -31,7 +32,7 @@ async function main() {
     console.log("Current block is:", CURRENT_BLOCK);
 
     // Start
-    factory = await deployFactory(DEV_POWER_ADDRESS);
+    factory = await deployFactory(DEPLOYER_ADDRESS);
     console.log("Factory deployed to:", factory.address);
     await new Promise(r => setTimeout(() => r(), 10000));
 
@@ -67,7 +68,7 @@ async function main() {
     await hre.run("verify:verify", {
         address: factory.address,
         constructorArguments: [
-            DEV_POWER_ADDRESS
+            DEPLOYER_ADDRESS
         ],
     });
     await new Promise(r => setTimeout(() => r(), 10000));

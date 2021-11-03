@@ -2,8 +2,6 @@ const hre = require("hardhat");
 require("@nomiclabs/hardhat-ethers");
 
 const {
-    GLOBAL_TOKEN_ADDRESS,
-    WETH_ADDRESS,
     MASTERCHEF_ADDRESS,
     VAULT_LOCKED_ADDRESS,
     VAULT_DISTRIBUTION_ADDRESS,
@@ -11,10 +9,6 @@ const {
     VAULT_VESTED_30_ADDRESS,
     VAULT_VESTED_50_ADDRESS,
 } = require("./addresses");
-
-const {
-    deployVaultVested,
-} = require("../test/helpers/singleDeploys");
 
 const { timestampNDays, bep20Amount } = require("../test/helpers/utils");
 

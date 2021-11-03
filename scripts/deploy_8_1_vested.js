@@ -13,11 +13,6 @@ const {
     deployVaultVested,
 } = require("../test/helpers/singleDeploys");
 
-const { timestampNDays, bep20Amount } = require("../test/helpers/utils");
-
-const VAULT_VESTED_MIN_BNB_TO_DISTRIBUTE = bep20Amount(1); // 1 BNB
-const VAULT_VESTED_PENALTY_FEES_INTERVAL = timestampNDays(99); // 99 days
-
 let CURRENT_BLOCK;
 let masterchef;
 let vaultDistribution;
