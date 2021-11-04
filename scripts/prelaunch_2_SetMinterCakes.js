@@ -11,6 +11,7 @@ const {
 let vaultCake15;
 let vaultCake30;
 let vaultCake50;
+let masterchef;
 
 async function main() {
     console.log("Starting set minters for Cake Vaults");
@@ -18,16 +19,26 @@ async function main() {
 
     [deployer] = await hre.ethers.getSigners();
 
+    const Masterchef = await ethers.getContractFactory("MasterChef");
+    masterchef = await Masterchef.attach(MASTERCHEF_ADDRESS);
+
     const VaultCake15 = await ethers.getContractFactory("VaultCake");
     vaultCake15 = await VaultCake15.attach(VAULT_CAKE_15);
-    await new Promise(r => setTimeout(() => r(), 10000));
 
     const VaultCake30 = await ethers.getContractFactory("VaultCake");
     vaultCake30 = await VaultCake30.attach(VAULT_CAKE_30);
-    await new Promise(r => setTimeout(() => r(), 10000));
 
     const VaultCake50 = await ethers.getContractFactory("VaultCake");
     vaultCake50 = await VaultCake50.attach(VAULT_CAKE_50);
+
+    await masterchef.setMinter(VAULT_CAKE_15, true);
+    console.log("Vault cake 15 is minter into Masterchef");
+    await new Promise(r => setTimeout(() => r(), 10000));
+    await masterchef.setMinter(VAULT_CAKE_30, true);
+    console.log("Vault cake 30 is minter into Masterchef");
+    await new Promise(r => setTimeout(() => r(), 10000));
+    await masterchef.setMinter(VAULT_CAKE_50, true);
+    console.log("Vault cake 50 is minter into Masterchef");
     await new Promise(r => setTimeout(() => r(), 10000));
 
     // this should be executed after global token has MC as owner

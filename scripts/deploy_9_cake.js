@@ -34,7 +34,6 @@ let vaultVested50;
 let vaultCake15;
 let vaultCake30;
 let vaultCake50;
-let masterchef;
 
 async function main() {
     console.log("Starting deploy");
@@ -46,9 +45,6 @@ async function main() {
     console.log("Current block is:", CURRENT_BLOCK);
 
     // Attach
-    const Masterchef = await ethers.getContractFactory("MasterChef");
-    masterchef = await Masterchef.attach(MASTERCHEF_ADDRESS);
-
     const VaultDistribution = await ethers.getContractFactory("VaultDistribution");
     vaultDistribution = await VaultDistribution.attach(VAULT_DISTRIBUTION_ADDRESS);
 
@@ -116,16 +112,6 @@ async function main() {
     await new Promise(r => setTimeout(() => r(), 10000));
     await vaultCake50.setRewards(5000, 500, 1500, 3000, 7500);
     console.log("Vault cake 50 rewards set to: toUser:5000, toOperations:500, toBuyGlobal:1500, toBuyBNB:3000, toMintGlobal:7500");
-    await new Promise(r => setTimeout(() => r(), 10000));
-
-    await masterchef.setMinter(vaultCake15.address, true);
-    console.log("Vault cake 15 is minter into Masterchef");
-    await new Promise(r => setTimeout(() => r(), 10000));
-    await masterchef.setMinter(vaultCake30.address, true);
-    console.log("Vault cake 30 is minter into Masterchef");
-    await new Promise(r => setTimeout(() => r(), 10000));
-    await masterchef.setMinter(vaultCake50.address, true);
-    console.log("Vault cake 50 is minter into Masterchef");
     await new Promise(r => setTimeout(() => r(), 10000));
 
     await vaultDistribution.setDepositary(vaultCake15.address, true);
