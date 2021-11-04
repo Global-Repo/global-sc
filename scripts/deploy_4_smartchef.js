@@ -30,7 +30,7 @@ async function main() {
     CURRENT_BLOCK = await ethers.provider.getBlockNumber();
     console.log("Current block is:", CURRENT_BLOCK);
 
-    const START_BLOCK = 12428502;
+    const START_BLOCK = 12344984;
     const END_BLOCK = START_BLOCK + (28800 * 30);
     const USER_POOL_LIMIT = 400;
 

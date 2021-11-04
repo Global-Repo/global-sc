@@ -24,7 +24,7 @@ let CURRENT_BLOCK;
 
 async function main() {
     console.log("Starting deploy");
-    console.log("You do not need dependencies for it");
+    console.log("Ensure you have proper addresses set up into addresses.js for: GLOBAL_TOKEN_ADDRESS");
 
     [deployer] = await hre.ethers.getSigners();
 

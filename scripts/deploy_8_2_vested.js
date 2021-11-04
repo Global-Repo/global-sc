@@ -25,7 +25,7 @@ let vaultVested50;
 
 async function main() {
     console.log("Starting deploy");
-    console.log("Ensure you have proper addresses set up into addresses.js for: Masterchef, VaultDistribution, VaultLocked");
+    console.log("Ensure you have proper addresses set up into addresses.js for: Masterchef, VaultDistribution, VaultLocked, VaultVested15, VaultVested30, VaultVested50");
 
     [deployer] = await hre.ethers.getSigners();
 
@@ -61,13 +61,13 @@ async function main() {
     console.log("Min BNB to distribute set to: ", VAULT_VESTED_MIN_BNB_TO_DISTRIBUTE.toString());
 
     await vaultVested15.setPenaltyFees(6500, VAULT_VESTED_PENALTY_FEES_INTERVAL);
-    console.log("Vault vested 15 penalty fees percentage set to: 6500 and interval of days: ", VAULT_VESTED_PENALTY_FEES_INTERVAL.toString());
+    console.log("Vault vested 15 penalty fees percentage set to: 6500 and interval of seconds: ", VAULT_VESTED_PENALTY_FEES_INTERVAL.toString());
     await new Promise(r => setTimeout(() => r(), 10000));
     await vaultVested30.setPenaltyFees(7500, VAULT_VESTED_PENALTY_FEES_INTERVAL);
-    console.log("Vault vested 30 penalty fees percentage set to: 7500 and interval of days: ", VAULT_VESTED_PENALTY_FEES_INTERVAL.toString());
+    console.log("Vault vested 30 penalty fees percentage set to: 7500 and interval of seconds: ", VAULT_VESTED_PENALTY_FEES_INTERVAL.toString());
     await new Promise(r => setTimeout(() => r(), 10000));
     await vaultVested50.setPenaltyFees(8300, VAULT_VESTED_PENALTY_FEES_INTERVAL);
-    console.log("Vault vested 50 penalty fees percentage set to: 8300 and interval of days: ", VAULT_VESTED_PENALTY_FEES_INTERVAL.toString());
+    console.log("Vault vested 50 penalty fees percentage set to: 8300 and interval of seconds: ", VAULT_VESTED_PENALTY_FEES_INTERVAL.toString());
     await new Promise(r => setTimeout(() => r(), 10000));
 
     await masterchef.addAddressToWhitelist(vaultVested15.address);

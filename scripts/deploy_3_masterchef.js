@@ -30,11 +30,12 @@ async function main() {
     console.log("Current block is:", CURRENT_BLOCK);
 
     const NATIVE_TOKEN_PER_BLOCK = bep20Amount(90);
-    const MASTERCHEF_START_BLOCK = 12428502; // timestamp 1636228800
+    const MASTERCHEF_START_BLOCK = 12344984; // timestamp proves
+    //const MASTERCHEF_START_BLOCK = 12428502; // timestamp 1636228800
 
     // Start
     pathFinder = await deployPathFinder(TOKEN_ADDRESSES_ADDRESS);
-    console.log("PathFinder deployed to:", TOKEN_ADDRESSES_ADDRESS);
+    console.log("PathFinder deployed to:", pathFinder.address);
     await new Promise(r => setTimeout(() => r(), 10000));
 
     const MasterChefInternal = await ethers.getContractFactory("MasterChefInternal");
@@ -93,7 +94,7 @@ async function main() {
         address: masterChefInternal.address,
         constructorArguments: [
             TOKEN_ADDRESSES_ADDRESS,
-            pathFinder.address,
+            pathFinder.address
         ],
     });
     await new Promise(r => setTimeout(() => r(), 10000));
