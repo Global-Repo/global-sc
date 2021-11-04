@@ -51,17 +51,6 @@ async function main() {
     console.log("Masterchef locked vault address set to:", vaultLocked.address);
     await new Promise(r => setTimeout(() => r(), 10000));
 
-    // Verify
-    await hre.run("verify:verify", {
-        address: vaultLocked.address,
-        constructorArguments: [
-            GLOBAL_TOKEN_ADDRESS,
-            WETH_ADDRESS,
-            MASTERCHEF_ADDRESS,
-            VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL
-        ],
-    });
-
     console.log("Current block is:", CURRENT_BLOCK);
 
     console.log("Deploy finished");

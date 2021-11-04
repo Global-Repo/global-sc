@@ -43,15 +43,6 @@ async function main() {
     console.log("Distribution interval set to: ", VAULT_DISTRIBUTION_DISTRIBUTE_INTERVAL.toString());
     await new Promise(r => setTimeout(() => r(), 10000));
 
-    // Verify
-    await hre.run("verify:verify", {
-        address: vaultDistribution.address,
-        constructorArguments: [
-            WETH_ADDRESS,
-            GLOBAL_TOKEN_ADDRESS
-        ],
-    });
-
     console.log("Current block is:", CURRENT_BLOCK);
 
     console.log("Deploy finished");

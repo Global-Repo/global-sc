@@ -64,29 +64,6 @@ async function main() {
     console.log("Added CAKE to TokenAddresses with address:", CAKE_ADDRESS);
     await new Promise(r => setTimeout(() => r(), 10000));
 
-    // Verify
-    await hre.run("verify:verify", {
-        address: factory.address,
-        constructorArguments: [
-            DEPLOYER_ADDRESS
-        ],
-    });
-    await new Promise(r => setTimeout(() => r(), 10000));
-
-    await hre.run("verify:verify", {
-        address: router.address,
-        constructorArguments: [
-            factory.address,
-            WETH_ADDRESS
-        ],
-    });
-    await new Promise(r => setTimeout(() => r(), 10000));
-
-    await hre.run("verify:verify", {
-        address: tokenAddresses.address,
-        constructorArguments: [],
-    });
-
     console.log("Current block is:", CURRENT_BLOCK);
 
     console.log("Deploy finished");

@@ -66,40 +66,6 @@ async function main() {
         VAULT_LOCKED_ADDRESS
     );
     console.log("Vault vested 50 deployed to:", vaultVested50.address);
-    await new Promise(r => setTimeout(() => r(), 10000));
-
-    // Verify
-    await hre.run("verify:verify", {
-        address: vaultVested15.address,
-        constructorArguments: [
-            GLOBAL_TOKEN_ADDRESS,
-            WETH_ADDRESS,
-            MASTERCHEF_ADDRESS,
-            VAULT_LOCKED_ADDRESS
-        ],
-    });
-    await new Promise(r => setTimeout(() => r(), 10000));
-
-    await hre.run("verify:verify", {
-        address: vaultVested30.address,
-        constructorArguments: [
-            GLOBAL_TOKEN_ADDRESS,
-            WETH_ADDRESS,
-            MASTERCHEF_ADDRESS,
-            VAULT_LOCKED_ADDRESS
-        ],
-    });
-    await new Promise(r => setTimeout(() => r(), 10000));
-
-    await hre.run("verify:verify", {
-        address: vaultVested50.address,
-        constructorArguments: [
-            GLOBAL_TOKEN_ADDRESS,
-            WETH_ADDRESS,
-            MASTERCHEF_ADDRESS,
-            VAULT_LOCKED_ADDRESS
-        ],
-    });
 
     console.log("Current block is:", CURRENT_BLOCK);
 

@@ -158,57 +158,6 @@ async function main() {
     console.log("Vault cake 50 withdrawal fees set to: burn:65, team:15, interval:4");
     await new Promise(r => setTimeout(() => r(), 10000));
 
-    // Verify
-    await hre.run("verify:verify", {
-        address: vaultCake15.address,
-        constructorArguments: [
-            CAKE_ADDRESS,
-            GLOBAL_TOKEN_ADDRESS,
-            CAKE_MASTERCHEF_ADDRESS,
-            TREASURY_CAKE15_OPERATIONS_BURN_ADDRESS,
-            TREASURY_OPTIMIZER_OPERATIONS_ADDRESS,
-            TOKEN_ADDRESSES_ADDRESS,
-            ROUTER_ADDRESS,
-            PATH_FINDER_ADDRESS,
-            VAULT_DISTRIBUTION_ADDRESS,
-            VAULT_VESTED_15_ADDRESS
-        ],
-    });
-    await new Promise(r => setTimeout(() => r(), 10000));
-
-    await hre.run("verify:verify", {
-        address: vaultCake30.address,
-        constructorArguments: [
-            CAKE_ADDRESS,
-            GLOBAL_TOKEN_ADDRESS,
-            CAKE_MASTERCHEF_ADDRESS,
-            TREASURY_CAKE30_OPERATIONS_BURN_ADDRESS,
-            TREASURY_OPTIMIZER_OPERATIONS_ADDRESS,
-            TOKEN_ADDRESSES_ADDRESS,
-            ROUTER_ADDRESS,
-            PATH_FINDER_ADDRESS,
-            VAULT_DISTRIBUTION_ADDRESS,
-            VAULT_VESTED_30_ADDRESS
-        ],
-    });
-    await new Promise(r => setTimeout(() => r(), 10000));
-
-    await hre.run("verify:verify", {
-        address: vaultCake50.address,
-        constructorArguments: [
-            CAKE_ADDRESS,
-            GLOBAL_TOKEN_ADDRESS,
-            CAKE_MASTERCHEF_ADDRESS,
-            TREASURY_CAKE50_OPERATIONS_BURN_ADDRESS,
-            TREASURY_OPTIMIZER_OPERATIONS_ADDRESS,
-            TOKEN_ADDRESSES_ADDRESS,
-            ROUTER_ADDRESS,
-            PATH_FINDER_ADDRESS,
-            VAULT_DISTRIBUTION_ADDRESS,
-            VAULT_VESTED_50_ADDRESS
-        ],
-    });
-
     console.log("Current block is:", CURRENT_BLOCK);
 
     console.log("Deploy finished");

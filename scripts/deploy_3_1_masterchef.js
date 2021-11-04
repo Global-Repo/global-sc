@@ -81,38 +81,6 @@ async function main() {
     console.log("Masterchef dev power set to:", DEV_POWER_ADDRESS);
     await new Promise(r => setTimeout(() => r(), 10000));
 
-    // Verify
-    await hre.run("verify:verify", {
-        address: pathFinder.address,
-        constructorArguments: [
-            TOKEN_ADDRESSES_ADDRESS
-        ],
-    });
-    await new Promise(r => setTimeout(() => r(), 10000));
-
-    await hre.run("verify:verify", {
-        address: masterChefInternal.address,
-        constructorArguments: [
-            TOKEN_ADDRESSES_ADDRESS,
-            pathFinder.address
-        ],
-    });
-    await new Promise(r => setTimeout(() => r(), 10000));
-
-    await hre.run("verify:verify", {
-        address: masterchef.address,
-        constructorArguments: [
-            masterChefInternal.address,
-            GLOBAL_TOKEN_ADDRESS,
-            NATIVE_TOKEN_PER_BLOCK,
-            MASTERCHEF_START_BLOCK,
-            ROUTER_ADDRESS,
-            TOKEN_ADDRESSES_ADDRESS,
-            pathFinder.address
-        ],
-    });
-    await new Promise(r => setTimeout(() => r(), 10000));
-    
     console.log("Current block is:", CURRENT_BLOCK);
 
     console.log("Deploy finished");
