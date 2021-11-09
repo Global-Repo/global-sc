@@ -324,7 +324,7 @@ contract MasterChef is Ownable, DevPower, ReentrancyGuard, IMinter, Trusted {
 
         uint256 pending = user.amount.mul(accNativeTokenPerShare).div(1e12).sub(user.rewardDebt);
 
-        pending.add(user.rewardLockedUp);
+        pending = pending.add(user.rewardLockedUp);
 
         if (performanceFee && !user.whitelisted){
             pending = pending.sub(pending.mul(pool.performanceFeesOfNativeTokensBurn.add(pool.performanceFeesOfNativeTokensToLockedVault)).div(10000));
