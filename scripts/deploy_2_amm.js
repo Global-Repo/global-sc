@@ -6,7 +6,6 @@ const {
     WETH_ADDRESS,
     BUSD_ADDRESS,
     CAKE_ADDRESS,
-    DEV_POWER_ADDRESS,
     TREASURY_SWAP_ADDRESS,
     DEPLOYER_ADDRESS
 } = require("./addresses");
