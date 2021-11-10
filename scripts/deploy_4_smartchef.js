@@ -10,7 +10,7 @@ const {
     DOGE_ADDRESS,
     USDT_ADDRESS,
     ETH_ADDRESS,
-    BTC_ADDRESS,
+    BTC_ADDRESS, ADA_ADDRESS,
 } = require("./addresses");
 const {
     deploySmartChefFactory,
@@ -30,9 +30,9 @@ async function main() {
     CURRENT_BLOCK = await ethers.provider.getBlockNumber();
     console.log("Current block is:", CURRENT_BLOCK);
 
-    const START_BLOCK = 12344984;
-    const END_BLOCK = START_BLOCK + (28800 * 30);
-    const USER_POOL_LIMIT = 400;
+    const START_BLOCK = 12627470;
+    const END_BLOCK = 13484270; //START_BLOCK + (28800 * 30);
+    const USER_POOL_LIMIT = 700;
 
     // Start
     smartChefFactory = await deploySmartChefFactory();
@@ -43,7 +43,7 @@ async function main() {
     const tx1 = await smartChefFactory.deployPool(
         GLOBAL_TOKEN_ADDRESS,
         WETH_ADDRESS,
-        "1736111111111",
+        "11574074074074",
         START_BLOCK,
         END_BLOCK,
         bep20Amount(USER_POOL_LIMIT),
@@ -51,13 +51,13 @@ async function main() {
     );
     const result1 = await tx1.wait();
     const smartChefAddress1 = result1.events[2].args[0];
-    console.log("SmartChef created for GLB - BNB on:", smartChefAddress1);
+    console.log("SmartChef created for GLB -> BNB on:", smartChefAddress1);
     await new Promise(r => setTimeout(() => r(), 10000));
 
     const tx2 = await smartChefFactory.deployPool(
         GLOBAL_TOKEN_ADDRESS,
         BUSD_ADDRESS,
-        "6944444444444440",
+        "6944444444444444",
         START_BLOCK,
         END_BLOCK,
         bep20Amount(USER_POOL_LIMIT),
@@ -65,13 +65,13 @@ async function main() {
     );
     const result2 = await tx2.wait();
     const smartChefAddress2 = result2.events[2].args[0];
-    console.log("SmartChef created for GLB - BUSD on:", smartChefAddress2);
+    console.log("SmartChef created for GLB -> BUSD on:", smartChefAddress2);
     await new Promise(r => setTimeout(() => r(), 10000));
 
     const tx3 = await smartChefFactory.deployPool(
         GLOBAL_TOKEN_ADDRESS,
-        CAKE_ADDRESS,
-        "347222222222222",
+        USDT_ADDRESS,
+        "6944444444444444",
         START_BLOCK,
         END_BLOCK,
         bep20Amount(USER_POOL_LIMIT),
@@ -79,13 +79,13 @@ async function main() {
     );
     const result3 = await tx3.wait();
     const smartChefAddress3 = result3.events[2].args[0];
-    console.log("SmartChef created for GLB - CAKE on:", smartChefAddress3);
+    console.log("SmartChef created for GLB -> USDT on:", smartChefAddress3);
     await new Promise(r => setTimeout(() => r(), 10000));
 
     const tx4 = await smartChefFactory.deployPool(
         GLOBAL_TOKEN_ADDRESS,
-        USDT_ADDRESS,
-        "6944444444444440",
+        BTC_ADDRESS,
+        "1041666666666",
         START_BLOCK,
         END_BLOCK,
         bep20Amount(USER_POOL_LIMIT),
@@ -93,13 +93,13 @@ async function main() {
     );
     const result4 = await tx4.wait();
     const smartChefAddress4 = result4.events[2].args[0];
-    console.log("SmartChef created for GLB - USDT on:", smartChefAddress4);
+    console.log("SmartChef created for GLB -> BTC on:", smartChefAddress4);
     await new Promise(r => setTimeout(() => r(), 10000));
 
     const tx5 = await smartChefFactory.deployPool(
         GLOBAL_TOKEN_ADDRESS,
         ETH_ADDRESS,
-        "1736111111111",
+        "1477541371158",
         START_BLOCK,
         END_BLOCK,
         bep20Amount(USER_POOL_LIMIT),
@@ -107,13 +107,13 @@ async function main() {
     );
     const result5 = await tx5.wait();
     const smartChefAddress5 = result5.events[2].args[0];
-    console.log("SmartChef created for GLB - ETH on:", smartChefAddress5);
+    console.log("SmartChef created for GLB -> ETH on:", smartChefAddress5);
     await new Promise(r => setTimeout(() => r(), 10000));
 
     const tx6 = await smartChefFactory.deployPool(
         GLOBAL_TOKEN_ADDRESS,
-        BTC_ADDRESS,
-        "115740740741",
+        ADA_ADDRESS,
+        "3072763028515240",
         START_BLOCK,
         END_BLOCK,
         bep20Amount(USER_POOL_LIMIT),
@@ -121,12 +121,12 @@ async function main() {
     );
     const result6 = await tx6.wait();
     const smartChefAddress6 = result6.events[2].args[0];
-    console.log("SmartChef created for GLB - BTC on:", smartChefAddress6);
+    console.log("SmartChef created for GLB -> ADA on:", smartChefAddress6);
     await new Promise(r => setTimeout(() => r(), 10000));
 
-    const tx7 = await smartChefFactory.deployPool(
+    /*const tx7 = await smartChefFactory.deployPool(
         GLOBAL_TOKEN_ADDRESS,
-        DOGE_ADDRESS,
+        ADA_ADDRESS,
         "27777777777777800",
         START_BLOCK,
         END_BLOCK,
@@ -138,7 +138,7 @@ async function main() {
     console.log("SmartChef created for GLB - DOGE on:", smartChefAddress7);
     await new Promise(r => setTimeout(() => r(), 10000));
 
-    console.log("Current block is:", CURRENT_BLOCK);
+    console.log("Current block is:", CURRENT_BLOCK);*/
 
     console.log("Deploy finished");
     console.log("Ensure you update SmartchefFactory address into addresses.js");
