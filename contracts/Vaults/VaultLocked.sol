@@ -40,6 +40,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
     uint256 public rewardInterval;
     uint public bnbBalance;
     uint public globalBalance;
+    uint public lastDistributedAmount;
 
     event RewardsDeposited(address indexed _account, uint _amount);
     event Deposited(address indexed _user, uint _amount);
@@ -65,6 +66,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
 
         bnbBalance = 0;
         globalBalance = 0;
+        lastDistributedAmount = 0;
 
         rewardInterval = _rewardInterval;
 
@@ -125,6 +127,10 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
 
     function rewardsToken() external view returns (address) {
         return address(bnb);
+    }
+
+    function getLastDistributedAmount() external view returns (uint) {
+        return lastDistributedAmount;
     }
 
     // Deposit globals as user.
@@ -297,7 +303,10 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
 
                 globalEarned[users[i]] = globalEarned[users[i]].add(globalToUser);
             }
-            emit DistributedGLOBAL(globalAmountToDistribute.sub(globalBalance));
+
+            lastDistributedAmount = globalAmountToDistribute.sub(globalBalance);
+
+            emit DistributedGLOBAL(lastDistributedAmount);
         }
     }
 }
