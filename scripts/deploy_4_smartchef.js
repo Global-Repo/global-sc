@@ -5,12 +5,11 @@ const {
     GLOBAL_TOKEN_ADDRESS,
     WETH_ADDRESS,
     DEV_POWER_ADDRESS,
-    CAKE_ADDRESS,
     BUSD_ADDRESS,
-    DOGE_ADDRESS,
     USDT_ADDRESS,
     ETH_ADDRESS,
-    BTC_ADDRESS, ADA_ADDRESS,
+    BTC_ADDRESS,
+    ADA_ADDRESS, MASTERCHEF_ADDRESS
 } = require("./addresses");
 const {
     deploySmartChefFactory,
@@ -35,6 +34,9 @@ async function main() {
     const USER_POOL_LIMIT = 700;
 
     // Start
+
+    /*const SmartChefFactory = await ethers.getContractFactory("SmartChefFactory");
+    smartChefFactory = await SmartChefFactory.attach("0xCF4e3a6D60683876BF05D66991f44Ab9Da40bbA2");*/
     smartChefFactory = await deploySmartChefFactory();
     console.log("SmartChefFactory deployed to:", smartChefFactory.address);
     await new Promise(r => setTimeout(() => r(), 10000));
@@ -43,7 +45,7 @@ async function main() {
     const tx1 = await smartChefFactory.deployPool(
         GLOBAL_TOKEN_ADDRESS,
         WETH_ADDRESS,
-        "11574074074074",
+        "11478420569329",
         START_BLOCK,
         END_BLOCK,
         bep20Amount(USER_POOL_LIMIT),
@@ -85,7 +87,7 @@ async function main() {
     const tx4 = await smartChefFactory.deployPool(
         GLOBAL_TOKEN_ADDRESS,
         BTC_ADDRESS,
-        "1041666666666",
+        "108506944444",
         START_BLOCK,
         END_BLOCK,
         bep20Amount(USER_POOL_LIMIT),
@@ -99,7 +101,7 @@ async function main() {
     const tx5 = await smartChefFactory.deployPool(
         GLOBAL_TOKEN_ADDRESS,
         ETH_ADDRESS,
-        "1477541371158",
+        "1509661835748",
         START_BLOCK,
         END_BLOCK,
         bep20Amount(USER_POOL_LIMIT),
@@ -113,7 +115,7 @@ async function main() {
     const tx6 = await smartChefFactory.deployPool(
         GLOBAL_TOKEN_ADDRESS,
         ADA_ADDRESS,
-        "3072763028515240",
+        "3338675213675213",
         START_BLOCK,
         END_BLOCK,
         bep20Amount(USER_POOL_LIMIT),
