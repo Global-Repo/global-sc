@@ -1,6 +1,7 @@
 const hre = require("hardhat");
 require("@nomiclabs/hardhat-ethers");
 
+const { timestampNHours } = require("../test/helpers/utils.js");
 const {
     DEPLOYER_ADDRESS,
     DEV_POWER_ADDRESS,
@@ -49,7 +50,7 @@ let CURRENT_BLOCK;
 
 async function main() {
     console.log("Starting deploy");
-    console.log("Ensure you have proper addresses set up into addresses.js for: Masterchef, VaultDistribution, VaultVested15, VaultVested30, VaultVested50");
+    console.log("Ensure you have proper addresses set up into addresses.js for: EVERYTHING");
 
     [deployer] = await hre.ethers.getSigners();
 
@@ -93,6 +94,8 @@ async function main() {
         ],
     });
 
+    const NATIVE_TOKEN_PER_BLOCK = bep20Amount(75);
+    const MASTERCHEF_START_BLOCK = 12598764; // 13/11/2021 22:00
     await hre.run("verify:verify", {
         address: MASTERCHEF_ADDRESS,
         constructorArguments: [
@@ -114,87 +117,27 @@ async function main() {
 
     await hre.run("verify:verify", {
         address: SMARTCHEF1_ADDRESS,
-        constructorArguments: [
-            GLOBAL_TOKEN_ADDRESS,
-            WETH_ADDRESS,
-            "1736111111111",
-            START_BLOCK,
-            END_BLOCK,
-            bep20Amount(USER_POOL_LIMIT),
-            DEV_POWER_ADDRESS
-        ],
+        constructorArguments: [],
     });
     await hre.run("verify:verify", {
         address: SMARTCHEF2_ADDRESS,
-        constructorArguments: [
-            GLOBAL_TOKEN_ADDRESS,
-            BUSD_ADDRESS,
-            "6944444444444440",
-            START_BLOCK,
-            END_BLOCK,
-            bep20Amount(USER_POOL_LIMIT),
-            DEV_POWER_ADDRESS
-        ],
+        constructorArguments: [],
     });
     await hre.run("verify:verify", {
         address: SMARTCHEF3_ADDRESS,
-        constructorArguments: [
-            GLOBAL_TOKEN_ADDRESS,
-            CAKE_ADDRESS,
-            "347222222222222",
-            START_BLOCK,
-            END_BLOCK,
-            bep20Amount(USER_POOL_LIMIT),
-            DEV_POWER_ADDRESS
-        ],
+        constructorArguments: [],
     });
     await hre.run("verify:verify", {
         address: SMARTCHEF4_ADDRESS,
-        constructorArguments: [
-            GLOBAL_TOKEN_ADDRESS,
-            USDT_ADDRESS,
-            "6944444444444440",
-            START_BLOCK,
-            END_BLOCK,
-            bep20Amount(USER_POOL_LIMIT),
-            DEV_POWER_ADDRESS
-        ],
+        constructorArguments: [],
     });
     await hre.run("verify:verify", {
         address: SMARTCHEF5_ADDRESS,
-        constructorArguments: [
-            GLOBAL_TOKEN_ADDRESS,
-            ETH_ADDRESS,
-            "1736111111111",
-            START_BLOCK,
-            END_BLOCK,
-            bep20Amount(USER_POOL_LIMIT),
-            DEV_POWER_ADDRESS
-        ],
+        constructorArguments: [],
     });
     await hre.run("verify:verify", {
         address: SMARTCHEF6_ADDRESS,
-        constructorArguments: [
-            GLOBAL_TOKEN_ADDRESS,
-            BTC_ADDRESS,
-            "115740740741",
-            START_BLOCK,
-            END_BLOCK,
-            bep20Amount(USER_POOL_LIMIT),
-            DEV_POWER_ADDRESS
-        ],
-    });
-    await hre.run("verify:verify", {
-        address: SMARTCHEF7_ADDRESS,
-        constructorArguments: [
-            GLOBAL_TOKEN_ADDRESS,
-            DOGE_ADDRESS,
-            "27777777777777800",
-            START_BLOCK,
-            END_BLOCK,
-            bep20Amount(USER_POOL_LIMIT),
-            DEV_POWER_ADDRESS
-        ],
+        constructorArguments: [],
     });
 
     //VERIFY DISTRIBUTION
@@ -227,6 +170,7 @@ async function main() {
     });
 
     //VERIFY LOCKED
+    const VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL = timestampNHours(12); // 12h, Hours to distribute Globals from last distribution event.
     await hre.run("verify:verify", {
         address: VAULT_LOCKED_ADDRESS,
         constructorArguments: [
@@ -318,7 +262,6 @@ async function main() {
     });
 
     console.log("Verify finished");
-    console.log("Ensure you update VaultCake15, VaultCake30, VaultCake50 addresses into addresses.js");
 }
 
 // We recommend this pattern to be able to use async/await everywhere
