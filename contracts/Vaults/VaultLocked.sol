@@ -40,7 +40,8 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
     uint256 public rewardInterval;
     uint public bnbBalance;
     uint public globalBalance;
-    uint public lastDistributedAmount;
+    uint public lastDistributedGLOBALAmount;
+    uint public lastDistributedBNBAmount;
 
     event RewardsDeposited(address indexed _account, uint _amount);
     event Deposited(address indexed _user, uint _amount);
@@ -66,7 +67,8 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
 
         bnbBalance = 0;
         globalBalance = 0;
-        lastDistributedAmount = 0;
+        lastDistributedGLOBALAmount = 0;
+        lastDistributedBNBAmount = 0;
 
         rewardInterval = _rewardInterval;
 
@@ -129,8 +131,12 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
         return address(bnb);
     }
 
-    function getLastDistributedAmount() external view returns (uint) {
-        return lastDistributedAmount;
+    function getLastDistributedGLOBALAmount() external view returns (uint) {
+        return lastDistributedGLOBALAmount;
+    }
+
+    function getLastDistributedBNBAmount() external view returns (uint) {
+        return lastDistributedBNBAmount;
     }
 
     // Deposit globals as user.
@@ -288,7 +294,9 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
             bnbEarned[users[i]] = bnbEarned[users[i]].add(bnbToUser);
         }
 
-        emit Distributed(bnbAmountToDistribute.sub(bnbBalance));
+        lastDistributedBNBAmount = bnbAmountToDistribute.sub(bnbBalance);
+
+        emit Distributed(lastDistributedBNBAmount);
     }
 
     function _distributeGLOBAL() private {
@@ -304,9 +312,9 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
                 globalEarned[users[i]] = globalEarned[users[i]].add(globalToUser);
             }
 
-            lastDistributedAmount = globalAmountToDistribute.sub(globalBalance);
+            lastDistributedGLOBALAmount = globalAmountToDistribute.sub(globalBalance);
 
-            emit DistributedGLOBAL(lastDistributedAmount);
+            emit DistributedGLOBAL(lastDistributedGLOBALAmount);
         }
     }
 }
