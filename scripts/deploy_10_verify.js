@@ -58,7 +58,7 @@ async function main() {
     console.log("Current block is:", CURRENT_BLOCK);
 
     //VERIFY AMM
-    await hre.run("verify:verify", {
+    /*await hre.run("verify:verify", {
         address: FACTORY_ADDRESS,
         constructorArguments: [
             DEPLOYER_ADDRESS
@@ -147,10 +147,10 @@ async function main() {
             WETH_ADDRESS,
             GLOBAL_TOKEN_ADDRESS
         ],
-    });
+    });*/
 
     //VERIFY STAKEDS
-    await hre.run("verify:verify", {
+    /*await hre.run("verify:verify", {
         address: VAULT_STAKED,
         constructorArguments: [
             GLOBAL_TOKEN_ADDRESS,
@@ -167,22 +167,22 @@ async function main() {
             MASTERCHEF_ADDRESS,
             ROUTER_ADDRESS
         ],
-    });
+    });*/
 
     //VERIFY LOCKED
-    const VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL = timestampNHours(12); // 12h, Hours to distribute Globals from last distribution event.
+    //const VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL = timestampNHours(12); // 12h, Hours to distribute Globals from last distribution event.
     await hre.run("verify:verify", {
         address: VAULT_LOCKED_ADDRESS,
         constructorArguments: [
             GLOBAL_TOKEN_ADDRESS,
             WETH_ADDRESS,
             MASTERCHEF_ADDRESS,
-            VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL
+            timestampNHours(12)
         ],
     });
 
     //VERIFY VESTED
-    await hre.run("verify:verify", {
+    /*await hre.run("verify:verify", {
         address: VAULT_VESTED_15_ADDRESS,
         constructorArguments: [
             GLOBAL_TOKEN_ADDRESS,
@@ -259,7 +259,7 @@ async function main() {
             VAULT_DISTRIBUTION_ADDRESS,
             VAULT_VESTED_50_ADDRESS
         ],
-    });
+    });*/
 
     console.log("Verify finished");
 }

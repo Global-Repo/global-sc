@@ -28,7 +28,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
     IGlobalMasterChef public globalMasterChef;
 
     uint public constant DUST = 1000;
-    uint256 public constant LOCKUP = 7776000; //default lockup of 90 days
+    uint256 public constant LOCKUP = 1814400; //default lockup of 90 days
 
     uint256 public pid;
     uint public minTokenAmountToDistribute;
@@ -301,18 +301,21 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
 
     function _distributeGLOBAL() private {
         uint globalAmountToDistribute = globalBalance;
+        uint globalBalanceLocal = globalBalance;
         if(lastRewardEvent.add(rewardInterval)<=block.timestamp && globalAmountToDistribute >= minGlobalAmountToDistribute)
         {
             lastRewardEvent = block.timestamp;
             for (uint i=0; i < users.length; i++) {
                 uint userPercentage = amountOfUser(users[i]).mul(100).div(totalSupply);
                 uint globalToUser = globalAmountToDistribute.mul(userPercentage).div(100).div(20);
-                globalBalance = globalBalance.sub(globalToUser);
+                globalBalanceLocal = globalBalanceLocal.sub(globalToUser);
 
                 globalEarned[users[i]] = globalEarned[users[i]].add(globalToUser);
             }
 
-            lastDistributedGLOBALAmount = globalAmountToDistribute.sub(globalBalance);
+            lastDistributedGLOBALAmount = globalAmountToDistribute.sub(globalBalanceLocal);
+
+            globalBalance = globalBalanceLocal;
 
             emit DistributedGLOBAL(lastDistributedGLOBALAmount);
         }
