@@ -28,7 +28,7 @@ contract VaultLockedManual is IDistributable, Ownable, ReentrancyGuard, Deposito
     IGlobalMasterChef public globalMasterChef;
 
     uint public constant DUST = 1000;
-    uint256 public constant LOCKUP = 1814400; //default lockup of 21 days
+    uint256 public constant LOCKUP = 1728000; //default lockup of 20 days
 
     uint256 public pid;
     uint public minTokenAmountToDistribute;
@@ -238,10 +238,11 @@ contract VaultLockedManual is IDistributable, Ownable, ReentrancyGuard, Deposito
 
     // Withdraw all only
     function withdraw() external nonReentrant {
+        uint amount = 0;
         if (block.timestamp > lockupStarted.add(LOCKUP)) {
-            uint amount = availableForWithdrawAfterLockup(msg.sender);
+            amount = availableForWithdrawAfterLockup(msg.sender);
         } else {
-            uint amount = availableForWithdraw(block.timestamp, msg.sender);
+            amount = availableForWithdraw(block.timestamp, msg.sender);
         }
 
         require(amount > 0, "VaultLocked: you have no tokens to withdraw!");
