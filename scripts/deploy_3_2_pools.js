@@ -56,7 +56,7 @@ async function main() {
 
     await new Promise(r => setTimeout(() => r(), 10000));
 
-
+    /*
     // POOL BUSD-WBNB
     await bUSDToken.approve(ROUTER_ADDRESS,bep20Amount(10000));
     await new Promise(r => setTimeout(() => r(), 10000));
@@ -316,7 +316,22 @@ async function main() {
         100,
         100
     );
-    console.log("Pool ADA-BNB successfully created");
+    console.log("Pool ADA-BNB successfully created");*/
+
+
+    // POOL GLB-CAKE
+    await new Promise(r => setTimeout(() => r(), 10000));
+    await masterChef.addPool(
+        150,
+        "0x209ea503ac05008b698065e4acb17a8e75397832",
+        259200,
+        345600,
+        65,
+        15,
+        100,
+        100
+    );
+    console.log("Pool GLB-CAKE successfully created");
 
     await new Promise(r => setTimeout(() => r(), 10000));
 
