@@ -175,6 +175,13 @@ let deployVaultLocked = async function (global, bnb, globalMasterChef, rewardInt
     return vaultLocked;
 };
 
+let deployVaultLockedManual = async function (global, bnb, globalMasterChef, rewardInterval) {
+    const VaultLockedManual = await ethers.getContractFactory("VaultLockedManual");
+    const vaultLockedManual = await VaultLockedManual.deploy(global, bnb, globalMasterChef, rewardInterval);
+    await vaultLockedManual.deployed();
+    return vaultLockedManual;
+};
+
 let deployVaultVested = async function (
     global,
     bnb,
@@ -332,6 +339,7 @@ module.exports = {
     deployVaultCake,
     deployVaultVested,
     deployVaultLocked,
+    deployVaultLockedManual,
     deployVaultStaked,
     deployVaultStakedToGlobal,
     deployPathFinder,

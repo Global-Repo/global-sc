@@ -28,7 +28,7 @@ contract VaultLocked is IDistributable, Ownable, ReentrancyGuard, DepositoryRest
     IGlobalMasterChef public globalMasterChef;
 
     uint public constant DUST = 1000;
-    uint256 public constant LOCKUP = 1814400; //default lockup of 90 days
+    uint256 public constant LOCKUP = 1814400; //default lockup of 30 days
 
     uint256 public pid;
     uint public minTokenAmountToDistribute;

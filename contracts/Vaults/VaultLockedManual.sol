@@ -28,7 +28,7 @@ contract VaultLockedManual is IDistributable, Ownable, ReentrancyGuard, Deposito
     IGlobalMasterChef public globalMasterChef;
 
     uint public constant DUST = 1000;
-    uint256 public constant LOCKUP = 1728000; //default lockup of 20 days
+    uint256 public constant LOCKUP = 1555200; //default lockup of 18 days
 
     uint256 public pid;
     uint public minTokenAmountToDistribute;
@@ -149,7 +149,7 @@ contract VaultLockedManual is IDistributable, Ownable, ReentrancyGuard, Deposito
 
         depositInfo[msg.sender].push(DepositInfo({
             amount: _amount,
-            nextWithdraw: block.timestamp.add(LOCKUP)
+            nextWithdraw: lockupStarted.add(LOCKUP)
         }));
 
         global.approve(address(globalMasterChef), _amount);
@@ -205,20 +205,10 @@ contract VaultLockedManual is IDistributable, Ownable, ReentrancyGuard, Deposito
         DepositInfo[] memory myDeposits =  depositInfo[_user];
         for(uint i=0; i< myDeposits.length; i++)
         {
-            if (myDeposits[i].nextWithdraw < _time)
+            if(myDeposits[i].nextWithdraw < _time)
             {
                 totalAmount=totalAmount.add(myDeposits[i].amount);
             }
-        }
-    }
-
-    function availableForWithdrawAfterLockup(address _user) public view returns (uint totalAmount)
-    {
-        totalAmount = 0;
-        DepositInfo[] memory myDeposits =  depositInfo[_user];
-        for(uint i=0; i< myDeposits.length; i++)
-        {
-            totalAmount=totalAmount.add(myDeposits[i].amount);
         }
     }
 
@@ -237,13 +227,8 @@ contract VaultLockedManual is IDistributable, Ownable, ReentrancyGuard, Deposito
     }
 
     // Withdraw all only
-    function withdraw() external nonReentrant {
-        uint amount = 0;
-        if (block.timestamp > lockupStarted.add(LOCKUP)) {
-            amount = availableForWithdrawAfterLockup(msg.sender);
-        } else {
-            amount = availableForWithdraw(block.timestamp, msg.sender);
-        }
+    function withdraw() external nonReentrant{
+        uint amount = availableForWithdraw(block.timestamp,msg.sender);
 
         require(amount > 0, "VaultLocked: you have no tokens to withdraw!");
         uint earnedBNB = bnbToEarn(msg.sender);
@@ -326,7 +311,7 @@ contract VaultLockedManual is IDistributable, Ownable, ReentrancyGuard, Deposito
             lastRewardEvent = block.timestamp;
             for (uint i=0; i < users.length; i++) {
                 uint userPercentage = amountOfUser(users[i]).mul(100).div(totalSupply);
-                uint globalToUser = globalAmountToDistribute.mul(userPercentage).div(100).div(20);
+                uint globalToUser = globalAmountToDistribute.mul(userPercentage).div(100);
                 globalBalanceLocal = globalBalanceLocal.sub(globalToUser);
 
                 globalEarned[users[i]] = globalEarned[users[i]].add(globalToUser);
