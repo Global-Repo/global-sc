@@ -316,7 +316,7 @@ async function main() {
         100,
         100
     );
-    console.log("Pool ADA-BNB successfully created");*/
+    console.log("Pool ADA-BNB successfully created");
 
 
     // POOL GLB-CAKE
@@ -331,7 +331,22 @@ async function main() {
         100,
         100
     );
-    console.log("Pool GLB-CAKE successfully created");
+    console.log("Pool GLB-CAKE successfully created");*/
+
+
+    // POOL SOL-BNB
+    await new Promise(r => setTimeout(() => r(), 10000));
+    await masterChef.addPool(
+        10,
+        "0x411fe95f21c6d064285450faab45aace8ac82b96",
+        604800,
+        345600,
+        65,
+        15,
+        100,
+        100
+    );
+    console.log("Pool SOL-BNB successfully created");
 
     await new Promise(r => setTimeout(() => r(), 10000));
 
