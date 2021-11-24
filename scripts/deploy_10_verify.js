@@ -138,10 +138,15 @@ async function main() {
     await hre.run("verify:verify", {
         address: SMARTCHEF6_ADDRESS,
         constructorArguments: [],
+    });*/
+    console.log(SMARTCHEF7_ADDRESS);
+    await hre.run("verify:verify", {
+        address: SMARTCHEF7_ADDRESS,
+        constructorArguments: [],
     });
 
     //VERIFY DISTRIBUTION
-    await hre.run("verify:verify", {
+    /*await hre.run("verify:verify", {
         address: VAULT_DISTRIBUTION_ADDRESS,
         constructorArguments: [
             WETH_ADDRESS,
@@ -167,7 +172,7 @@ async function main() {
             MASTERCHEF_ADDRESS,
             ROUTER_ADDRESS
         ],
-    });*/
+    });
 
     //VERIFY LOCKED
     //const VAULT_LOCKED_DISTRIBUTE_GLOBAL_INTERVAL = timestampNHours(12); // 12h, Hours to distribute Globals from last distribution event.
@@ -182,7 +187,7 @@ async function main() {
     });
 
     //VERIFY VESTED
-    /*await hre.run("verify:verify", {
+    await hre.run("verify:verify", {
         address: VAULT_VESTED_15_ADDRESS,
         constructorArguments: [
             GLOBAL_TOKEN_ADDRESS,
