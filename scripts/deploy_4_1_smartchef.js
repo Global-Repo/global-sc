@@ -10,7 +10,8 @@ const {
     ETH_ADDRESS,
     BTC_ADDRESS,
     ADA_ADDRESS, MASTERCHEF_ADDRESS,
-    SQUID_ADDRESS
+    SQUID_ADDRESS,
+    SMARTCHEF_FACTORY_ADDRESS
 } = require("./addresses");
 const {
     deploySmartChefFactory,
@@ -37,24 +38,25 @@ async function main() {
     // Start
 
     const SmartChefFactory = await ethers.getContractFactory("SmartChefFactory");
-    smartChefFactory = await SmartChefFactory.attach("0xCF4e3a6D60683876BF05D66991f44Ab9Da40bbA2");
+    smartChefFactory = await SmartChefFactory.attach(SMARTCHEF_FACTORY_ADDRESS);
     //smartChefFactory = await deploySmartChefFactory();
+    //await smartChefFactory.deployed();
     console.log("SmartChefFactory deployed to:", smartChefFactory.address);
     await new Promise(r => setTimeout(() => r(), 10000));
 
     // Set up
     const tx1 = await smartChefFactory.deployPool(
         GLOBAL_TOKEN_ADDRESS,
-        SQUID_ADDRESS,
+        GLOBAL_TOKEN_ADDRESS,
         "10000000000000000",
-        START_BLOCK,
-        END_BLOCK,
-        bep20Amount(USER_POOL_LIMIT),
+        13036300,//START_BLOCK,
+        13037500,//END_BLOCK,
+        0,//bep20Amount(USER_POOL_LIMIT),
         DEV_POWER_ADDRESS
     );
     const result1 = await tx1.wait();
     const smartChefAddress1 = result1.events[2].args[0];
-    console.log("SmartChef created for GLB -> BNB on:", smartChefAddress1);
+    console.log("SmartChef created for GLB -> GLB on:", smartChefAddress1);
     await new Promise(r => setTimeout(() => r(), 10000));
 /*
     const tx2 = await smartChefFactory.deployPool(
