@@ -172,8 +172,8 @@ async function main() {
     const END_BLOCK = START_BLOCK + (28800 * 30);
     const USER_POOL_LIMIT = 0;
     const tx9 = await smartChefFactory.deployPool(
-        GLOBAL_TOKEN_ADDRESS,
         RPS_ADDRESS,
+        GLOBAL_TOKEN_ADDRESS,
         "181500000000000000",
         START_BLOCK,
         END_BLOCK,
@@ -182,7 +182,7 @@ async function main() {
     );
     const result9 = await tx9.wait();
     const smartChefAddress9 = result9.events[2].args[0];
-    console.log("SmartChef created for GLB - RPS on:", smartChefAddress9);
+    console.log("SmartChef created for RPS - GLB on:", smartChefAddress9);
     await new Promise(r => setTimeout(() => r(), 10000));
 
     console.log("Deploy finished");
