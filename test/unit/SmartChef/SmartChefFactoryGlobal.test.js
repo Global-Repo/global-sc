@@ -82,7 +82,7 @@ beforeEach(async function () {
 });
 
 describe("SmartChefFactoryGlobal: After deployment", function () {
-  it("Should work with 1 user", async function () {
+  xit("Should work with 1 user", async function () {
     expect(await smartChefGlobal.connect(addr2).deposit(BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER))).to.emit(smartChefGlobal, 'Deposit')
         .withArgs(addr2.address, BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
     await WaitBlocks(5);
@@ -100,7 +100,7 @@ describe("SmartChefFactoryGlobal: After deployment", function () {
     expect((await nativeToken.balanceOf(addr2.address)).div(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER)).to.equal(143);
     //console.log((await smartChefGlobal.pendingReward(addr1.address)).div(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER).toString());
   });
-  it("Should work with 2 users", async function () {
+  xit("Should work with 2 users", async function () {
     expect(await smartChefGlobal.connect(addr1).deposit(BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER))).to.emit(smartChefGlobal, 'Deposit')
         .withArgs(addr1.address, BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
     expect(await smartChefGlobal.connect(addr2).deposit(BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER))).to.emit(smartChefGlobal, 'Deposit')
@@ -134,7 +134,7 @@ describe("SmartChefFactoryGlobal: After deployment", function () {
     expect((await nativeToken.balanceOf(addr2.address)).div(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER)).to.equal(407);//arrodoniment de 407.9999999
 
   });
-  it("Should work with 3 users", async function () {
+  xit("Should work with 3 users", async function () {
     expect(await smartChefGlobal.connect(addr1).deposit(BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER))).to.emit(smartChefGlobal, 'Deposit')
         .withArgs(addr1.address, BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
     expect(await smartChefGlobal.connect(addr2).deposit(BigNumber.from(3).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER))).to.emit(smartChefGlobal, 'Deposit')
@@ -179,5 +179,102 @@ describe("SmartChefFactoryGlobal: After deployment", function () {
     expect((await smartChefGlobal.pendingReward(addr2.address)).div(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER)).to.equal(0);
     expect((await smartChefGlobal.pendingReward(addr3.address)).div(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER)).to.equal(0);
 
+  });
+
+  it("EmergencyWithdraw", async function () {
+    expect(await smartChefGlobal.connect(addr1).deposit(BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER))).to.emit(smartChefGlobal, 'Deposit')
+        .withArgs(addr1.address, BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+    await WaitBlocks(10);
+
+    expect(await nativeToken.balanceOf(addr1.address)).to.equal(0);
+    expect((await smartChefGlobal.userInfo(addr1.address)).amount).to.equal(BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+    expect(await smartChefGlobal.pendingReward(addr1.address)).to.equal(BigNumber.from(100).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+
+    expect(await smartChefGlobal.connect(addr1).emergencyWithdraw()).to.emit(smartChefGlobal, 'EmergencyWithdraw')
+        .withArgs(addr1.address, BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+
+    expect((await nativeToken.balanceOf(addr1.address)).div(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER)).to.equal(1);
+    expect(await smartChefGlobal.pendingReward(addr1.address)).to.equal(0);
+    expect((await smartChefGlobal.userInfo(addr1.address)).amount).to.equal(0);
+  });
+
+  it("EmergencyWithdraw with 2 users", async function () {
+    expect(await smartChefGlobal.connect(addr1).deposit(BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER))).to.emit(smartChefGlobal, 'Deposit')
+        .withArgs(addr1.address, BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+    expect(await smartChefGlobal.connect(addr2).deposit(BigNumber.from(3).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER))).to.emit(smartChefGlobal, 'Deposit')
+        .withArgs(addr2.address, BigNumber.from(3).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+    await WaitBlocks(10);
+
+    expect(await nativeToken.balanceOf(addr1.address)).to.equal(0);
+    expect(await nativeToken.balanceOf(addr2.address)).to.equal(0);
+
+    expect((await smartChefGlobal.userInfo(addr1.address)).amount).to.equal(BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+    expect((await smartChefGlobal.userInfo(addr2.address)).amount).to.equal(BigNumber.from(3).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+
+    expect(await smartChefGlobal.pendingReward(addr1.address)).to.equal(BigNumber.from(35).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+    expect(await smartChefGlobal.pendingReward(addr2.address)).to.equal(BigNumber.from(75).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+
+    expect(await smartChefGlobal.connect(addr1).emergencyWithdraw()).to.emit(smartChefGlobal, 'EmergencyWithdraw')
+        .withArgs(addr1.address, BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+
+    expect((await nativeToken.balanceOf(addr1.address)).div(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER)).to.equal(1);
+    expect((await nativeToken.balanceOf(addr2.address)).div(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER)).to.equal(0);
+
+    expect((await smartChefGlobal.userInfo(addr1.address)).amount).to.equal(0);
+    expect((await smartChefGlobal.userInfo(addr2.address)).amount).to.equal(BigNumber.from(3).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+
+    expect(await smartChefGlobal.pendingReward(addr1.address)).to.equal(0);
+    expect((await smartChefGlobal.pendingReward(addr2.address)).div(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER)).to.equal(109);
+
+    expect(await smartChefGlobal.connect(addr2).emergencyWithdraw()).to.emit(smartChefGlobal, 'EmergencyWithdraw')
+        .withArgs(addr2.address, BigNumber.from(3).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+
+    expect((await nativeToken.balanceOf(addr1.address)).div(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER)).to.equal(1);
+    expect((await nativeToken.balanceOf(addr2.address)).div(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER)).to.equal(3);
+
+    expect((await smartChefGlobal.userInfo(addr1.address)).amount).to.equal(0);
+    expect((await smartChefGlobal.userInfo(addr2.address)).amount).to.equal(0);
+
+    expect(await smartChefGlobal.pendingReward(addr1.address)).to.equal(0);
+    expect(await smartChefGlobal.pendingReward(addr2.address)).to.equal(0);
+  });
+
+  it("EmergencyRewardWithdraw", async function () {
+    expect((await nativeToken.balanceOf(owner.address)).div(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER)).to.equal(998990);
+    await smartChefGlobal.emergencyRewardWithdraw(BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+    expect((await nativeToken.balanceOf(owner.address)).div(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER)).to.equal(999000);
+  });
+
+  it("EmergencyRewardWithdraw with 2 users", async function () {
+    expect((await nativeToken.balanceOf(owner.address)).div(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER)).to.equal(998990);
+    await smartChefGlobal.emergencyRewardWithdraw(BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+    expect((await nativeToken.balanceOf(owner.address)).div(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER)).to.equal(999000);
+
+    expect(await smartChefGlobal.connect(addr1).deposit(BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER))).to.emit(smartChefGlobal, 'Deposit')
+        .withArgs(addr1.address, BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+    expect(await smartChefGlobal.connect(addr2).deposit(BigNumber.from(3).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER))).to.emit(smartChefGlobal, 'Deposit')
+        .withArgs(addr2.address, BigNumber.from(3).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+    await WaitBlocks(10);
+
+    expect((await nativeToken.balanceOf(owner.address)).div(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER)).to.equal(999000);
+    await smartChefGlobal.emergencyRewardWithdraw(BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+    expect((await nativeToken.balanceOf(owner.address)).div(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER)).to.equal(999010);
+
+    expect(await smartChefGlobal.connect(addr1).withdraw(BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER))).to.emit(smartChefGlobal, 'Withdraw')
+        .withArgs(addr1.address, BigNumber.from(1).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+    expect(await smartChefGlobal.connect(addr2).withdraw(BigNumber.from(3).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER))).to.emit(smartChefGlobal, 'Withdraw')
+        .withArgs(addr2.address, BigNumber.from(3).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+
+    expect((await nativeToken.balanceOf(owner.address)).div(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER)).to.equal(999010);
+    await smartChefGlobal.emergencyRewardWithdraw(BigNumber.from(10).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+    expect((await nativeToken.balanceOf(owner.address)).div(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER)).to.equal(999020);
+  });
+
+  it("EmergencyRewardWithdraw too high", async function () {
+    expect((await nativeToken.balanceOf(owner.address)).div(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER)).to.equal(998990);
+    await expect(smartChefGlobal.emergencyRewardWithdraw(BigNumber.from(1001).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER))).to.be.revertedWith("Cannot withdraw more than the deposited rewards");;
+    expect((await nativeToken.balanceOf(owner.address)).div(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER)).to.equal(998990);
+    await smartChefGlobal.emergencyRewardWithdraw(BigNumber.from(1000).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER));
+    expect((await nativeToken.balanceOf(owner.address)).div(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER)).to.equal(999990);
   });
 });

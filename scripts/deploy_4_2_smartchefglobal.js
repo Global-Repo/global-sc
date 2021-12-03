@@ -23,8 +23,8 @@ async function main() {
     CURRENT_BLOCK = await ethers.provider.getBlockNumber();
     console.log("Current block is:", CURRENT_BLOCK);
 
-    const START_BLOCK = 12902728;
-    const END_BLOCK = 12903728; //START_BLOCK + (28800 * 30);
+    const START_BLOCK = 13156400;
+    const END_BLOCK = 14308400; //START_BLOCK + 40 days
     const USER_POOL_LIMIT = 0;
 
     // Start
@@ -40,10 +40,10 @@ async function main() {
     const tx1 = await smartChefFactoryGlobal.deployPool(
         GLOBAL_TOKEN_ADDRESS,
         GLOBAL_TOKEN_ADDRESS,
-        "10000000000000000",
-        13036300,//START_BLOCK,
-        13037500,//END_BLOCK,
-        0,//bep20Amount(USER_POOL_LIMIT),
+        "694444444444444444",
+        START_BLOCK,
+        END_BLOCK,
+        bep20Amount(USER_POOL_LIMIT),
         DEV_POWER_ADDRESS
     );
     const result1 = await tx1.wait();
