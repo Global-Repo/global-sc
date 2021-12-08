@@ -189,6 +189,13 @@ let deployVaultLockedManualRewarder = async function (global, vaultLockedManual)
     return vaultLockedManualRewarder;
 };
 
+let deployVaultLockedManualWithdrawer = async function (global, vaultLockedManual) {
+    const VaultLockedManualWithdrawer = await ethers.getContractFactory("VaultLockedManualWithdrawer");
+    const vaultLockedManualWithdrawer = await VaultLockedManualWithdrawer.deploy(global, vaultLockedManual);
+    await vaultLockedManualWithdrawer.deployed();
+    return vaultLockedManualWithdrawer;
+};
+
 let deployVaultVested = async function (
     global,
     bnb,
