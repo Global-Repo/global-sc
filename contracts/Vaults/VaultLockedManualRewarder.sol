@@ -14,7 +14,7 @@ contract VaultLockedManualRewarder is Ownable {
     IBEP20 public global;
     VaultLockedManual public vaultLockedManual;
 
-    event DistributedREWARDS(address indexed _user, uint GLOBALAmount);
+    event DistributedREWARDS(uint i, address indexed _user, uint GLOBALAmount);
 
     constructor(
         address _global,
@@ -24,7 +24,11 @@ contract VaultLockedManualRewarder is Ownable {
         global = IBEP20(_global);
     }
 
-    function distributeRewards(uint firstUser, uint lastUser, uint amount) private {
+    function recoverRewardTokens() external onlyOwner {
+        global.transfer(address(msg.sender), global.balanceOf(address(this)));
+    }
+
+    function distributeRewards(uint firstUser, uint lastUser, uint amount) public onlyOwner {
         address actualUser;
         uint globalToUser;
         for (uint i=firstUser; i <= lastUser; i++) {
@@ -33,7 +37,7 @@ contract VaultLockedManualRewarder is Ownable {
 
             global.transfer(actualUser,globalToUser);
 
-            emit DistributedREWARDS(actualUser,globalToUser);
+            emit DistributedREWARDS(i,actualUser,globalToUser);
         }
     }
 }

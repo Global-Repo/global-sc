@@ -6,7 +6,7 @@ const {
     GLOBAL_TOKEN_ADDRESS,
     WETH_ADDRESS,
     MASTERCHEF_ADDRESS,
-    TREASURY_MINT_ADDRESS, VAULT_LOCKED_MANUAL_ADDRESS,
+    TREASURY_MINT_ADDRESS, VAULT_LOCKED_MANUAL_ADDRESS, VAULT_LOCKED_MANUAL_ADDRESS_2,
 } = require("./addresses");
 
 const {
@@ -35,26 +35,30 @@ async function main() {
     nativeToken = await NativeToken.attach(GLOBAL_TOKEN_ADDRESS);
 
     const VaultLockedManual = await ethers.getContractFactory("VaultLockedManual"); //543 users
-    vaultLockedManual = await VaultLockedManual.attach(VAULT_LOCKED_MANUAL_ADDRESS);
+    vaultLockedManual = await VaultLockedManual.attach(VAULT_LOCKED_MANUAL_ADDRESS_2);
 
     const TOKEN_DECIMALS = 18;
     const BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER = BigNumber.from(10).pow(TOKEN_DECIMALS);
-    const GLOBAL_BALANCE = BigNumber.from(204000).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
+    const GLOBAL_BALANCE = BigNumber.from(53950).mul(BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER);
 
     //console.log((await nativeToken.balanceOf(deployer.address)).toString());
     //for (var i = 0; i < 544; i++) {
     var globalToUser;
     var globalToUserTotal = BigNumber.from(0);
     var userAddress;
-    for (var i = 16; i <= 20; i++) {
+    for (var i = 126; i <= 126; i++) {
         userAddress = await vaultLockedManual.users(i);
-        globalToUser = GLOBAL_BALANCE.mul(await vaultLockedManual.amountOfUser(userAddress)).div(await vaultLockedManual.totalSupply());
-        await nativeToken.transfer(userAddress, globalToUser);
-        console.log("Per l'user ", i ," : ",userAddress)
-        console.log("Li ingressarem: ",globalToUser.toString());
-        globalToUserTotal = globalToUserTotal.add(globalToUser);
-        //console.log("Te de balanc: ",(await vaultLockedManual.amountOfUser(userAddress)).toString());
-        await new Promise(r => setTimeout(() => r(), 20000));
+        if(userAddress=="0x4b5415b973aC4f54418F0b04B69d36f647bB6B3e")
+        {
+            globalToUser = GLOBAL_BALANCE.mul(await vaultLockedManual.amountOfUser(userAddress)).div(await vaultLockedManual.totalSupply());
+            //await nativeToken.transfer(userAddress, globalToUser);
+            console.log("Per l'user ", i ," : ",userAddress)
+            console.log("Li ingressarem: ",globalToUser.toString());
+            globalToUserTotal = globalToUserTotal.add(globalToUser);
+            //console.log("Te de balanc: ",(await vaultLockedManual.amountOfUser(userAddress)).toString());
+            //await new Promise(r => setTimeout(() => r(), 20000));
+        }
+        console.log("Per l'user ", i ," res");
     }
     console.log(globalToUserTotal.toString());
 
