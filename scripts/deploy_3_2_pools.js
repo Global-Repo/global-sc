@@ -316,7 +316,7 @@ async function main() {
         100,
         100
     );
-    console.log("Pool ADA-BNB successfully created");*/
+    console.log("Pool ADA-BNB successfully created");
 
 
     // POOL GLB-CAKE
@@ -332,6 +332,102 @@ async function main() {
         100
     );
     console.log("Pool GLB-CAKE successfully created");
+
+
+    // POOL SOL-BNB
+    await new Promise(r => setTimeout(() => r(), 10000));
+    await masterChef.addPool(
+        10,
+        "0x411fe95f21c6d064285450faab45aace8ac82b96",
+        604800,
+        345600,
+        65,
+        15,
+        100,
+        100
+    );
+    console.log("Pool SOL-BNB successfully created");
+
+
+    // POOL DOT-BNB
+    await new Promise(r => setTimeout(() => r(), 10000));
+    await masterChef.addPool(
+        10,
+        "0x3abfe9cf0e1760ce81c915e9c283c7f5d2c5599b",
+        604800,
+        345600,
+        65,
+        15,
+        100,
+        100
+    );
+    console.log("Pool DOT-BNB successfully created");
+
+
+    // POOL FTM-BNB
+    await new Promise(r => setTimeout(() => r(), 10000));
+    await masterChef.addPool(
+        10,
+        "0xda174576dab2ed6364464e0ed774c7a7c61e3e23",
+        604800,
+        345600,
+        65,
+        15,
+        100,
+        100
+    );
+    console.log("Pool FTM-BNB successfully created");
+
+    await new Promise(r => setTimeout(() => r(), 10000));
+
+
+    // POOL USDC-BUSD
+    await new Promise(r => setTimeout(() => r(), 10000));
+    await masterChef.addPool(
+        10,
+        "0x812b386cb8f221b9131ba0c226ca7db892ead868",
+        604800,
+        345600,
+        65,
+        15,
+        100,
+        100
+    );
+    console.log("Pool USDC-BUSD successfully created");
+
+    await new Promise(r => setTimeout(() => r(), 10000));
+
+
+    // POOL LINK-BNB
+    await new Promise(r => setTimeout(() => r(), 10000));
+    await masterChef.addPool(
+        10,
+        "0xf8dbcd3a08e240ddfda194d56029b584edb5f33f",
+        604800,
+        345600,
+        65,
+        15,
+        100,
+        100
+    );
+    console.log("Pool LINK-BNB successfully created");
+
+    await new Promise(r => setTimeout(() => r(), 10000));*/
+
+
+    // POOL RPS-BNB
+    await new Promise(r => setTimeout(() => r(), 10000));
+    await masterChef.addPool(
+        50,
+        "0x138b00dde31704f453461bc45e1eb6dd7db03c2b",
+        259200,
+        345600,
+        65,
+        15,
+        100,
+        100
+    );
+    console.log("Pool RPS-BNB successfully created");
 
     await new Promise(r => setTimeout(() => r(), 10000));
 

@@ -154,11 +154,11 @@ let deploySmartChefFactory = async function () {
     return smartChefFactory;
 };
 
-let deploySmartChef = async function () {
-    const SmartChef = await ethers.getContractFactory("SmartChef");
-    const smartChef = await SmartChef.deploy();
-    await smartChef.deployed();
-    return smartChef;
+let deploySmartChefFactoryGlobal = async function () {
+    const SmartChefFactoryGlobal = await ethers.getContractFactory("SmartChefFactoryGlobal");
+    const smartChefFactoryGlobal = await SmartChefFactoryGlobal.deploy();
+    await smartChefFactoryGlobal.deployed();
+    return smartChefFactoryGlobal;
 };
 
 let deployVaultDistribution = async function (bnb, global) {
@@ -336,8 +336,8 @@ module.exports = {
     deployTokenAddresses,
     deployPathFinderMock,
     deployMasterChef,
-    deploySmartChef,
     deploySmartChefFactory,
+    deploySmartChefFactoryGlobal,
     deployCakeMasterChefMock,
     deployCakeMasterChefLPMock,
     deployGlobalMasterChefMock,
