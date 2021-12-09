@@ -355,6 +355,7 @@ module.exports = {
     deployVaultLocked,
     deployVaultLockedManual,
     deployVaultLockedManualRewarder,
+    deployVaultLockedManualWithdrawer,
     deployVaultStaked,
     deployVaultStakedToGlobal,
     deployPathFinder,
