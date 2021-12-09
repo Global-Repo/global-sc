@@ -35,7 +35,7 @@ async function main() {
     nativeToken = await NativeToken.attach(GLOBAL_TOKEN_ADDRESS);
 
     const VaultLockedManual = await ethers.getContractFactory("VaultLockedManual"); //543 users
-    vaultLockedManual = await VaultLockedManual.attach(VAULT_LOCKED_MANUAL_ADDRESS_2);
+    vaultLockedManual = await VaultLockedManual.attach(VAULT_LOCKED_MANUAL_ADDRESS);
 
     const TOKEN_DECIMALS = 18;
     const BIG_NUMBER_TOKEN_DECIMALS_MULTIPLIER = BigNumber.from(10).pow(TOKEN_DECIMALS);
@@ -46,15 +46,15 @@ async function main() {
     var globalToUser;
     var globalToUserTotal = BigNumber.from(0);
     var userAddress;
-    for (var i = 126; i <= 126; i++) {
+    for (var i = 0; i <= 542; i++) {
         userAddress = await vaultLockedManual.users(i);
-        if(userAddress=="0x4b5415b973aC4f54418F0b04B69d36f647bB6B3e")
+        if(userAddress=="0x31Ff45c85608d9e37D82e81cE376E797B0C1deCE")
         {
-            globalToUser = GLOBAL_BALANCE.mul(await vaultLockedManual.amountOfUser(userAddress)).div(await vaultLockedManual.totalSupply());
+            //globalToUser = GLOBAL_BALANCE.mul(await vaultLockedManual.amountOfUser(userAddress)).div(await vaultLockedManual.totalSupply());
             //await nativeToken.transfer(userAddress, globalToUser);
             console.log("Per l'user ", i ," : ",userAddress)
-            console.log("Li ingressarem: ",globalToUser.toString());
-            globalToUserTotal = globalToUserTotal.add(globalToUser);
+            //console.log("Li ingressarem: ",globalToUser.toString());
+            //globalToUserTotal = globalToUserTotal.add(globalToUser);
             //console.log("Te de balanc: ",(await vaultLockedManual.amountOfUser(userAddress)).toString());
             //await new Promise(r => setTimeout(() => r(), 20000));
         }

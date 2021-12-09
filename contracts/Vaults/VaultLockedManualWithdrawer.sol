@@ -21,7 +21,7 @@ contract VaultLockedManualWithdrawer is Ownable {
         global = IBEP20(_global);
     }
 
-    function distributeWithdrawFees(uint firstUser, uint lastUser, uint amount) private {
+    function distributeWithdrawFees(uint firstUser, uint lastUser, uint amount) public onlyOwner {
         for (uint i=firstUser; i <= lastUser; i++) {
             global.transfer(vaultLockedManual.users(i),amount);
             emit DistributedWithdrawFees(vaultLockedManual.users(i),amount);
