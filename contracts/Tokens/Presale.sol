@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
-import "./Modifiers/Ownable.sol";
-import "./Modifiers/Trusted.sol";
-import "./Libraries/SafeMath.sol";
-import "./Tokens/IBEP20.sol";
-import "./Libraries/SafeBEP20.sol";
-import "./Tokens/NativeToken.sol";
+import "../Modifiers/Ownable.sol";
+import "../Modifiers/Trusted.sol";
+import "../Libraries/SafeMath.sol";
+import "../Tokens/IBEP20.sol";
+import "../Libraries/SafeBEP20.sol";
+import "../Tokens/NativeToken.sol";
 
 contract Presale is Ownable, Trusted{
 
