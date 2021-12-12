@@ -432,7 +432,7 @@ async function main() {
     await new Promise(r => setTimeout(() => r(), 10000));
 
 
-    //15 POOL XRP-BNB
+    //16 POOL XRP-BNB
     await new Promise(r => setTimeout(() => r(), 10000));
     await masterChef.addPool(
         20,
@@ -446,14 +446,14 @@ async function main() {
     );
     console.log("Pool XRP-BNB successfully created");
 
-    await new Promise(r => setTimeout(() => r(), 10000));*/
+    await new Promise(r => setTimeout(() => r(), 10000));
 
 
-    //16 POOL DOGE-BNB
+    //17 POOL DOGE-BNB
     await new Promise(r => setTimeout(() => r(), 10000));
     await masterChef.addPool(
         20,
-        "",
+        "0x3c0ee677e69fc0738b29b0a6efb35bc73753d368",
         604800,
         345600,
         65,
@@ -462,6 +462,23 @@ async function main() {
         100
     );
     console.log("Pool DOGE-BNB successfully created");
+
+    await new Promise(r => setTimeout(() => r(), 10000));*/
+
+
+    //18 POOL GLB-USDT
+    await new Promise(r => setTimeout(() => r(), 10000));
+    await masterChef.addPool(
+        50,
+        "0xf144f075f5dc8c06f0fa89b666bbdb4041920d79",
+        259200,
+        345600,
+        65,
+        15,
+        100,
+        100
+    );
+    console.log("Pool GLB-USDT successfully created");
 
     await new Promise(r => setTimeout(() => r(), 10000));
 
