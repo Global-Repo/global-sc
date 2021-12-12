@@ -42,7 +42,7 @@ async function main() {
     //smartChefFactory = await deploySmartChefFactory();
     //await smartChefFactory.deployed();
     console.log("SmartChefFactory deployed to:", smartChefFactory.address);
-    await new Promise(r => setTimeout(() => r(), 10000));
+    //await new Promise(r => setTimeout(() => r(), 10000));
 
     /*
     const START_BLOCK = 12902728;
@@ -185,7 +185,7 @@ async function main() {
     const result9 = await tx9.wait();
     const smartChefAddress9 = result9.events[2].args[0];
     console.log("SmartChef created for RPS - GLB on:", smartChefAddress9);
-    await new Promise(r => setTimeout(() => r(), 10000));*/
+    await new Promise(r => setTimeout(() => r(), 10000));
 
 
     // Set up
@@ -204,6 +204,24 @@ async function main() {
     const result10 = await tx10.wait();
     const smartChefAddress10 = result10.events[2].args[0];
     console.log("SmartChef created for GLB - OWL on:", smartChefAddress10);
+    await new Promise(r => setTimeout(() => r(), 10000));*/
+
+    const START_BLOCK = 13435045;
+    const END_BLOCK = START_BLOCK + (28800 * 18);
+    const USER_POOL_LIMIT = 0;
+    // Set up
+    const tx11 = await smartChefFactory.deployPool(
+        GLOBAL_TOKEN_ADDRESS,
+        GLOBAL_TOKEN_ADDRESS,
+        "1740000000000000000",
+        START_BLOCK,
+        END_BLOCK,
+        bep20Amount(USER_POOL_LIMIT),
+        DEV_POWER_ADDRESS
+    );
+    const result11 = await tx11.wait();
+    const smartChefAddress11 = result11.events[2].args[0];
+    console.log("SmartChef created for GLB -> GLB on:", smartChefAddress11);
     await new Promise(r => setTimeout(() => r(), 10000));
 
     console.log("Deploy finished");
