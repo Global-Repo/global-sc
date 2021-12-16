@@ -2,7 +2,7 @@ const hre = require("hardhat");
 const { BigNumber } = require("@ethersproject/bignumber");
 require("@nomiclabs/hardhat-ethers");
 const {ethers} = require("hardhat");
-const {WETH_ADDRESS, GLOBAL_TOKEN_ADDRESS} = require("./addresses");
+const {WETH_ADDRESS} = require("./addresses");
 
 let nativeToken;
 let presale;
@@ -15,10 +15,12 @@ const NATIVE_TOKEN_TO_MINT = BigNumber.from(1000000).mul(BIG_NUMBER_TOKEN_DECIMA
 async function main() {
     [owner, ...addrs] = await hre.ethers.getSigners();
 
-    /*const NativeToken = await ethers.getContractFactory("NativeToken");
+    const NativeToken = await ethers.getContractFactory("NativeToken");
     nativeToken = await NativeToken.deploy();
     await nativeToken.deployed();
-    console.log("NativeToken deployed to:", nativeToken.address);*/
+    console.log("NativeToken deployed to:", nativeToken.address);
+
+    await new Promise(r => setTimeout(() => r(), 10000));
 
     /*const whiteTime = (1633118400); // Oct 1st 10pm
     const publicTime = (1635958800); // Wed Nov 03 2021 18:00:00 GMT+0100
@@ -30,9 +32,9 @@ async function main() {
     console.log("Presale whiteTime:", whiteTime);
     console.log("Presale publicTime:", publicTime);*/
 
-    //await nativeToken.openTrading();
+    await nativeToken.openTrading();
     await hre.run("verify:verify", {
-        address: GLOBAL_TOKEN_ADDRESS,//nativeToken.address,
+        address: nativeToken.address,
         constructorArguments: [],
     });
 
