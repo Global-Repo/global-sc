@@ -27,12 +27,12 @@ async function main() {
     // Attach
     const IPO = await ethers.getContractFactory("IPO");
     ipo = await IPO.deploy(
-        "0xe532A78c3d838AfD51a41f4F827b506d3e7265A0",
-         "0xAAC81c0c950058256cf3D8ab7A7eedCDBdd18677",
-        CURRENT_BLOCK+400,
-        CURRENT_BLOCK+1200,
-        bep20Amount(100),
-        bep20Amount(200),
+        "0x09f909A25D04d690DFb9B1A01Ed2D129E8969eE8",
+        "0xD1831487Df03Af92a30603Cd6926D0A8f3798dF9",//"0x1ca64898485Ccc5be993695B9E3c171b75dC13C1",
+        13506600, //CURRENT_BLOCK,
+        13506600 + (28800*9), //CURRENT_BLOCK+100,
+        55,
+        bep20Amount(31620),
         DEV_POWER_ADDRESS
     );
 
@@ -42,14 +42,14 @@ async function main() {
 
     // Verify
     await hre.run("verify:verify", {
-        address: ipo.address,
+        address: "0x6519979490884075AF390A569C1e07F7173AE672",//ipo.address,
         constructorArguments: [
-            "0xe532A78c3d838AfD51a41f4F827b506d3e7265A0",
-            "0xAAC81c0c950058256cf3D8ab7A7eedCDBdd18677",
-            CURRENT_BLOCK+400,
-            CURRENT_BLOCK+1200,
-            bep20Amount(100),
-            bep20Amount(200),
+            "0x09f909A25D04d690DFb9B1A01Ed2D129E8969eE8",
+            "0xD1831487Df03Af92a30603Cd6926D0A8f3798dF9",//"0x1ca64898485Ccc5be993695B9E3c171b75dC13C1",
+            13506600, //CURRENT_BLOCK,
+            13506600 + (28800*9), //CURRENT_BLOCK+100,
+            55,
+            bep20Amount(31620),
             DEV_POWER_ADDRESS
         ],
     });

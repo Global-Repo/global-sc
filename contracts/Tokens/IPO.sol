@@ -37,7 +37,8 @@ contract IPO is ReentrancyGuard {
   // total amount of raising tokens need to be raised
   uint256 public raisingAmount;
   // total amount of offeringToken that will offer
-  uint256 public offeringAmount;
+  //uint256 public offeringAmount;
+  uint256 public lpYuklaPriceRelation;
   // total amount of raising tokens that have already raised
   uint256 public totalAmount;
   // address => amount
@@ -54,7 +55,8 @@ contract IPO is ReentrancyGuard {
       IBEP20 _offeringToken,
       uint256 _startBlock,
       uint256 _endBlock,
-      uint256 _offeringAmount,
+      //uint256 _offeringAmount,
+      uint256 _lpYuklaPriceRelation,
       uint256 _raisingAmount,
       address _adminAddress
   ) public {
@@ -62,7 +64,8 @@ contract IPO is ReentrancyGuard {
       offeringToken = _offeringToken;
       startBlock = _startBlock;
       endBlock = _endBlock;
-      offeringAmount = _offeringAmount;
+      //offeringAmount = _offeringAmount;
+      lpYuklaPriceRelation = _lpYuklaPriceRelation;
       raisingAmount= _raisingAmount;
       totalAmount = 0;
       adminAddress = _adminAddress;
@@ -73,9 +76,14 @@ contract IPO is ReentrancyGuard {
     _;
   }
 
-  function setOfferingAmount(uint256 _offerAmount) public onlyAdmin {
-    require (block.number < startBlock, 'no');
-    offeringAmount = _offerAmount;
+  //function setOfferingAmount(uint256 _offerAmount) public onlyAdmin {
+  //  require (block.number < startBlock, 'no');
+  //  offeringAmount = _offerAmount;
+  //}
+
+  function setLpYuklaPriceRelation(uint256 _lpYuklaPriceRelation) public onlyAdmin {
+    require (_lpYuklaPriceRelation > 0, 'The price cannot be 0');
+    lpYuklaPriceRelation = _lpYuklaPriceRelation;
   }
 
   function setRaisingAmount(uint256 _raisingAmount) public onlyAdmin {
@@ -122,11 +130,13 @@ contract IPO is ReentrancyGuard {
   function getOfferingAmount(address _user) public view returns(uint256) {
     if (totalAmount > raisingAmount) {
       uint256 allocation = getUserAllocation(_user);
-      return offeringAmount.mul(allocation).div(1e6);
+      //return offeringAmount.mul(allocation).div(1e6);
+      return raisingAmount.mul(lpYuklaPriceRelation).mul(allocation).div(1e6);
     }
     else {
       // userInfo[_user] / (raisingAmount / offeringAmount)
-      return userInfo[_user].amount.mul(offeringAmount).div(raisingAmount);
+      //return userInfo[_user].amount.mul(offeringAmount).div(raisingAmount);
+      return userInfo[_user].amount.mul(lpYuklaPriceRelation);
     }
   }
 
@@ -145,8 +155,8 @@ contract IPO is ReentrancyGuard {
   }
 
   function finalWithdraw(uint256 _lpAmount, uint256 _offerAmount) public onlyAdmin {
-    require (_lpAmount < lpToken.balanceOf(address(this)), 'not enough token 0');
-    require (_offerAmount < offeringToken.balanceOf(address(this)), 'not enough token 1');
+    require (_lpAmount <= lpToken.balanceOf(address(this)), 'not enough token 0');
+    require (_offerAmount <= offeringToken.balanceOf(address(this)), 'not enough token 1');
     lpToken.safeTransfer(address(msg.sender), _lpAmount);
     offeringToken.safeTransfer(address(msg.sender), _offerAmount);
   }
