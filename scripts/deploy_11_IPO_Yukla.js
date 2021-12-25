@@ -26,30 +26,36 @@ async function main() {
 
     // Attach
     const IPO = await ethers.getContractFactory("IPO");
-    ipo = await IPO.deploy(
-        "0xe532A78c3d838AfD51a41f4F827b506d3e7265A0",
-         "0xAAC81c0c950058256cf3D8ab7A7eedCDBdd18677",
-        CURRENT_BLOCK+400,
-        CURRENT_BLOCK+1200,
-        bep20Amount(100),
-        bep20Amount(200),
+    /*ipo = await IPO.attach(
+        "0x1f993896a6e00BF0c2a5Fe6a9d6ACB991FD955dA"
+    );
+    let prova = await ipo.userInfo("0x6063130f5Ba259ee9d51F62c16ABFe1B4b91610B")
+    console.log(prova.toString());*/
+
+    /*ipo = await IPO.deploy(
+        "0x09f909a25d04d690dfb9b1a01ed2d129e8969ee8",
+         "0xd1831487df03af92a30603cd6926d0a8f3798df9",
+        CURRENT_BLOCK,
+        CURRENT_BLOCK+12000,
+        55,
+        bep20Amount(31620),
         DEV_POWER_ADDRESS
     );
 
     await ipo.deployed();
     console.log("IPO deployed to:", ipo.address);
-    await new Promise(r => setTimeout(() => r(), 10000));
+    await new Promise(r => setTimeout(() => r(), 10000));*/
 
     // Verify
     await hre.run("verify:verify", {
-        address: ipo.address,
+        address: "0x6a866FFFa5345E68aB3ca5A88dE1C9CD64b60eEB", //ipo.address,
         constructorArguments: [
-            "0xe532A78c3d838AfD51a41f4F827b506d3e7265A0",
-            "0xAAC81c0c950058256cf3D8ab7A7eedCDBdd18677",
-            CURRENT_BLOCK+400,
-            CURRENT_BLOCK+1200,
-            bep20Amount(100),
-            bep20Amount(200),
+            "0x09f909a25d04d690dfb9b1a01ed2d129e8969ee8",
+            "0xd1831487df03af92a30603cd6926d0a8f3798df9",
+            13595594,
+            13595594+12000,
+            55,
+            bep20Amount(31620),
             DEV_POWER_ADDRESS
         ],
     });
