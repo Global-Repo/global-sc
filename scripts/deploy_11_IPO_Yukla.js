@@ -52,8 +52,8 @@ async function main() {
         constructorArguments: [
             "0x09f909a25d04d690dfb9b1a01ed2d129e8969ee8",
             "0xd1831487df03af92a30603cd6926d0a8f3798df9",
-            13595594,
-            13595594+12000,
+            CURRENT_BLOCK,
+            CURRENT_BLOCK+12000,
             55,
             bep20Amount(31620),
             DEV_POWER_ADDRESS
