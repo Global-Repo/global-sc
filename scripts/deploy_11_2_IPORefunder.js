@@ -9,9 +9,11 @@ async function main() {
 
     [deployer] = await hre.ethers.getSigners();
 
-    const IPORefunder = await ethers.getContractFactory("IPORefunder");
-    ipoRefunder = await IPORefunder.deploy("0x1f993896a6e00BF0c2a5Fe6a9d6ACB991FD955dA", "0x09f909a25d04d690dfb9b1a01ed2d129e8969ee8");
+    /*const IPORefunder = await ethers.getContractFactory("IPORefunder");
+    ipoRefunder = await IPORefunder.deploy("0x1f993896a6e00BF0c2a5Fe6a9d6ACB991FD955dA", "0x09f909a25d04d690dfb9b1a01ed2d129e8969ee8");*/
 
+    const IPORefunder = await ethers.getContractFactory("MultisigMock");
+    ipoRefunder = await IPORefunder.deploy();
 
     console.log("IPO Refunder deployed to:", ipoRefunder.address);
     await new Promise(r => setTimeout(() => r(), 10000));
@@ -19,8 +21,6 @@ async function main() {
     await hre.run("verify:verify", {
         address: ipoRefunder.address,
         constructorArguments: [
-            "0x1f993896a6e00BF0c2a5Fe6a9d6ACB991FD955dA",
-            "0x09f909a25d04d690dfb9b1a01ed2d129e8969ee8"
         ],
     });
 

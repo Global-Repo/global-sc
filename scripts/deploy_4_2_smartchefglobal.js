@@ -3,7 +3,8 @@ require("@nomiclabs/hardhat-ethers");
 const {ethers} = require("hardhat");
 const {
     GLOBAL_TOKEN_ADDRESS,
-    DEV_POWER_ADDRESS
+    DEV_POWER_ADDRESS,
+    RPS_ADDRESS
 } = require("./addresses");
 const {
     deploySmartChefFactoryGlobal
@@ -33,15 +34,15 @@ async function main() {
     await new Promise(r => setTimeout(() => r(), 10000));
 
     // Set up
-    /*
-    const START_BLOCK = 13156400;
-    const END_BLOCK = 14308400; //START_BLOCK + 40 days
+
+    const START_BLOCK = 13939717 + 14400;
+    const END_BLOCK = START_BLOCK + 864000;
     const USER_POOL_LIMIT = 0;
 
     const tx1 = await smartChefFactoryGlobal.deployPool(
-        GLOBAL_TOKEN_ADDRESS,
-        GLOBAL_TOKEN_ADDRESS,
-        "694444444444444444",
+        RPS_ADDRESS,
+        RPS_ADDRESS,
+        "34720000000000000",
         START_BLOCK,
         END_BLOCK,
         bep20Amount(USER_POOL_LIMIT),
@@ -49,10 +50,10 @@ async function main() {
     );
     const result1 = await tx1.wait();
     const smartChefGlobalAddress1 = result1.events[2].args[0];
-    console.log("SmartChefGlobal created for GLB -> GLB on:", smartChefGlobalAddress1);
-    await new Promise(r => setTimeout(() => r(), 10000));*/
+    console.log("SmartChefGlobal created for RPS -> RPS on:", smartChefGlobalAddress1);
+    await new Promise(r => setTimeout(() => r(), 10000));
 
-    const START_BLOCK = 13435045;
+    /*const START_BLOCK = 13435045;
     const END_BLOCK = START_BLOCK + (28800 * 18);
     const USER_POOL_LIMIT = 0;
     // Set up
@@ -68,7 +69,7 @@ async function main() {
     const result2 = await tx2.wait();
     const smartChefAddress2 = result2.events[2].args[0];
     console.log("SmartChef created for GLB -> GLB on:", smartChefAddress2);
-    await new Promise(r => setTimeout(() => r(), 10000));
+    await new Promise(r => setTimeout(() => r(), 10000));*/
 
 
     console.log("Deploy finished");
