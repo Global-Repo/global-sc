@@ -47,7 +47,7 @@ contract SmartChefGlobal is Ownable, ReentrancyGuard {
     // The staked token
     IBEP20 public stakedToken;
 
-    uint256 stakedTokenSupply;
+    uint256 public stakedTokenSupply;
 
     // Info of each user that stakes tokens (stakedToken)
     mapping(address => UserInfo) public userInfo;

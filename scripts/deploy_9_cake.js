@@ -27,6 +27,7 @@ const {
 const { timestampNDays } = require("../test/helpers/utils");
 
 let CURRENT_BLOCK;
+let multisigMock;
 let vaultDistribution;
 let vaultVested15;
 let vaultVested30;
@@ -43,7 +44,19 @@ async function main() {
 
     CURRENT_BLOCK = await ethers.provider.getBlockNumber();
     console.log("Current block is:", CURRENT_BLOCK);
+/*
+    const MultisigMock = await ethers.getContractFactory("MultisigMock");
+    multisigMock = await MultisigMock.deploy();
+    console.log("MultisigMock deployed to:", multisigMock.address);
+*/
 
+    await hre.run("verify:verify", {
+        address: "0xCE68a99eE1F57A893e65c807e1ab37938ae5a352", //multisigMock.address,
+        constructorArguments: [
+        ],
+    });
+
+/*
     // Attach
     const VaultDistribution = await ethers.getContractFactory("VaultDistribution");
     vaultDistribution = await VaultDistribution.attach(VAULT_DISTRIBUTION_ADDRESS);
@@ -145,7 +158,7 @@ async function main() {
     await new Promise(r => setTimeout(() => r(), 10000));
 
     console.log("Current block is:", CURRENT_BLOCK);
-
+*/
     console.log("Deploy finished");
     console.log("Ensure you update VaultCake15, VaultCake30, VaultCake50 addresses into addresses.js");
 }

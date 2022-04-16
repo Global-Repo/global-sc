@@ -5,8 +5,8 @@ import "../Modifiers/Ownable.sol";
 
 contract MultisigMock is Ownable {
     uint public amount = 0;
-    function increase() external onlyOwner returns (uint) {
-        amount = amount + 1;
+    function increase(uint incAmount) external onlyOwner returns (uint) {
+        amount = amount + incAmount;
         return amount;
     }
 }
