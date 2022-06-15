@@ -1,5 +1,7 @@
 require("@nomiclabs/hardhat-waffle"); // Includes hardhat-ethers
 require("@nomiclabs/hardhat-etherscan");
+require("hardhat-gas-reporter");
+require("@nomiclabs/hardhat-web3");
 
 const fs = require('fs');
 const secrets = fs.readFileSync(".secret").toString().trim().split(/\n/);
@@ -25,14 +27,14 @@ module.exports = {
       url: "https://data-seed-prebsc-1-s1.binance.org:8545",
       chainId: 97,
       gasPrice: 20000000000,
-      accounts: {mnemonic: mnemonicTest},
+      accounts: {mnemonic: mnemonicDeployer},
     },
     mainnet: {
       allowUnlimitedContractSize: true,
       url: "https://bsc-dataseed.binance.org/",
       chainId: 56,
       gasPrice: 20000000000,
-      accounts: {mnemonic: mnemonicTest}
+      accounts: {mnemonic: mnemonicDeployer}
     }
   },
   etherscan: {
@@ -59,6 +61,24 @@ module.exports = {
             runs: 200
           }
         }
+      },
+      {
+        version: "0.5.16",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200
+          }
+        }
+      },
+      {
+        version: "0.6.6",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200
+          }
+        }
       }
     ]
   },
@@ -70,5 +90,11 @@ module.exports = {
   },
   mocha: {
     timeout: 20000
+  },
+  gasReporter: {
+    token: 'BNB',
+    gasPriceApi: 'https://api.bscscan.com/api?module=proxy&action=eth_gasPrice',
+    coinmarketcap: 'GU38I82Y86NWHD3UEQPE9V8B9K6PJBKCWI',
+    enabled: true
   }
 }

@@ -4,7 +4,6 @@ pragma solidity >=0.6.6;
 interface IRouterV1 {
     function factory() external pure returns (address);
     function WETH() external pure returns (address);
-    function swapFeeReward() external pure returns (address);
 
     function addLiquidity(
         address tokenA,

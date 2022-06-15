@@ -10,14 +10,12 @@ import "./Tokens/IWETH.sol";
 import "./Tokens/IERC20.sol";
 import "./IRouterV2.sol";
 import "./IFactory.sol";
-import "./ISwapFeeReward.sol";
 
 contract Router is IRouterV2, Ownable {
     using SafeMath for uint;
 
     address public immutable override factory;
     address public immutable override WETH;
-    address public override swapFeeReward;
 
     modifier ensure(uint deadline) {
         require(deadline >= block.timestamp, 'GlobalRouter: EXPIRED');
@@ -31,10 +29,6 @@ contract Router is IRouterV2, Ownable {
 
     receive() external payable {
         assert(msg.sender == WETH); // only accept ETH via fallback from the WETH contract
-    }
-
-    function setSwapFeeReward(address _swapFeeReward) public onlyOwner {
-        swapFeeReward = _swapFeeReward;
     }
 
     // **** ADD LIQUIDITY ****
@@ -223,9 +217,6 @@ contract Router is IRouterV2, Ownable {
             (address token0,) = PancakeLibrary.sortTokens(input, output);
             uint amountOut = amounts[i + 1];
             (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOut) : (amountOut, uint(0));
-            if (swapFeeReward != address(0)) {
-                ISwapFeeReward(swapFeeReward).swap(msg.sender, input, output, amountOut);
-            }
             address to = i < path.length - 2 ? PancakeLibrary.pairFor(factory, output, path[i + 2]) : _to;
             IPair(PancakeLibrary.pairFor(factory, input, output)).swap(
                 amount0Out, amount1Out, to, new bytes(0)
@@ -341,9 +332,6 @@ contract Router is IRouterV2, Ownable {
                 (uint reserveInput, uint reserveOutput) = input == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
                 amountInput = IERC20(input).balanceOf(address(pair)).sub(reserveInput);
                 amountOutput = PancakeLibrary.getAmountOut(amountInput, reserveInput, reserveOutput, pair.swapFee());
-            }
-            if (swapFeeReward != address(0)) {
-                ISwapFeeReward(swapFeeReward).swap(msg.sender, input, output, amountOutput);
             }
             (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOutput) : (amountOutput, uint(0));
             address to = i < path.length - 2 ? PancakeLibrary.pairFor(factory, output, path[i + 2]) : _to;

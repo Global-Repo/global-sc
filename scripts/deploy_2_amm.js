@@ -17,7 +17,6 @@ const {
 
 let factory;
 let router;
-let tokenAddresses;
 
 let CURRENT_BLOCK;
 
@@ -31,39 +30,47 @@ async function main() {
     console.log("Current block is:", CURRENT_BLOCK);
 
     // Start
-    factory = await deployFactory(DEPLOYER_ADDRESS);
+    //factory = await deployFactory(DEPLOYER_ADDRESS);
+    const Factory = await ethers.getContractFactory("Factory");
+    factory = await Factory.attach("0x5C28c151C27C02ae7fFfB8c4e47b3557c3A40344");
     console.log("Factory deployed to:", factory.address);
     await new Promise(r => setTimeout(() => r(), 10000));
 
-    await factory.setFeeTo(TREASURY_SWAP_ADDRESS);
-    console.log("FeeTo from factory set to treasury:", TREASURY_SWAP_ADDRESS);
+    await factory.setFeeTo(DEPLOYER_ADDRESS);
+    console.log("FeeTo from factory set to treasury:", DEPLOYER_ADDRESS);
     await new Promise(r => setTimeout(() => r(), 10000));
 
-    router = await deployRouter(factory.address, WETH_ADDRESS);
+    //router = await deployRouter(factory.address, WETH_ADDRESS);
+    const Router = await ethers.getContractFactory("Router");
+    router = await Router.attach("0x637315757AC58Ee020Ef2e27e24482873011f21C");
     console.log("Router deployed to:", router.address);
     await new Promise(r => setTimeout(() => r(), 10000));
 
-    tokenAddresses = await deployTokenAddresses();
-    console.log("TokenAddresses deployed to:", tokenAddresses.address);
-    await new Promise(r => setTimeout(() => r(), 10000));
-
-    await tokenAddresses.addToken(tokenAddresses.GLOBAL(), GLOBAL_TOKEN_ADDRESS);
-    console.log("Added Global to TokenAddresses with address:", GLOBAL_TOKEN_ADDRESS);
-    await new Promise(r => setTimeout(() => r(), 10000));
-    await tokenAddresses.addToken(tokenAddresses.BNB(), WETH_ADDRESS);
-    console.log("Added BNB to TokenAddresses with address:", WETH_ADDRESS);
-    await new Promise(r => setTimeout(() => r(), 10000));
-    await tokenAddresses.addToken(tokenAddresses.WBNB(), WETH_ADDRESS);
-    console.log("Added WBNB to TokenAddresses with address:", WETH_ADDRESS);
-    await new Promise(r => setTimeout(() => r(), 10000));
-    await tokenAddresses.addToken(tokenAddresses.BUSD(), BUSD_ADDRESS);
-    console.log("Added BUSD to TokenAddresses with address:", BUSD_ADDRESS);
-    await new Promise(r => setTimeout(() => r(), 10000));
-    await tokenAddresses.addToken(tokenAddresses.CAKE(), CAKE_ADDRESS);
-    console.log("Added CAKE to TokenAddresses with address:", CAKE_ADDRESS);
-    await new Promise(r => setTimeout(() => r(), 10000));
-
     console.log("Current block is:", CURRENT_BLOCK);
+
+    //VERIFY AMM
+    /*await hre.run("verify:verify", {
+        address: factory.address,
+        constructorArguments: [
+            DEPLOYER_ADDRESS
+        ],
+    });
+
+    await hre.run("verify:verify", {
+        address: router.address,
+        constructorArguments: [
+            factory.address,
+            WETH_ADDRESS
+        ],
+    });*/
+
+    await hre.run("verify:verify", {
+        address: "0x0d954c8791cf728dc892e285ee177d4c0b4bd7c5",
+        constructorArguments: [
+        ],
+    });
+
+
 
     console.log("Deploy finished");
     console.log("Ensure you update, Router, TokenAddresses address into addresses.js");
@@ -77,3 +84,5 @@ main()
     console.error(error);
     process.exit(1);
   });
+
+

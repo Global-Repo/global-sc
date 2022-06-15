@@ -29,8 +29,8 @@ contract Pair is IPair, PancakeERC20 {
     uint public override price0CumulativeLast;
     uint public override price1CumulativeLast;
     uint public override kLast; // reserve0 * reserve1, as of immediately after the most recent liquidity event
-    uint32 public override swapFee = 86; // uses 0.086% default
-    uint32 public override devFee = 1; // uses 0.043% default from swap fee
+    uint32 public override swapFee = 300; // uses 0.3% default
+    uint32 public override devFee = 0; // uses 0.0% default from swap fee
     //Original SwapFee base
     //uint32 public swapFee = 100; // uses 0.1% default
     //uint32 public devFee = 1; // uses 0.05% default from swap fee
@@ -82,7 +82,6 @@ contract Pair is IPair, PancakeERC20 {
     }
 
     function setSwapFee(uint32 _swapFee) external override {
-        require(_swapFee > 0, "GlobalPair: lower then 0");
         require(msg.sender == factory, 'GlobalPair: FORBIDDEN');
         require(_swapFee <= 100000, 'GlobalPair: FORBIDDEN_FEE');
         swapFee = _swapFee;
@@ -97,7 +96,6 @@ contract Pair is IPair, PancakeERC20 {
     }*/
 
     function setDevFee(uint32 _devFee) external override {
-        require(_devFee > 0, "GlobalPair: lower then 0");
         require(msg.sender == factory, 'GlobalPair: FORBIDDEN');
         require(_devFee <= 500, 'GlobalPair: FORBIDDEN_FEE');
         devFee = _devFee;

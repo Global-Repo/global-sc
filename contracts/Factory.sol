@@ -56,7 +56,6 @@ contract Factory is IFactory {
 
     function setDevFee(address _pair, uint8 _devFee) external {
         require(msg.sender == feeSetter, 'GlobalFactory: FORBIDDEN');
-        require(_devFee > 0, 'GlobalFactory: FORBIDDEN_FEE');
         IPair(_pair).setDevFee(_devFee);
     }
 
