@@ -13,16 +13,18 @@ const TO_BLOCK = "14185912"; //"18615000";
 
 const contract = new Web3_bsc.eth.Contract(abi, ADDRESS);
 
-contract
-  .getPastEvents(
-    "Swap", // "allEvents",
-    {
-      fromBlock: FROM_BLOCK,
-      toBlock: TO_BLOCK,
-    }
-  )
-  .then(async function (events) {
+async function main() {
+  try {
+    const events = await contract.getPastEvents(
+      "Swap", // "allEvents",
+      {
+        fromBlock: FROM_BLOCK,
+        toBlock: TO_BLOCK,
+      }
+    );
+
     //console.log(events);
+
     for (var i = 0; i < events.length; i++) {
       const timestamp = (await Web3_bsc.eth.getBlock(events[i].blockNumber))
         .timestamp;
@@ -36,9 +38,13 @@ contract
           1000000000000000000 /*JSON.stringify(events)*/
       );
     }
-  })
-  .catch((err) => {
+  } catch (err) {
     console.error("____ ERR", err);
-  });
+  }
+}
+
+main().then(() => {
+  console.log("FINISHED !!!");
+});
 
 // https://bscscan.com/tx/0xcdceb49c13de0af901b73adacead01b8a877c00b44023459dbc6f8ce736c3a75
