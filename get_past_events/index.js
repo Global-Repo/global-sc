@@ -5,8 +5,11 @@ const abi = require("./abi");
 const Web3_bsc = new Web3("https://bsc-dataseed1.binance.org:443");
 
 const ADDRESS = "0x1dF0B759ee5b144852EEb571bbA9CCA2aec66b35";
-const FROM_BLOCK = "18610000";
-const TO_BLOCK = "18615000";
+//const FROM_BLOCK = "18610000";
+const FROM_BLOCK = "14185612";//"18610000";
+const TO_BLOCK = "14185912";//"18615000";
+//const TO_BLOCK = "14190612";//"18615000";
+//const TO_BLOCK = "18615000";
 
 const contract = new Web3_bsc.eth.Contract(abi, ADDRESS);
 
@@ -19,8 +22,13 @@ contract
     }
   )
   .then(function (events) {
-    console.log("___ OK", JSON.stringify(events));
-  })
+      //console.log(events);
+      for (var i = 0; i < events.length; i++) {
+          const timestamp = Web3_bsc.eth.getBlock(events[i].blockNumber).timestamp;
+
+          console.log(events[i].returnValues.to, " on ",timestamp, " transferred ", (Number(events[i].returnValues.amount1In) + Number(events[i].returnValues.amount1Out)) / 1000000000000000000/*JSON.stringify(events)*/);
+      }
+      })
   .catch((err) => {
     console.error("____ ERR", err);
   });
