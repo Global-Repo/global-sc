@@ -1,10 +1,12 @@
 // const { web3 } = require("hardhat");
 const Web3 = require("web3");
 const abi = require("./abi");
+const abi2 = require("./abi2");
 
 const Web3_bsc = new Web3("https://bsc-dataseed1.binance.org:443");
 
 const ADDRESS = "0x1dF0B759ee5b144852EEb571bbA9CCA2aec66b35";
+const ADDRESS2 = "0x1dF0B759ee5b144852EEb571bbA9CCA2aec66b35";
 //const FROM_BLOCK = "18610000";
 const FROM_BLOCK = "14185612"; //"18610000";
 const TO_BLOCK = "14185912"; //"18615000";
@@ -12,6 +14,7 @@ const TO_BLOCK = "14185912"; //"18615000";
 //const TO_BLOCK = "18615000";
 
 const contract = new Web3_bsc.eth.Contract(abi, ADDRESS);
+const contract2 = new Web3_bsc.eth.Contract(abi2, ADDRESS2);
 
 async function main() {
   try {
@@ -23,6 +26,10 @@ async function main() {
       }
     );
 
+    /* aqui tienes un ejemplo de como llamar a otro contrato
+    const resultadoFunction = await contract2.nombreFunction(param1, param2)
+
+    */
     //console.log(events);
 
     for (var i = 0; i < events.length; i++) {
