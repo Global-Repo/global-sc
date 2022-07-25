@@ -14,5 +14,8 @@
     "hardhat-gas-reporter": "^1.0.6",
     "scenario-eth-gas-reporter": "^0.0.1",
     "web3": "^1.7.3"
+  },
+  "dependencies": {
+    "eth-block-timestamp": "^0.0.6"
   }
 }
