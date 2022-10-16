@@ -12,3 +12,7 @@ cache
 artifacts
 coverage
 coverage.json
+.secret2
+.secret_deployer_aa3
+.secret_treasury_mint
+/.secret_deployer_eef

@@ -37,25 +37,24 @@ async function main() {
         console.log("[SWAPREWARD deployed]: " + swapReward.address);
         await new Promise(r => setTimeout(() => r(), timeoutPeriod));
         console.log("[Success]");
+
+        try {
+            console.log("VERIFYING SWAPREWARD: ", swapReward.address);
+            //// Verify contract on bsc
+            await hre.run("verify:verify", {
+                address: swapReward.address,
+                constructorArguments: [
+                ],
+            });
+            console.log( "Verified SWAPREWARD: " + swapReward.address );
+        } catch (err) {
+            console.log(err.message);
+        }
     } else {
         // Attach SWAPREWARD
         console.log("[Attaching SWAPREWARD SC]");
         swapReward = await SWAPREWARD.attach("0x289D2C8D914e0a7EAf9991D0E848D4A8795f022d");
         console.log("[SWAPREWARD attached]: " + swapReward.address);
-    }
-
-
-    try {
-        console.log("VERIFYING SWAPREWARD: ", swapReward.address);
-        //// Verify contract on bsc
-        await hre.run("verify:verify", {
-            address: swapReward.address,
-            constructorArguments: [
-            ],
-        });
-        console.log( "Verified SWAPREWARD: " + swapReward.address );
-    } catch (err) {
-        console.log(err.message);
     }
 
 

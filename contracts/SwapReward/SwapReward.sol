@@ -8,7 +8,9 @@ contract SwapReward is Ownable
 {
     using SafeMath for uint256;
 
-    mapping (address => uint[30]) public swappedRegistry;
+    uint public constant DAYS = 30;
+
+    mapping (address => uint[DAYS]) public swappedRegistry;
     mapping (address => bool) public usersMap;
     address[] public usersList;
 
@@ -28,11 +30,11 @@ contract SwapReward is Ownable
         return usersList[position];
     }
 
-    function getUserData(uint position) public view returns (uint[30] memory) {
+    function getUserData(uint position) public view returns (uint[DAYS] memory) {
         return swappedRegistry[usersList[position]];
     }
 
-    function getUserData(address user) public view returns (uint[30] memory) {
+    function getUserData(address user) public view returns (uint[DAYS] memory) {
         return swappedRegistry[user];
     }
 
@@ -95,5 +97,23 @@ contract SwapReward is Ownable
     {
         checkUser(user);
         swappedRegistry[user][day] = amount.add(swappedRegistry[user][day]);
+    }
+
+    function RegisterUser(address user, uint[] calldata amount) external onlyOwner
+    {
+        checkUser(user);
+        for (uint256 i = 0; i < DAYS; i++)
+        {
+            swappedRegistry[user][i] = amount[i];
+        }
+    }
+
+    function UpdateUser(address user, uint[] calldata amount) external onlyOwner
+    {
+        checkUser(user);
+        for (uint256 i = 0; i < DAYS; i++)
+        {
+            swappedRegistry[user][i] = amount[i].add(swappedRegistry[user][i]);
+        }
     }
 }
