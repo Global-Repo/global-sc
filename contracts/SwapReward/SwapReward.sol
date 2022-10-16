@@ -16,8 +16,28 @@ contract SwapReward is Ownable
 
     }
 
+    function getUsersListLength() external view returns(uint256) {
+        return usersList.length;
+    }
+
+    function getUsersList() external view returns(address[] memory) {
+        return usersList;
+    }
+
+    function getUsersListAt(uint position) external view returns(address) {
+        return usersList[position];
+    }
+
+    function getUserData(uint position) public view returns (uint[30] memory) {
+        return swappedRegistry[usersList[position]];
+    }
+
     function getUserData(address user) public view returns (uint[30] memory) {
         return swappedRegistry[user];
+    }
+
+    function getUserData(uint position, uint day) public view returns (uint) {
+        return swappedRegistry[usersList[position]][day];
     }
 
     function getUserData(address user, uint day) public view returns (uint) {
