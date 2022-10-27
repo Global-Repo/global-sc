@@ -46,8 +46,8 @@ async function main() {
     await new Promise(r => setTimeout(() => r(), 10000));
 
 
-    const START_BLOCK = 22519000;
-    const END_BLOCK = START_BLOCK + 28800; //START_BLOCK + (28800 * 30);
+    const START_BLOCK = 22548300;
+    const END_BLOCK = START_BLOCK + (2*28800); //START_BLOCK + (28800 * 30);
     const USER_POOL_LIMIT = 0;
     // Set up
     const tx1 = await smartChefFactory.deployPool(
