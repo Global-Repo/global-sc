@@ -4,11 +4,9 @@ require("hardhat-gas-reporter");
 require("@nomiclabs/hardhat-web3");
 
 const fs = require('fs');
-const secrets = fs.readFileSync(".secret").toString().trim().split(/\n/);
 const secretsDeployer = fs.readFileSync(".secret_deployer_dd3").toString().trim().split(/\n/);
-const mnemonicTest = secrets[0].trim();
 const mnemonicDeployer = secretsDeployer[0].trim();
-const apiKeyBSC = secrets[1].trim();
+const apiKeyBSC = secretsDeployer[1].trim();
 
 /**
  * @type import('hardhat/config').HardhatUserConfig
@@ -73,33 +71,6 @@ module.exports = {
       },
       {
         version: "0.6.6",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200
-          }
-        }
-      },
-      {
-        version: "0.8.0",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200
-          }
-        }
-      },
-      {
-        version: "0.8.1",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200
-          }
-        }
-      },
-      {
-        version: "0.8.16",
         settings: {
           optimizer: {
             enabled: true,
