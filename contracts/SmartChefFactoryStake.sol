@@ -3,7 +3,7 @@ pragma solidity 0.6.12;
 
 import './Tokens/IBEP20.sol';
 import './Tokens/IERC20.sol';
-import './SmartChef.sol';
+import './SmartChefStake.sol';
 
 contract SmartChefFactory is Ownable {
     event NewSmartChefContract(address indexed smartChef);
