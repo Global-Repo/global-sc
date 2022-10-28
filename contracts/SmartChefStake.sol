@@ -120,6 +120,7 @@ contract SmartChef is Ownable, ReentrancyGuard {
 
         //Setting the StakingHelper address for staking on withdraw
         stakingContract = _stakingContract;
+        rewardToken.approve(stakingContract,type(uint256).max);
 
         // Transfer ownership to the admin address who becomes owner of the contract
         transferOwnership(_admin);
@@ -150,10 +151,6 @@ contract SmartChef is Ownable, ReentrancyGuard {
         if (user.amount > 0) {
             uint256 pending = user.amount.mul(accTokenPerShare).div(PRECISION_FACTOR).sub(user.rewardDebt);
             if (pending > 0) {
-                if(rewardToken.allowance(address(msg.sender), address(stakingContract))==0)
-                {
-                    rewardToken.approve(stakingContract,type(uint256).max);
-                }
                 StakingHelper(stakingContract).stake(pending,address(msg.sender));
                 //rewardToken.safeTransfer(address(msg.sender), pending);
             }
@@ -187,10 +184,6 @@ contract SmartChef is Ownable, ReentrancyGuard {
         }
 
         if (pending > 0) {
-            if(rewardToken.allowance(address(msg.sender), address(stakingContract))==0)
-            {
-                rewardToken.approve(stakingContract,type(uint256).max);
-            }
             StakingHelper(stakingContract).stake(pending,address(msg.sender));
             //rewardToken.safeTransfer(address(msg.sender), pending);
         }
